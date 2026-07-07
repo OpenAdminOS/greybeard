@@ -6,7 +6,7 @@
 
 # Greybeard
 
-**The senior admin who knows your tenant, installed in the AI client you already use.**
+**Senior admin judgment for Microsoft 365, Intune, and Entra, in the AI client you already use.**
 
 <p>
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-1f1f1f?logo=anthropic&logoColor=white">
@@ -20,7 +20,7 @@
 
 Every team has one: the admin with the grey beard who has been there for years, who has seen the tenant grow from fifty seats to five thousand, and who knows without looking which Conditional Access policy will lock everyone out and which stale group is load-bearing. When a change is risky, you ask them first. That instinct is experience, and it usually walks out the door when they do.
 
-Greybeard is that person, made portable. It brings the veteran's habits to whatever AI client you already use: read before you write, ask for the narrowest permission that does the job, scope every query instead of dragging the whole tenant into context, reach for the full Graph surface when the task needs it, and never make a change to production without a human signing off first. The AI has the speed; Greybeard gives it the judgment.
+Greybeard is that experience, made portable. It brings the veteran's habits to whatever AI client you already use: read before you write, ask for the narrowest permission that does the job, scope every query instead of dragging the whole tenant into context, reach for the full Graph surface when the task needs it, and never make a change to production without a human signing off first. The AI has the speed; Greybeard gives it the judgment.
 
 Concretely, it is a portable set of Agent Skills plus MCP servers for Microsoft 365, Intune, and Entra admins. It calls the Microsoft Graph beta endpoint by default for full coverage, asks for the narrowest delegated scope that can do the job, uses `$select` and filters instead of over-fetching, and routes every tenant write through a server-side approval gate.
 
