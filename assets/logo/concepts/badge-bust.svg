@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the badge bust</title>
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#0f0f0f" stroke-width="6"/>
+  <g fill="#0f0f0f">
+    <rect x="30" y="36" width="24" height="8" rx="4" transform="rotate(-9 42 40)"/>
+    <rect x="66" y="36" width="24" height="8" rx="4" transform="rotate(9 78 40)"/>
+    <circle cx="43" cy="50" r="3.5"/>
+    <circle cx="77" cy="50" r="3.5"/>
+    <path d="M16 62 Q32 74 46 70 Q56 66 57 72 L60 69 L63 72 Q64 66 74 70 Q88 74 104 62 Q102 92 82 105 Q60 116 38 105 Q18 92 16 62 Z"/>
+  </g>
+</svg>

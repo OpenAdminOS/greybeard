@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard</title>
+  <g fill="#e8eaee">
+    <path d="M29 25 Q38 16 53 19 L54 23 Q41 20 31 27 Z"/>
+    <path d="M91 25 Q82 16 67 19 L66 23 Q79 20 89 27 Z"/>
+  </g>
+  <g fill="none" stroke="#e8eaee" stroke-width="2.4" stroke-linecap="round">
+    <circle cx="45" cy="38.5" r="10"/>
+    <circle cx="76" cy="38.5" r="10"/>
+    <path d="M55 36.5 Q60.5 33.5 66 36.5"/>
+    <path d="M31 37.5 H35"/>
+    <path d="M86 37.5 H90"/>
+  </g>
+  <g fill="#e8eaee">
+    <circle cx="45" cy="38.5" r="2.3"/>
+    <circle cx="76" cy="38.5" r="2.3"/>
+  </g>
+  <path fill="#c6cbd1" d="M27 40 Q31 50 36 56 Q42 61 48 62 Q56 64 60 64 Q64 64 72 62 Q78 61 84 56 Q89 50 93 40 Q97 55 95 68 Q92 86 78 98 Q68 105 60 108 Q52 105 42 98 Q28 86 25 68 Q23 55 27 40 Z"/>
+  <path fill="#e2e5e9" d="M60 57 Q50 51 41 53 Q31 55 29 62 Q28 66 33 66 Q36 66 38 64 Q39 68 45 69 Q54 70 60 70 Q66 70 75 69 Q81 68 82 64 Q84 66 87 66 Q92 66 91 62 Q89 55 79 53 Q70 51 60 57 Z"/>
+</svg>

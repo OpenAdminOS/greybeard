@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: long sage beard</title>
+  <path fill="#8f959e" d="M60 26 Q48 18 38 25 Q30 30 34 38 Q38 44 47 41 Q54 38 58 33 Q59 31 60 30 Q61 31 62 33 Q66 38 73 41 Q82 44 86 38 Q90 30 82 25 Q72 18 60 26 Z"/>
+  <path fill="#8f959e" d="M32 40 Q30 66 38 84 Q46 102 56 112 Q59 115 60 117 Q61 115 64 112 Q74 102 82 84 Q90 66 88 40 Q82 50 73 48 Q65 46 60 51 Q55 46 47 48 Q38 50 32 40 Z"/>
+  <g fill="none" stroke="#c3c9d1" stroke-width="3.5" stroke-linecap="round">
+    <path d="M44 58 Q46 80 54 98"/>
+    <path d="M76 58 Q74 80 66 98"/>
+    <path d="M60 60 Q60 84 60 106"/>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "name": "greybeard",
+  "version": "0.1.0",
+  "description": "Microsoft 365, Intune, and Entra admin skills with Greybeard MCP server wiring.",
+  "author": {
+    "name": "Ugur Koc"
+  },
+  "skills": ".agents/skills"
+}

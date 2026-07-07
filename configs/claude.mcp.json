@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "greybeard-graph": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "graph/dist/index.js"
+      ],
+      "env": {}
+    },
+    "greybeard-memory": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "memory/dist/index.js"
+      ],
+      "env": {}
+    }
+  }
+}

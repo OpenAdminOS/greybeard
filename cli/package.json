@@ -1,0 +1,17 @@
+{
+  "name": "@greybeard/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "greybeard": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@greybeard/graph": "0.1.0",
+    "@greybeard/memory": "0.1.0"
+  }
+}

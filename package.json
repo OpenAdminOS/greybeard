@@ -1,0 +1,25 @@
+{
+  "name": "greybeard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "graph",
+    "memory",
+    "cli"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "check:style": "node scripts/check-style.mjs",
+    "ci": "npm run build && npm test && npm run check:style"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.6"
+  }
+}

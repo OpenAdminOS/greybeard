@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "greybeard-graph": {
+      "command": "node",
+      "args": [
+        "graph/dist/index.js"
+      ],
+      "env": {}
+    },
+    "greybeard-memory": {
+      "command": "node",
+      "args": [
+        "memory/dist/index.js"
+      ],
+      "env": {}
+    },
+    "microsoft-learn": {
+      "url": "https://learn.microsoft.com/api/mcp"
+    }
+  }
+}

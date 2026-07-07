@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: beard of grey strands</title>
+  <g fill="none" stroke-linecap="round">
+    <path d="M34 32 Q26 40 32 48 Q40 54 52 44" stroke="#8f959e" stroke-width="9"/>
+    <path d="M86 32 Q94 40 88 48 Q80 54 68 44" stroke="#8f959e" stroke-width="9"/>
+    <path d="M60 34 Q52 38 46 36" stroke="#b0b6be" stroke-width="8"/>
+    <path d="M60 34 Q68 38 74 36" stroke="#b0b6be" stroke-width="8"/>
+    <path d="M36 50 Q36 76 48 94" stroke="#8f959e" stroke-width="10"/>
+    <path d="M84 50 Q84 76 72 94" stroke="#8f959e" stroke-width="10"/>
+    <path d="M48 54 Q48 82 56 102" stroke="#b0b6be" stroke-width="10"/>
+    <path d="M72 54 Q72 82 64 102" stroke="#b0b6be" stroke-width="10"/>
+    <path d="M60 56 Q60 88 60 110" stroke="#d2d7dd" stroke-width="10"/>
+  </g>
+</svg>

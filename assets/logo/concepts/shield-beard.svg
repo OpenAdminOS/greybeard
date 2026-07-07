@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the shield beard</title>
+  <g fill="#0f0f0f">
+    <rect x="33" y="34" width="21" height="7" rx="3.5" transform="rotate(-8 43.5 37.5)"/>
+    <rect x="66" y="34" width="21" height="7" rx="3.5" transform="rotate(8 76.5 37.5)"/>
+    <circle cx="44" cy="47" r="3.5"/>
+    <circle cx="76" cy="47" r="3.5"/>
+    <rect x="42" y="52" width="36" height="7" rx="3.5"/>
+  </g>
+  <path d="M30 44 Q34 18 60 16 Q86 18 90 44" fill="none" stroke="#0f0f0f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M34 59 H86 V76 Q86 97 60 108 Q34 97 34 76 Z" fill="none" stroke="#0f0f0f" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M48 79 L57 89 L73 69" fill="none" stroke="#0f0f0f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

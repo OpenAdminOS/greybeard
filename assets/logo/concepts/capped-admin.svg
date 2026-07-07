@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the capped admin</title>
+  <g fill="#0f0f0f">
+    <path d="M28 40 Q32 18 60 16 Q88 18 92 40 Q93 44 87 44 L33 44 Q27 44 28 40 Z"/>
+    <path d="M38 44 Q60 54 82 44 Z"/>
+    <rect x="34" y="50" width="20" height="6" rx="3" transform="rotate(-8 44 53)"/>
+    <rect x="66" y="50" width="20" height="6" rx="3" transform="rotate(8 76 53)"/>
+    <circle cx="45" cy="60" r="3.5"/>
+    <circle cx="75" cy="60" r="3.5"/>
+    <path d="M32 68 Q35 74 46 73 Q55 72 57 76 L60 74 L63 76 Q65 72 74 73 Q85 74 88 68 Q90 86 77 98 Q60 110 43 98 Q30 86 32 68 Z"/>
+  </g>
+</svg>

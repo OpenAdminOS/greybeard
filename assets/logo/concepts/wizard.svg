@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the wizard</title>
+  <g fill="#0f0f0f">
+    <path d="M28 34 Q22 56 32 74 Q26 54 34 38 Z"/>
+    <path d="M92 34 Q98 56 88 74 Q94 54 86 38 Z"/>
+    <rect x="32" y="38" width="24" height="8" rx="4" transform="rotate(12 44 42)"/>
+    <rect x="64" y="38" width="24" height="8" rx="4" transform="rotate(-12 76 42)"/>
+    <circle cx="44" cy="52" r="3.5"/>
+    <circle cx="76" cy="52" r="3.5"/>
+    <rect x="56" y="50" width="8" height="18" rx="4"/>
+    <path d="M36 62 Q38 90 50 104 Q56 112 60 118 Q64 112 70 104 Q82 90 84 62 Q78 72 70 71 Q64 70 60 74 Q56 70 50 71 Q42 72 36 62 Z"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round">
+    <path d="M50 80 Q52 94 58 104"/>
+    <path d="M70 80 Q68 94 62 104"/>
+  </g>
+</svg>

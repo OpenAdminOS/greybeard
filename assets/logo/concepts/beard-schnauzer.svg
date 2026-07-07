@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: schnauzer and beard</title>
+  <path fill="#8f959e" d="M60 32 Q46 22 34 30 Q24 36 28 46 Q32 54 42 50 Q52 46 57 40 Q59 38 60 36 Q61 38 63 40 Q68 46 78 50 Q88 54 92 46 Q96 36 86 30 Q74 22 60 32 Z"/>
+  <path fill="#8f959e" d="M34 50 Q32 76 44 92 Q52 102 60 106 Q68 102 76 92 Q88 76 86 50 Q80 60 72 58 Q64 56 60 61 Q56 56 48 58 Q40 60 34 50 Z"/>
+  <g fill="none" stroke="#c3c9d1" stroke-width="3.5" stroke-linecap="round">
+    <path d="M46 66 Q48 82 56 94"/>
+    <path d="M74 66 Q72 82 64 94"/>
+    <path d="M60 68 Q60 84 60 98"/>
+  </g>
+</svg>

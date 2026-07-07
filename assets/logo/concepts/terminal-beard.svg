@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the terminal beard</title>
+  <rect x="16" y="20" width="88" height="58" rx="10" fill="none" stroke="#0f0f0f" stroke-width="6"/>
+  <path d="M30 38 L44 49 L30 60" fill="none" stroke="#0f0f0f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="52" y="55" width="18" height="6" rx="3" fill="#0f0f0f"/>
+  <path fill="#0f0f0f" d="M28 78 Q28 92 38 100 Q44 104 46 97 Q50 107 58 109 Q60 115 62 109 Q70 107 74 97 Q76 104 82 100 Q92 92 92 78 Z"/>
+</svg>

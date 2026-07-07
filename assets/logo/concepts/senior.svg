@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Greybeard logo concept: the senior</title>
+  <g fill="#0f0f0f">
+    <rect x="28" y="36" width="26" height="8" rx="4" transform="rotate(-10 41 40)"/>
+    <rect x="66" y="36" width="26" height="8" rx="4" transform="rotate(10 79 40)"/>
+  </g>
+  <g fill="none" stroke="#0f0f0f" stroke-width="5">
+    <circle cx="42" cy="56" r="10"/>
+    <circle cx="78" cy="56" r="10"/>
+    <path d="M52 56 H68"/>
+  </g>
+  <g fill="#0f0f0f">
+    <circle cx="42" cy="56" r="3"/>
+    <circle cx="78" cy="56" r="3"/>
+    <path d="M30 66 Q33 72 44 71 Q54 70 57 74 L60 72 L63 74 Q66 70 76 71 Q87 72 90 66 Q92 86 78 98 Q60 110 42 98 Q28 86 30 66 Z"/>
+  </g>
+</svg>

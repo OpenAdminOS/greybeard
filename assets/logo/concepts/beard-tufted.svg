@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 140">
+  <title>Greybeard logo: tufted white beard with curled schnauzer</title>
+  <path fill="#ffffff" stroke="#c2c7d4" stroke-width="3" stroke-linejoin="round" d="M26 10 Q40 22 52 24 Q60 26 68 24 Q80 22 94 10 Q92 22 88 26 L102 36 Q94 44 90 48 L106 62 Q96 68 92 70 L102 86 Q92 90 88 90 L94 106 Q84 108 80 106 L84 120 Q76 120 72 116 L60 136 L48 116 Q44 120 36 120 L40 106 Q36 108 26 106 L32 90 Q28 90 18 86 L28 70 Q24 68 14 62 L30 48 Q26 44 18 36 L32 26 Q28 22 26 10 Z"/>
+  <path fill="#d6dae3" d="M58 52 Q46 60 36 57 Q46 64 56 58 Q58 56 58 52 Z"/>
+  <path fill="#d6dae3" d="M62 52 Q74 60 84 57 Q74 64 64 58 Q62 56 62 52 Z"/>
+  <path fill="#ffffff" stroke="#c2c7d4" stroke-width="3" stroke-linejoin="round" d="M60 48 Q46 32 34 36 Q24 40 27 48 Q30 56 42 54 Q53 52 60 48 Z"/>
+  <path fill="#ffffff" stroke="#c2c7d4" stroke-width="3" stroke-linejoin="round" d="M60 48 Q74 32 86 36 Q96 40 93 48 Q90 56 78 54 Q67 52 60 48 Z"/>
+  <g fill="none" stroke="#c2c7d4" stroke-width="2.5" stroke-linecap="round">
+    <path d="M36 41 Q31 45 35 49"/>
+    <path d="M84 41 Q89 45 85 49"/>
+  </g>
+</svg>
