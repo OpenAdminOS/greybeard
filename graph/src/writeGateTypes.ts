@@ -93,6 +93,7 @@ export type GreybeardConfig = {
   serverUpdate?: ServerUpdateMode;
   serverPackageSource?: ServerPackageSource;
   mcpServers?: Record<string, boolean>;
+  memoryHook?: boolean;
   clients?: {
     githubCopilot?: boolean;
   };

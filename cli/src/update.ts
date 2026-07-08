@@ -4,7 +4,9 @@ import {
   detectAllClients,
   summarizeSkillWiring,
   wireAllClientSkills,
-  writeAllClientMcpConfigs
+  writeAllClientMcpConfigs,
+  writeAllClientSkillFallbacks,
+  writeClaudeMemoryHook
 } from "./clients.js";
 import { CliRuntime, writeInfoLine, writeLine, writeSection, writeStatusLine } from "./runtime.js";
 import { serverOptionsFromConfig } from "./serverCatalog.js";
@@ -69,6 +71,24 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
   for (const result of skillResults) {
     const summary = summarizeSkillWiring(result);
     writeStatusLine(runtime.stdout, summary.ok ? "OK" : "WARN", result.client ?? "Client", summary.detail);
+  }
+
+  writeSection(runtime.stdout, "Context files");
+  const fallbackResults = await writeAllClientSkillFallbacks(runtime, clients);
+  const claudeDetected = clients.some((client) => client.detected && client.name === "Claude Code");
+  if (fallbackResults.length === 0 && !claudeDetected) {
+    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
+  }
+  for (const result of fallbackResults) {
+    writeStatusLine(runtime.stdout, "OK", result.client, `${result.status} in ${result.path}`);
+  }
+  if (claudeDetected) {
+    if (config.memoryHook === false) {
+      writeInfoLine(runtime.stdout, "Claude Code", "memory hook off by setup choice");
+    } else {
+      const hook = await writeClaudeMemoryHook(runtime);
+      writeStatusLine(runtime.stdout, "OK", "Claude Code", `memory hook ${hook.status} in ${hook.path}`);
+    }
   }
 
   return 0;

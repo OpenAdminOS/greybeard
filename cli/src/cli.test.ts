@@ -40,6 +40,7 @@ import {
   repoSkillsDir,
   wireClaudeSkills,
   writeClaudeMcpConfig,
+  writeClaudeMemoryHook,
   writeCodexMcpConfig,
   writeCodexSkillFallback,
   writeCopilotMcpConfig,
@@ -294,6 +295,30 @@ describe("greybeard CLI", () => {
     expect(findings).toContainEqual(expect.objectContaining({
       level: "WARN",
       label: "CLI approval gate"
+    }));
+    expect(findings).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Claude Code memory hook"
+    }));
+  });
+
+  it("reports context block findings for non-Claude clients in doctor", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      findExecutable: async (command) => command === "codex" ? "/usr/local/bin/codex" : null
+    });
+
+    const missing = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    expect(missing).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Codex CLI context block"
+    }));
+
+    await writeCodexSkillFallback(runtime);
+    const present = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    expect(present).toContainEqual(expect.objectContaining({
+      level: "PASS",
+      label: "Codex CLI context block"
     }));
   });
 
@@ -591,13 +616,13 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).not.toContain("WARN  Bootstrap");
   });
 
-  it("writes Claude memory MCP config and optional recall hook during setup", async () => {
+  it("writes Claude memory MCP config and installs the recall hook by default during setup", async () => {
     const paths = await tempPaths();
     const runtime = createMockRuntime(paths, {
       findExecutable: async (command) => command === "claude" ? "/usr/local/bin/claude" : null
     });
 
-    const code = await runCli(["setup", "--app-data", paths.appData, "--memory-hook", "--verbose"], runtime);
+    const code = await runCli(["setup", "--app-data", paths.appData, "--verbose"], runtime);
 
     expect(code).toBe(0);
     expect(runtime.stdout.toString()).toContain("OK    Memory");
@@ -613,6 +638,69 @@ describe("greybeard CLI", () => {
       hooks: { UserPromptSubmit: Array<{ hooks: Array<{ args: string[] }> }> };
     };
     expect(claudeSettings.hooks.UserPromptSubmit[0]?.hooks[0]?.args[1]).toContain("greybeard-memory recall");
+    expect(claudeSettings.hooks.UserPromptSubmit[0]?.hooks[0]?.args[1]).toContain("greybeard-memory remember");
+  });
+
+  it("skips the recall hook with --no-memory-hook and keeps it off across reruns and update", async () => {
+    const paths = await tempPaths();
+    const claudeOnly = async (command: string) => command === "claude" ? "/usr/local/bin/claude" : null;
+
+    const optOutRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData, "--no-memory-hook"], optOutRuntime)).toBe(0);
+    expect(optOutRuntime.stdout.toString()).toContain("off; re-run greybeard setup --memory-hook");
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+    expect((await readGreybeardConfig(paths.appData)).memoryHook).toBe(false);
+
+    const rerunRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData], rerunRuntime)).toBe(0);
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+
+    const updateRuntime = createMockRuntime(paths, {
+      findExecutable: claudeOnly,
+      runCommand: mockUpdateGit([])
+    });
+    expect(await runCli(["update", "--app-data", paths.appData], updateRuntime)).toBe(0);
+    expect(updateRuntime.stdout.toString()).toContain("memory hook off by setup choice");
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+
+    const reenableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData, "--memory-hook"], reenableRuntime)).toBe(0);
+    expect((await readGreybeardConfig(paths.appData)).memoryHook).toBe(true);
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(true);
+  });
+
+  it("replaces the old recall hook text instead of stacking a duplicate", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    const oldReminder = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
+    await mkdir(join(paths.home, ".claude"), { recursive: true });
+    await writeFile(join(paths.home, ".claude", "settings.json"), JSON.stringify({
+      hooks: {
+        UserPromptSubmit: [{
+          hooks: [{
+            type: "command",
+            command: process.execPath,
+            args: ["-e", `process.stdout.write(${JSON.stringify(oldReminder)});`],
+            timeout: 5
+          }]
+        }]
+      }
+    }), "utf8");
+
+    const first = await writeClaudeMemoryHook(runtime);
+
+    expect(first.status).toBe("updated");
+    const settings = JSON.parse(await readFile(join(paths.home, ".claude", "settings.json"), "utf8")) as {
+      hooks: { UserPromptSubmit: Array<{ hooks: Array<{ args: string[] }> }> };
+    };
+    const handlers = settings.hooks.UserPromptSubmit
+      .flatMap((group) => group.hooks)
+      .filter((handler) => handler.args[1]?.includes("greybeard-memory recall"));
+    expect(handlers).toHaveLength(1);
+    expect(handlers[0]?.args[1]).toContain("greybeard-memory remember");
+
+    const second = await writeClaudeMemoryHook(runtime);
+    expect(second.status).toBe("already-configured");
   });
 
   it("disables and re-enables optional MCP servers with setup flags", async () => {
@@ -1146,6 +1234,58 @@ describe("greybeard CLI", () => {
     expect(countOccurrences(copilot, "<!-- GREYBEARD SKILLS START -->")).toBe(1);
     expect(codex).toContain(join(paths.repoRoot, ".agents", "skills"));
     expect(copilot).toContain(join(paths.repoRoot, ".agents", "skills"));
+    expect(cursor).toContain("## Greybeard Memory");
+    expect(codex).toContain("## Greybeard Memory");
+    expect(gemini).toContain("## Greybeard Memory");
+    expect(copilot).toContain("## Greybeard Memory");
+    expect(cursor.startsWith("---\n")).toBe(true);
+    expect(cursor).toContain("alwaysApply: true");
+    expect(countOccurrences(cursor, "alwaysApply:")).toBe(1);
+  });
+
+  it("upgrades an old-format context block in place", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    const oldBlock = [
+      "<!-- GREYBEARD SKILLS START -->",
+      "## Greybeard Skills",
+      "",
+      "Old guidance without the memory section.",
+      "<!-- GREYBEARD SKILLS END -->"
+    ].join("\n");
+    await mkdir(join(paths.home, ".codex"), { recursive: true });
+    await writeFile(codexFallbackPath(paths.home), `Existing Codex notes\n\n${oldBlock}\n`, "utf8");
+
+    const result = await writeCodexSkillFallback(runtime);
+
+    expect(result.status).toBe("updated");
+    const codex = await readFile(codexFallbackPath(paths.home), "utf8");
+    expect(codex).toContain("Existing Codex notes");
+    expect(codex).toContain("## Greybeard Memory");
+    expect(codex).not.toContain("Old guidance without the memory section.");
+    expect(countOccurrences(codex, "<!-- GREYBEARD SKILLS START -->")).toBe(1);
+
+    const again = await writeCodexSkillFallback(runtime);
+    expect(again.status).toBe("already-configured");
+  });
+
+  it("writes context blocks during setup and reports them in the ledger", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      findExecutable: async (command) => command === "cursor" || command === "codex"
+        ? `/usr/local/bin/${command}`
+        : null
+    });
+
+    const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(0);
+    expect(runtime.stdout.toString()).toContain("context block configured");
+    const cursor = await readFile(cursorFallbackPath(paths.home), "utf8");
+    const codex = await readFile(codexFallbackPath(paths.home), "utf8");
+    expect(cursor).toContain("## Greybeard Memory");
+    expect(cursor).toContain("alwaysApply: true");
+    expect(codex).toContain("## Greybeard Memory");
   });
 
   it("installs auto-update schedules through the injected command runner", async () => {
@@ -1252,7 +1392,10 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("GitHub Copilot");
     expect(runtime.stdout.toString()).toContain("Skills");
     expect(runtime.stdout.toString()).toContain("1 skills linked");
+    expect(runtime.stdout.toString()).toContain("Context files");
     expect(await pathExists(copilotMcpConfigPath(paths.home))).toBe(true);
+    expect(await pathExists(codexFallbackPath(paths.home))).toBe(true);
+    expect(await readFile(codexFallbackPath(paths.home), "utf8")).toContain("## Greybeard Memory");
   });
 
   it("reports the real skill, not the old category, when a pull renames a category", async () => {

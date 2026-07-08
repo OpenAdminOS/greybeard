@@ -29,6 +29,7 @@ export async function readGreybeardConfig(appDataPath: string): Promise<Greybear
         ? parsed.serverPackageSource
         : undefined,
       mcpServers: booleanRecord(parsed.mcpServers),
+      memoryHook: typeof parsed.memoryHook === "boolean" ? parsed.memoryHook : undefined,
       clients: clients
         ? {
             githubCopilot: clients.githubCopilot === true

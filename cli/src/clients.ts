@@ -11,7 +11,7 @@ import {
   type CatalogServer
 } from "./serverCatalog.js";
 
-export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
+export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work. When the admin confirms a durable correction, preference, or environment fact, call greybeard-memory remember with intent only.\n";
 
 const GREYBEARD_BLOCK_START = "<!-- GREYBEARD SKILLS START -->";
 const GREYBEARD_BLOCK_END = "<!-- GREYBEARD SKILLS END -->";
@@ -52,7 +52,12 @@ export type ClaudeMcpConfigResult = Omit<ClientMcpConfigResult, "client">;
 export type ClaudeMemoryHookResult = {
   path: string;
   configured: boolean;
-  status: "installed" | "already-configured";
+  status: "installed" | "already-configured" | "updated";
+};
+
+export type ClaudeMemoryHookInspection = {
+  path: string;
+  configured: boolean;
 };
 
 export type SkillWireEntry = {
@@ -75,7 +80,7 @@ export type SkillFallbackResult = {
   client: KnownClientName;
   path: string;
   configured: boolean;
-  status: "installed" | "already-configured" | "missing";
+  status: "installed" | "already-configured" | "updated" | "missing";
 };
 
 export type ServerConfigOptions = {
@@ -437,35 +442,72 @@ export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<Claude
   const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
   const handler = memoryHookHandler(runtime.nodePath);
 
+  // Strip every Greybeard-owned handler (old reminder text included) so a
+  // wording change replaces the hook instead of stacking a duplicate.
+  let found: "none" | "identical" | "different" = "none";
+  const remaining: unknown[] = [];
   for (const group of promptSubmit) {
     if (!isObject(group) || !Array.isArray(group.hooks)) {
+      remaining.push(group);
       continue;
     }
 
-    if (group.hooks.some((candidate) => isSameHookHandler(candidate, handler))) {
-      root.hooks = hooks;
-      await writeJsonObject(path, root);
-      return {
-        path,
-        configured: true,
-        status: "already-configured"
-      };
+    const kept = group.hooks.filter((candidate) => {
+      if (!isGreybeardMemoryHookHandler(candidate)) {
+        return true;
+      }
+
+      if (isSameHookHandler(candidate, handler)) {
+        if (found === "none") {
+          found = "identical";
+        }
+      } else {
+        found = "different";
+      }
+
+      return false;
+    });
+    if (kept.length > 0) {
+      remaining.push({
+        ...group,
+        hooks: kept
+      });
     }
   }
 
-  promptSubmit.push({
+  remaining.push({
     hooks: [
       handler
     ]
   });
-  hooks.UserPromptSubmit = promptSubmit;
+  hooks.UserPromptSubmit = remaining;
   root.hooks = hooks;
   await writeJsonObject(path, root);
   return {
     path,
     configured: true,
-    status: "installed"
+    status: found === "none" ? "installed" : found === "different" ? "updated" : "already-configured"
   };
+}
+
+export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
+  const path = claudeSettingsPath(runtime.homeDir);
+  try {
+    const root = await readJsonObject(path);
+    const hooks = isObject(root.hooks) ? root.hooks : {};
+    const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
+    const configured = promptSubmit.some((group) =>
+      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(isGreybeardMemoryHookHandler));
+    return {
+      path,
+      configured
+    };
+  } catch {
+    return {
+      path,
+      configured: false
+    };
+  }
 }
 
 export async function wireClaudeSkills(runtime: CliRuntime): Promise<SkillWireResult> {
@@ -552,7 +594,12 @@ export async function inspectGeminiSkillFallback(runtime: CliRuntime): Promise<S
 }
 
 export async function writeCursorSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return writeSkillFallbackBlock("Cursor", cursorFallbackPath(runtime.homeDir), repoSkillsDir(runtime.repoRoot));
+  return writeSkillFallbackBlock(
+    "Cursor",
+    cursorFallbackPath(runtime.homeDir),
+    repoSkillsDir(runtime.repoRoot),
+    ensureCursorRuleHeader
+  );
 }
 
 export async function inspectCursorSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
@@ -565,6 +612,38 @@ export async function writeCopilotSkillFallback(runtime: CliRuntime): Promise<Sk
 
 export async function inspectCopilotSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
   return inspectSkillFallbackBlock("GitHub Copilot", copilotFallbackPath(runtime.homeDir));
+}
+
+export async function writeClientSkillFallback(
+  runtime: CliRuntime,
+  client: KnownClientName
+): Promise<SkillFallbackResult | null> {
+  if (client === "Claude Code") {
+    // Claude Code's ambient channel is the UserPromptSubmit memory hook.
+    return null;
+  }
+
+  if (client === "Cursor") {
+    return writeCursorSkillFallback(runtime);
+  }
+
+  if (client === "Codex CLI") {
+    return writeCodexSkillFallback(runtime);
+  }
+
+  if (client === "Gemini CLI") {
+    return writeGeminiSkillFallback(runtime);
+  }
+
+  return writeCopilotSkillFallback(runtime);
+}
+
+export async function writeAllClientSkillFallbacks(
+  runtime: CliRuntime,
+  clients?: readonly ClientDetection[]
+): Promise<SkillFallbackResult[]> {
+  const results = await Promise.all(clientNames(clients).map((client) => writeClientSkillFallback(runtime, client)));
+  return results.filter((result): result is SkillFallbackResult => result !== null);
 }
 
 function clientNames(clients?: readonly ClientDetection[]): KnownClientName[] {
@@ -884,6 +963,14 @@ function isSameHookHandler(candidate: unknown, expected: Record<string, unknown>
     && JSON.stringify(candidate.args) === JSON.stringify(expected.args);
 }
 
+function isGreybeardMemoryHookHandler(candidate: unknown): boolean {
+  if (!isObject(candidate) || candidate.type !== "command" || !Array.isArray(candidate.args)) {
+    return false;
+  }
+
+  return candidate.args.some((arg) => typeof arg === "string" && arg.includes("greybeard-memory recall"));
+}
+
 async function wireSkillsToDir(
   runtime: CliRuntime,
   client: KnownClientName,
@@ -1041,17 +1128,26 @@ async function inspectSkillLink(name: string, source: string, target: string): P
 async function writeSkillFallbackBlock(
   client: KnownClientName,
   path: string,
-  skillsPath: string
+  skillsPath: string,
+  finalize?: (text: string) => string
 ): Promise<SkillFallbackResult> {
   const current = await readTextFile(path);
   const block = greybeardFallbackBlock(skillsPath);
-  const next = replaceDelimitedBlock(current, block);
-  await writeTextFile(path, next);
+  let next = replaceDelimitedBlock(current, block);
+  if (finalize) {
+    next = finalize(next);
+  }
+
+  const hadBlock = current.includes(GREYBEARD_BLOCK_START);
+  if (next !== current) {
+    await writeTextFile(path, next);
+  }
+
   return {
     client,
     path,
     configured: true,
-    status: current.includes(GREYBEARD_BLOCK_START) ? "already-configured" : "installed"
+    status: next === current ? "already-configured" : hadBlock ? "updated" : "installed"
   };
 }
 
@@ -1074,8 +1170,46 @@ function greybeardFallbackBlock(skillsPath: string): string {
     `Greybeard skills live at \`${skillsPath}\`, one folder per skill inside category subfolders (for example \`read/tenant-pulse\`).`,
     "When the user asks about Microsoft 365, Intune, Entra, Microsoft Graph, KQL, Conditional Access, compliance, licensing, or tenant posture, inspect the skill folders one level below that directory.",
     "Pick the skill whose `SKILL.md` description starts with `Use when` and matches the task. Read that skill's `SKILL.md` before acting. Load files under `references/` or `scripts/` only when the skill instructs you to.",
+    "",
+    "## Greybeard Memory",
+    "",
+    "Greybeard ships a local memory server, `greybeard-memory`, shared across every configured client.",
+    "Before starting any Microsoft 365, Intune, or Entra task, call its `recall` tool with a one-line task summary and apply what it returns.",
+    "When the admin confirms a correction, a preference, a working query or script, or a durable fact about the environment, call `remember` with the reusable intent only. Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
+    "Call `recall` before `remember` and skip storing when an equivalent memory already exists.",
     GREYBEARD_BLOCK_END
   ].join("\n");
+}
+
+const CURSOR_RULE_HEADER = [
+  "---",
+  "description: Greybeard guidance for Microsoft 365, Intune, and Entra work.",
+  "alwaysApply: true",
+  "---"
+].join("\n");
+
+// Cursor only injects a rule into every session when its frontmatter says
+// alwaysApply: true; without it the block is agent-requested, not ambient.
+function ensureCursorRuleHeader(text: string): string {
+  if (!text.startsWith("---\n")) {
+    return `${CURSOR_RULE_HEADER}\n\n${text}`;
+  }
+
+  const close = text.indexOf("\n---", 3);
+  if (close === -1) {
+    return `${CURSOR_RULE_HEADER}\n\n${text}`;
+  }
+
+  const frontmatter = text.slice(0, close);
+  if (/^alwaysApply:\s*true$/mu.test(frontmatter)) {
+    return text;
+  }
+
+  if (/^alwaysApply:/mu.test(frontmatter)) {
+    return `${frontmatter.replace(/^alwaysApply:.*$/mu, "alwaysApply: true")}${text.slice(close)}`;
+  }
+
+  return `${frontmatter}\nalwaysApply: true${text.slice(close)}`;
 }
 
 function replaceDelimitedBlock(current: string, block: string): string {

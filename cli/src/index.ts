@@ -50,7 +50,7 @@ function printHelp(runtime: CliRuntime): void {
   writeLine(runtime.stdout, "Greybeard CLI");
   writeLine(runtime.stdout, "");
   writeLine(runtime.stdout, "Commands:");
-  writeLine(runtime.stdout, "  greybeard setup [--yes] [--verbose] [--writes] [--memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm] [--enable-server <name>] [--disable-server <name>]");
+  writeLine(runtime.stdout, "  greybeard setup [--yes] [--verbose] [--writes] [--memory-hook] [--no-memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm] [--enable-server <name>] [--disable-server <name>]");
   writeLine(runtime.stdout, "  greybeard update");
   writeLine(runtime.stdout, "  greybeard doctor");
   writeLine(runtime.stdout, "  greybeard scopes");

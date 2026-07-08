@@ -27,11 +27,13 @@ import {
   summarizeSkillWiring,
   wireAllClientSkills,
   writeAllClientMcpConfigs,
+  writeAllClientSkillFallbacks,
   writeClaudeMemoryHook,
   type ClientDetectionOptions,
   type ClientDetection,
   type ClientMcpConfigResult,
   type KnownClientName,
+  type SkillFallbackResult,
   type SkillWireResult
 } from "./clients.js";
 import { toPortablePath } from "./portablePath.js";
@@ -138,6 +140,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     serverUpdate: serverUpdateFromArgs(args, current.serverUpdate),
     serverPackageSource: serverPackageSourceFromArgs(args, current.serverPackageSource),
     mcpServers: mcpServerToggles,
+    memoryHook: memoryHookFromArgs(args, current.memoryHook),
     clients: clientsFromArgs(args, current.clients),
     gate: gateFromArgs(args, current.gate)
   }));
@@ -151,6 +154,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
   printServerSelection(runtime, updatedConfig);
   const mcpResults = await writeAllClientMcpConfigs(runtime, serverOptionsFromConfig(updatedConfig), detectedClients);
   const skillResults = await wireAllClientSkills(runtime, detectedClients);
+  const fallbackResults = await writeAllClientSkillFallbacks(runtime, detectedClients);
 
   for (const client of detectedClients) {
     printClientLedgerLine({
@@ -158,6 +162,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
       client: client.name,
       mcp: mcpResults.find((result) => result.client === client.name),
       skills: skillResults.find((result) => result.client === client.name),
+      fallback: fallbackResults.find((result) => result.client === client.name),
       verbose
     });
   }
@@ -170,13 +175,13 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     verbose
   });
 
-  if (hasFlag(args, "memory-hook")) {
-    if (detectedClients.some((client) => client.name === "Claude Code")) {
-      const hook = await writeClaudeMemoryHook(runtime);
-      writeStatusLine(runtime.stdout, "OK", "Memory hook", `${hook.status} in ${hook.path}`);
-    } else {
-      writeInfoLine(runtime.stdout, "Memory hook", "Claude Code not detected, skipped");
-    }
+  if (updatedConfig.memoryHook === false) {
+    writeInfoLine(runtime.stdout, "Memory hook", "off; re-run greybeard setup --memory-hook to enable recall in Claude Code");
+  } else if (detectedClients.some((client) => client.name === "Claude Code")) {
+    const hook = await writeClaudeMemoryHook(runtime);
+    writeStatusLine(runtime.stdout, "OK", "Memory hook", `${hook.status} in ${hook.path}`);
+  } else if (hasFlag(args, "memory-hook")) {
+    writeInfoLine(runtime.stdout, "Memory hook", "Claude Code not detected, skipped");
   }
 
   if (!hasFlag(args, "writes")) {
@@ -218,6 +223,7 @@ function printClientLedgerLine(params: {
   client: KnownClientName;
   mcp: ClientMcpConfigResult | undefined;
   skills: SkillWireResult | undefined;
+  fallback: SkillFallbackResult | undefined;
   verbose: boolean;
 }): void {
   const configured: string[] = [];
@@ -244,6 +250,10 @@ function printClientLedgerLine(params: {
     }
   }
 
+  if (params.fallback?.configured) {
+    configured.push("context block");
+  }
+
   const detail = [
     configured.length > 0 ? `${formatNameList(configured)} configured` : "",
     ...problems,
@@ -258,6 +268,10 @@ function printClientLedgerLine(params: {
 
     if (params.skills && !params.skills.empty) {
       writeInfoLine(params.runtime.stdout, "Skills", params.skills.targetDir);
+    }
+
+    if (params.fallback) {
+      writeInfoLine(params.runtime.stdout, "Context file", params.fallback.path);
     }
   }
 }
@@ -749,6 +763,18 @@ function clientDetectionOptions(args: ParsedArgs, config: GreybeardConfig): Clie
   return {
     githubCopilot: hasFlag(args, "with-copilot") || config.clients?.githubCopilot === true
   };
+}
+
+function memoryHookFromArgs(args: ParsedArgs, current: boolean | undefined): boolean | undefined {
+  if (hasFlag(args, "no-memory-hook")) {
+    return false;
+  }
+
+  if (hasFlag(args, "memory-hook")) {
+    return true;
+  }
+
+  return current;
 }
 
 function clientsFromArgs(

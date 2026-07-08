@@ -22,6 +22,7 @@ import {
   inspectCursorSkillFallback,
   inspectCursorSkillWiring,
   inspectClaudeMcpConfig,
+  inspectClaudeMemoryHook,
   inspectClaudeSkillWiring,
   inspectGeminiMcpConfig,
   inspectGeminiSkillFallback,
@@ -364,10 +365,49 @@ async function clientFindings(
     inspectClientSkills(client.name, runtime),
     inspectClientFallback(client.name, runtime)
   ]);
-  return [
+  const findings = [
     mcpFinding(client.name, mcp, serverOptions),
     skillFinding(client.name, skills, fallback)
   ];
+  findings.push(client.name === "Claude Code"
+    ? await memoryHookFinding(runtime)
+    : contextBlockFinding(client.name, fallback));
+  return findings;
+}
+
+async function memoryHookFinding(runtime: CliRuntime): Promise<DoctorFinding> {
+  const hook = await inspectClaudeMemoryHook(runtime);
+  if (hook.configured) {
+    return {
+      level: "PASS",
+      label: "Claude Code memory hook",
+      detail: `recall hook present in ${hook.path}`
+    };
+  }
+
+  return {
+    level: "WARN",
+    label: "Claude Code memory hook",
+    detail: "recall hook missing; run greybeard setup to install it"
+  };
+}
+
+function contextBlockFinding(name: KnownClientName, fallback: SkillFallbackResult | null): DoctorFinding {
+  if (fallback?.configured) {
+    return {
+      level: "PASS",
+      label: `${name} context block`,
+      detail: `memory and skill guidance present in ${fallback.path}`
+    };
+  }
+
+  return {
+    level: "WARN",
+    label: `${name} context block`,
+    detail: fallback
+      ? `context block missing from ${fallback.path}; run greybeard update`
+      : "context block missing; run greybeard update"
+  };
 }
 
 async function inspectClientMcp(
