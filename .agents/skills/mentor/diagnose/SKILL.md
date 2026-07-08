@@ -1,14 +1,14 @@
 ---
 name: diagnose
 description: Use when the user reports something broken, failing, or misbehaving in the tenant and needs structured incident triage.
-version: 0.1.0
+version: 0.2.0
 requires:
   servers: [greybeard-graph]
 ---
 
 # Diagnose
 
-Version: 0.1.0
+Version: 0.2.0
 
 Hypothesis-driven triage for "users cannot sign in", "the device will not comply", "the app stopped working". The discipline: one hypothesis at a time, tested with the narrowest read that can falsify it, instead of dragging the tenant into context and hoping.
 
@@ -16,6 +16,7 @@ Hypothesis-driven triage for "users cannot sign in", "the device will not comply
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
 2. Pin down the symptom first: who or what is affected, since when, what changed recently, and one concrete failing example (a user, a device, an app). Ask only for what the admin has not already said.
@@ -24,6 +25,7 @@ When the admin confirms a correction or preference, call `remember` with intent 
 5. After each read, say what the result confirms or rules out, then move to the next hypothesis. Stop as soon as one is confirmed; do not keep reading for completeness.
 6. On a missing-scope 403, call `add-scope` for the exact scope with a one-line reason. If `granted` is false, relay the consent URL and stop.
 7. Report the finding: root cause, evidence, and the fix. Any fix that writes to the tenant routes through the change-plan skill; offer to record the root cause with the tenant-decisions skill when it explains a lasting configuration choice.
+8. When the admin confirms the root cause and it is likely to recur, `recall` for an equivalent fact, then record the symptom-to-cause pattern with `remember` as `type: "fact"`, for example: sign-in failures for a whole group in this tenant are usually a Conditional Access exclusion gap. Use display names, never raw log output.
 
 ## Output Template
 
@@ -45,6 +47,7 @@ When the admin confirms a correction or preference, call `remember` with intent 
 
 ## CHANGELOG
 
+- 0.2.0: Added the capture preamble and a step that records confirmed root-cause patterns as fact memories.
 - 0.1.0: Initial incident triage skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

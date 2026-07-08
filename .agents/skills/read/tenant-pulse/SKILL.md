@@ -1,7 +1,7 @@
 ---
 name: tenant-pulse
 description: Use when the user asks how healthy or secure the tenant is, says posture, risk, score, "how are we doing", or wants a scored Microsoft 365 tenant snapshot.
-version: 0.2.0
+version: 0.3.0
 requires:
   servers: [greybeard-graph]
   scopes: [User.Read.All, Policy.Read.All, Organization.Read.All, AuditLog.Read.All, Reports.Read.All]
@@ -10,12 +10,13 @@ requires:
 
 # Tenant Pulse
 
-Version: 0.2.0
+Version: 0.3.0
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop. Do not continue with guesses.
@@ -193,6 +194,7 @@ Requests made: <n>. Scopes used: <granted scopes relevant to these calls>. Scopi
 
 ## CHANGELOG
 
+- 0.3.0: Added the capture preamble for confirmed learnings.
 - 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.2: Fixed roleAssignments $select; the service rejects appScopeId and createdDateTime. Verified live via Lokka.
 - 0.1.1: Updated Graph examples and tenant-pulse guidance to use beta by default.

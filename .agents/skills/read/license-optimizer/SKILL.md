@@ -1,7 +1,7 @@
 ---
 name: license-optimizer
 description: Use when the user asks about license waste, unused seats, duplicate licenses, downgrade candidates, SKU utilization, or Microsoft 365 cost optimization.
-version: 0.2.0
+version: 0.3.0
 requires:
   servers: [greybeard-graph]
   scopes: [Organization.Read.All, User.Read.All]
@@ -9,12 +9,13 @@ requires:
 
 # License Optimizer
 
-Version: 0.2.0
+Version: 0.3.0
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
@@ -96,6 +97,7 @@ Return:
 
 ## CHANGELOG
 
+- 0.3.0: Added the capture preamble for confirmed learnings.
 - 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial license utilization and waste review skill.

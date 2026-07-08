@@ -112,6 +112,20 @@ describe("Greybeard skill catalog", () => {
     }
   });
 
+  it("carries the shared memory preamble in every skill body", async () => {
+    const preambleLines = [
+      "Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.",
+      "When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.",
+      "When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed."
+    ];
+
+    for (const { category, name: skillName } of expectedSkills) {
+      const skillPath = resolve(skillsRoot, category, skillName, "SKILL.md");
+      const content = (await readFile(skillPath, "utf8")).replace(/\r\n/gu, "\n");
+      expect(content, `${skillName} is missing the memory preamble`).toContain(preambleLines.join("\n"));
+    }
+  });
+
   it("includes a trigger test document for every skill", async () => {
     for (const { category, name: skillName } of expectedSkills) {
       await expect(access(resolve(skillsRoot, category, skillName, "test.md"), constants.R_OK), skillName)

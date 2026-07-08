@@ -1,12 +1,12 @@
 ---
 name: handoff
 description: Use when the user wants a handover summary, shift-change notes, or a paste-ready recap of what this session investigated and decided.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Handoff
 
-Version: 0.1.0
+Version: 0.2.0
 
 Ends a working session the way a careful admin ends a shift: the next person can pick up without re-deriving anything. Works from the current conversation alone; memory tools sharpen it when available.
 
@@ -14,6 +14,7 @@ Ends a working session the way a careful admin ends a shift: the next person can
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Walk the session and collect: what was investigated, what was concluded, what was changed (with plan IDs when the write gate ran), and what is still open.
 2. Ask the admin one question only if something essential is ambiguous: who the handoff is for, or whether an in-flight change is theirs to finish.
@@ -43,4 +44,5 @@ When the admin confirms a correction or preference, call `remember` with intent 
 
 ## CHANGELOG
 
+- 0.2.0: Added the capture preamble for confirmed learnings.
 - 0.1.0: Initial session handover skill.

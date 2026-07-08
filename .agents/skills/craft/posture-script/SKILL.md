@@ -1,17 +1,18 @@
 ---
 name: posture-script
 description: Use when the user wants a complete script to check, audit, report, harden, export, or remediate Microsoft 365, Intune, Entra, or Graph posture offline.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Posture Script
 
-Version: 0.2.0
+Version: 0.3.0
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 This is an offline authoring skill. Do not call live tenant tools unless the user explicitly asks to run the script after authoring it.
 
@@ -23,6 +24,7 @@ This is an offline authoring skill. Do not call live tenant tools unless the use
 6. Include robust error handling, pagination, and clear output. Scripts must be complete, not fragments.
 7. For destructive actions, include `[CmdletBinding(SupportsShouldProcess)]`, require `-WhatIf` support, and use `if ($PSCmdlet.ShouldProcess(...))` around the action.
 8. Route tenant writes through Greybeard `change-plan` when the user wants Greybeard to execute changes. A PowerShell script can be generated for manual use, but Greybeard itself must not bypass the write gate.
+9. After the admin confirms the script runs correctly, `recall` for an equivalent script memory, then record it with `remember` as `type: "script"`: what the script does, the target surface, and the key design choices. Never store the script body or tenant output.
 
 ## Script Requirements
 
@@ -96,6 +98,7 @@ Return the complete script in one fenced `powershell` block, followed by:
 
 ## CHANGELOG
 
+- 0.3.0: Added the capture preamble and a step that records confirmed scripts as script memories.
 - 0.2.0: Moved into the craft category.
 - 0.1.1: Updated Graph script guidance to use beta by default.
 - 0.1.0: Initial offline Microsoft Graph PowerShell script authoring workflow.

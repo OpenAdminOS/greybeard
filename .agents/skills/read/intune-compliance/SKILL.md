@@ -1,7 +1,7 @@
 ---
 name: intune-compliance
 description: Use when the user asks why Intune devices are noncompliant, failing compliance, blocked, in grace period, or need compliance policy triage.
-version: 0.2.0
+version: 0.3.0
 requires:
   servers: [greybeard-graph]
   scopes: [DeviceManagementManagedDevices.Read.All, DeviceManagementConfiguration.Read.All]
@@ -9,12 +9,13 @@ requires:
 
 # Intune Compliance
 
-Version: 0.2.0
+Version: 0.3.0
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
@@ -99,6 +100,7 @@ Do not propose changing compliance policies directly. If the user asks for chang
 
 ## CHANGELOG
 
+- 0.3.0: Added the capture preamble for confirmed learnings.
 - 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.2: Removed $select from deviceStatuses; the Intune service returns a 500 for any $select on that endpoint. Verified live via Lokka.
 - 0.1.1: Updated Graph examples to use beta by default.

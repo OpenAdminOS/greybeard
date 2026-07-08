@@ -1,14 +1,14 @@
 ---
 name: tenant-decisions
 description: Use when the user asks why the tenant is configured a certain way, or wants to record the reason behind a configuration decision.
-version: 0.1.0
+version: 0.2.0
 requires:
   servers: [greybeard-memory]
 ---
 
 # Tenant Decisions
 
-Version: 0.1.0
+Version: 0.2.0
 
 The tenant's institutional memory. Configuration shows what is set; decision records keep why it is set, so the reasoning survives staff changes and does not get relitigated every audit. If `greybeard-memory` tools are not available, tell the user to run `greybeard setup` and stop.
 
@@ -16,6 +16,7 @@ The tenant's institutional memory. Configuration shows what is set; decision rec
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 ### Looking up a decision
 
@@ -41,4 +42,5 @@ On "what decisions have we recorded" or during an audit, call `list` with `type:
 
 ## CHANGELOG
 
+- 0.2.0: Added the capture preamble for confirmed learnings.
 - 0.1.0: Initial tenant decision record skill.

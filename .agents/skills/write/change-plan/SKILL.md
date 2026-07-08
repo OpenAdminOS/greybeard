@@ -1,7 +1,7 @@
 ---
 name: change-plan
 description: Use when the user proposes tenant writes or asks to create, update, delete, assign, disable, remediate, grant, revoke, or execute Microsoft Graph changes.
-version: 0.2.0
+version: 0.3.0
 requires:
   servers: [greybeard-graph]
   writes: true
@@ -9,12 +9,13 @@ requires:
 
 # Change Plan
 
-Version: 0.2.0
+Version: 0.3.0
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any write planning tool.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
@@ -28,6 +29,7 @@ When the admin confirms a correction or preference, call `remember` with intent 
 10. On `approved`, call `execute-plan` exactly once with the token returned by `check-plan`.
 11. On `rejected`, report the human's reason and stop. Never resubmit an identical plan after rejection.
 12. On `timed_out`, `expired`, `failed`, or `partial`, report the status and the next safe action. Any changed or remaining operations need a new plan.
+13. After a `completed` plan, offer to record why the change was made through the tenant-decisions skill, which stores it with `remember` as `type: "decision"` in its Decision, Because, Decided, Revisit shape.
 
 ## Plan Shape
 
@@ -88,6 +90,7 @@ Reply with the reason and stop. If the user asks to try again, build a materiall
 
 ## CHANGELOG
 
+- 0.3.0: Added the capture preamble and a step that offers a decision record after a successful execute-plan.
 - 0.2.0: Moved into the write category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph operation examples to use beta by default.
 - 0.1.0: Initial write-gate front end workflow.
