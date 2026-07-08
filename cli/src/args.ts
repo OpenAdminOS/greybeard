@@ -61,6 +61,7 @@ function flagTakesValue(name: string): boolean {
   return ![
     "help",
     "memory-hook",
+    "verbose",
     "writes",
     "yes",
     "force",

@@ -103,7 +103,7 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("After consent, resume with: greybeard setup");
   });
 
-  it("prints first-party sign-in transparency and every Tier 1 scope before setup auth", async () => {
+  it("prints first-party sign-in transparency before setup auth and every Tier 1 scope via greybeard scopes", async () => {
     const paths = await tempPaths();
     const runtime = createMockRuntime(paths);
 
@@ -111,20 +111,24 @@ describe("greybeard CLI", () => {
 
     expect(code).toBe(0);
     const output = runtime.stdout.toString();
-    expect(output).toContain("      Browser                  login.microsoftonline.com, Microsoft's own sign-in page");
-    expect(output).toContain("      Application              Microsoft Graph Command Line Tools, a first-party Microsoft application");
-    expect(output).not.toContain("OK    Browser");
-    expect(output).not.toContain("OK    Application");
-    expect(output).toContain(GRAPH_CLI_CLIENT_ID);
-    expect(output).toContain("Greybeard registers no third-party app for read-only access");
-    expect(output).toContain("Greybeard never sees your password");
-    expect(output).toContain("impossible unless you explicitly run greybeard setup --writes");
-    for (const scope of DEFAULT_TIER1_SCOPES) {
-      expect(output).toContain(`      ${scope}`);
-      expect(output).not.toContain(`OK    ${scope}`);
-      expect(output).toContain(scopeJustification(scope));
-    }
+    expect(output).toContain("Sign in to Microsoft");
+    expect(output).toContain("Microsoft's own sign-in page (login.microsoftonline.com) with");
+    expect(output).toContain("the first-party Microsoft Graph Command Line Tools app.");
+    expect(output).toContain("Greybeard never sees your password, registers no app of its own,");
+    expect(output).toContain("and cannot write to your tenant.");
+    expect(output).toContain(`Requests ${DEFAULT_TIER1_SCOPES.length} read-only scopes`);
+    expect(output).toContain("Run greybeard scopes for the full list and reasons.");
     expect(output).toContain("OK    Signed in");
+
+    const scopesRuntime = createMockRuntime(paths);
+    expect(await runCli(["scopes"], scopesRuntime)).toBe(0);
+    const scopesOutput = scopesRuntime.stdout.toString();
+    expect(scopesOutput).toContain(GRAPH_CLI_CLIENT_ID);
+    expect(scopesOutput).toContain("greybeard setup --writes");
+    for (const scope of DEFAULT_TIER1_SCOPES) {
+      expect(scopesOutput).toContain(scope);
+      expect(scopesOutput).toContain(scopeJustification(scope));
+    }
   });
 
   it("pauses for confirmation before setup token acquisition in interactive mode", async () => {
@@ -421,21 +425,71 @@ describe("greybeard CLI", () => {
       findExecutable: async (command) => command === "claude" ? "/usr/local/bin/claude" : null
     });
 
-    const code = await runCli(["setup", "--app-data", paths.appData, "--memory-hook"], runtime);
+    const code = await runCli(["setup", "--app-data", paths.appData, "--memory-hook", "--verbose"], runtime);
 
     expect(code).toBe(0);
-    expect(runtime.stdout.toString()).toContain("Memory DB");
+    expect(runtime.stdout.toString()).toContain("OK    Memory");
     expect(runtime.stdout.toString()).toContain(memoryDbPath(paths.appData));
     const claudeConfig = JSON.parse(await readFile(join(paths.home, ".claude.json"), "utf8")) as {
       mcpServers: Record<string, { args: string[] }>;
     };
     expect(claudeConfig.mcpServers["greybeard-graph"].args[0]).toContain("graph/dist/index.js");
     expect(claudeConfig.mcpServers["greybeard-memory"].args[0]).toContain("memory/dist/index.js");
+    expect(claudeConfig.mcpServers["intuneautomation"].args).toEqual(["-y", "@ugurkocde/intuneautomation-mcp@latest"]);
 
     const claudeSettings = JSON.parse(await readFile(join(paths.home, ".claude", "settings.json"), "utf8")) as {
       hooks: { UserPromptSubmit: Array<{ hooks: Array<{ args: string[] }> }> };
     };
     expect(claudeSettings.hooks.UserPromptSubmit[0]?.hooks[0]?.args[1]).toContain("greybeard-memory recall");
+  });
+
+  it("disables and re-enables optional MCP servers with setup flags", async () => {
+    const paths = await tempPaths();
+    const claudeOnly = async (command: string) => command === "claude" ? "/usr/local/bin/claude" : null;
+    const readClaudeServers = async () => {
+      const parsed = JSON.parse(await readFile(join(paths.home, ".claude.json"), "utf8")) as {
+        mcpServers: Record<string, unknown>;
+      };
+      return parsed.mcpServers;
+    };
+
+    const disableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    const disableCode = await runCli([
+      "setup",
+      "--yes",
+      "--app-data",
+      paths.appData,
+      "--disable-server",
+      "intuneautomation"
+    ], disableRuntime);
+
+    expect(disableCode).toBe(0);
+    expect(disableRuntime.stdout.toString()).toContain("disabled: intuneautomation");
+    let servers = await readClaudeServers();
+    expect(servers["greybeard-graph"]).toBeDefined();
+    expect(servers["greybeard-memory"]).toBeDefined();
+    expect(servers["intuneautomation"]).toBeUndefined();
+    expect((await readGreybeardConfig(paths.appData)).mcpServers?.intuneautomation).toBe(false);
+
+    const rerunRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData], rerunRuntime)).toBe(0);
+    servers = await readClaudeServers();
+    expect(servers["intuneautomation"]).toBeUndefined();
+
+    const enableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    const enableCode = await runCli([
+      "setup",
+      "--yes",
+      "--app-data",
+      paths.appData,
+      "--enable-server",
+      "intuneautomation"
+    ], enableRuntime);
+
+    expect(enableCode).toBe(0);
+    servers = await readClaudeServers();
+    expect(servers["intuneautomation"]).toBeDefined();
+    expect((await readGreybeardConfig(paths.appData)).mcpServers?.intuneautomation).toBe(true);
   });
 
   it("lists and forgets memory from the CLI", async () => {
@@ -642,8 +696,7 @@ describe("greybeard CLI", () => {
     const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
 
     expect(code).toBe(0);
-    expect(runtime.stdout.toString()).toContain("Gemini CLI");
-    expect(runtime.stdout.toString()).toContain("not detected, skipped");
+    expect(runtime.stdout.toString()).toContain("none detected");
     expect(await pathExists(geminiSettingsPath(paths.home))).toBe(false);
     expect(await pathExists(geminiSkillsDir(paths.home))).toBe(false);
   });
@@ -657,8 +710,7 @@ describe("greybeard CLI", () => {
     const skippedCode = await runCli(["setup", "--yes", "--app-data", skipped.appData], skippedRuntime);
 
     expect(skippedCode).toBe(0);
-    expect(skippedRuntime.stdout.toString()).toContain("GitHub Copilot");
-    expect(skippedRuntime.stdout.toString()).toContain("not detected, skipped");
+    expect(skippedRuntime.stdout.toString()).toContain("none detected");
     expect(await pathExists(copilotMcpConfigPath(skipped.home))).toBe(false);
     expect(await pathExists(copilotSkillsDir(skipped.home))).toBe(false);
 
@@ -667,7 +719,7 @@ describe("greybeard CLI", () => {
     await mkdir(source, { recursive: true });
     const runtime = createMockRuntime(paths);
 
-    const code = await runCli(["setup", "--yes", "--with-copilot", "--app-data", paths.appData], runtime);
+    const code = await runCli(["setup", "--yes", "--with-copilot", "--verbose", "--app-data", paths.appData], runtime);
 
     expect(code).toBe(0);
     expect(runtime.stdout.toString()).toContain("GitHub Copilot");

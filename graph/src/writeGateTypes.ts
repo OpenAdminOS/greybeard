@@ -92,6 +92,7 @@ export type GreybeardConfig = {
   skillUpdate?: SkillUpdateMode;
   serverUpdate?: ServerUpdateMode;
   serverPackageSource?: ServerPackageSource;
+  mcpServers?: Record<string, boolean>;
   clients?: {
     githubCopilot?: boolean;
   };

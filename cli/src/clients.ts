@@ -3,12 +3,8 @@ import { dirname, join, resolve } from "node:path";
 import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime } from "./runtime.js";
+import { enabledCatalogServers, SERVER_CATALOG, type CatalogServer } from "./serverCatalog.js";
 
-export const CLAUDE_GRAPH_MCP_SERVER_NAME = "greybeard-graph";
-export const CLAUDE_MEMORY_MCP_SERVER_NAME = "greybeard-memory";
-export const CLAUDE_MCP_SERVER_NAME = CLAUDE_GRAPH_MCP_SERVER_NAME;
-export const GRAPH_MCP_SERVER_NAME = "greybeard-graph";
-export const MEMORY_MCP_SERVER_NAME = "greybeard-memory";
 export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
 
 const GREYBEARD_BLOCK_START = "<!-- GREYBEARD SKILLS START -->";
@@ -77,6 +73,11 @@ export type SkillFallbackResult = {
 export type ServerConfigOptions = {
   serverUpdate?: ServerUpdateMode;
   serverPackageSource?: ServerPackageSource;
+  serverToggles?: Record<string, boolean>;
+};
+
+export type InspectServerOptions = {
+  serverToggles?: Record<string, boolean>;
 };
 
 type StdioServerDefinition = {
@@ -240,14 +241,6 @@ export function repoSkillsDir(repoRoot: string): string {
   return join(repoRoot, ".agents", "skills");
 }
 
-export function graphServerScriptPath(repoRoot: string): string {
-  return join(repoRoot, "graph", "dist", "index.js");
-}
-
-export function memoryServerScriptPath(repoRoot: string): string {
-  return join(repoRoot, "memory", "dist", "index.js");
-}
-
 export async function writeClaudeMcpConfig(
   runtime: CliRuntime,
   options: ServerConfigOptions = {}
@@ -262,8 +255,11 @@ export async function writeClaudeMcpConfig(
   return withoutClient(result);
 }
 
-export async function inspectClaudeMcpConfig(runtime: CliRuntime): Promise<ClaudeMcpConfigResult> {
-  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir));
+export async function inspectClaudeMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClaudeMcpConfigResult> {
+  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir), options);
   return withoutClient(result);
 }
 
@@ -280,8 +276,11 @@ export async function writeCursorMcpConfig(
   });
 }
 
-export async function inspectCursorMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("Cursor", cursorMcpConfigPath(runtime.homeDir));
+export async function inspectCursorMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("Cursor", cursorMcpConfigPath(runtime.homeDir), options);
 }
 
 export async function writeGeminiMcpConfig(
@@ -297,8 +296,11 @@ export async function writeGeminiMcpConfig(
   });
 }
 
-export async function inspectGeminiMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("Gemini CLI", geminiSettingsPath(runtime.homeDir));
+export async function inspectGeminiMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("Gemini CLI", geminiSettingsPath(runtime.homeDir), options);
 }
 
 export async function writeCopilotMcpConfig(
@@ -314,8 +316,11 @@ export async function writeCopilotMcpConfig(
   });
 }
 
-export async function inspectCopilotMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("GitHub Copilot", copilotMcpConfigPath(runtime.homeDir));
+export async function inspectCopilotMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("GitHub Copilot", copilotMcpConfigPath(runtime.homeDir), options);
 }
 
 export async function writeCodexMcpConfig(
@@ -323,34 +328,33 @@ export async function writeCodexMcpConfig(
   options: ServerConfigOptions = {}
 ): Promise<ClientMcpConfigResult> {
   const configPath = codexConfigPath(runtime.homeDir);
-  const servers = await greybeardServerDefinitions(runtime, options);
+  const servers = await enabledServerDefinitions(runtime, options);
   const current = await readTextFile(configPath);
-  const cleaned = [GRAPH_MCP_SERVER_NAME, MEMORY_MCP_SERVER_NAME]
-    .reduce((text, name) => removeTomlTable(text, `mcp_servers.${name}`), current)
+  const cleaned = SERVER_CATALOG
+    .reduce((text, server) => removeTomlTable(text, `mcp_servers.${server.name}`), current)
     .trimEnd();
-  const block = [
-    tomlServerBlock(GRAPH_MCP_SERVER_NAME, servers.graph),
-    tomlServerBlock(MEMORY_MCP_SERVER_NAME, servers.memory)
-  ].join("\n");
+  const block = servers
+    .map((server) => tomlServerBlock(server.name, server.definition))
+    .join("\n");
   const next = cleaned.length > 0 ? `${cleaned}\n\n${block}\n` : `${block}\n`;
   await writeTextFile(configPath, next);
   return {
     client: "Codex CLI",
     path: configPath,
     configured: true,
-    server: {
-      [GRAPH_MCP_SERVER_NAME]: servers.graph,
-      [MEMORY_MCP_SERVER_NAME]: servers.memory
-    }
+    server: Object.fromEntries(servers.map((server) => [server.name, server.definition]))
   };
 }
 
-export async function inspectCodexMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
+export async function inspectCodexMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
   const path = codexConfigPath(runtime.homeDir);
   try {
     const text = await readTextFile(path);
-    const configured = hasTomlTable(text, `mcp_servers.${GRAPH_MCP_SERVER_NAME}`)
-      && hasTomlTable(text, `mcp_servers.${MEMORY_MCP_SERVER_NAME}`);
+    const configured = enabledCatalogServers(options.serverToggles)
+      .every((server) => hasTomlTable(text, `mcp_servers.${server.name}`));
     return {
       client: "Codex CLI",
       path,
@@ -578,7 +582,8 @@ async function claudeConfigDetectionSignal(path: string): Promise<boolean> {
       return true;
     }
 
-    return serverNames.some((name) => name !== GRAPH_MCP_SERVER_NAME && name !== MEMORY_MCP_SERVER_NAME);
+    const catalogNames = new Set(SERVER_CATALOG.map((server) => server.name));
+    return serverNames.some((name) => !catalogNames.has(name));
   } catch {
     return true;
   }
@@ -593,35 +598,54 @@ async function writeJsonMcpConfig(params: {
 }): Promise<ClientMcpConfigResult> {
   const root = await readJsonObject(params.configPath);
   const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
-  const servers = await greybeardServerDefinitions(params.runtime, params.options);
-  mcpServers[GRAPH_MCP_SERVER_NAME] = jsonServerDefinition(servers.graph, params.shape);
-  mcpServers[MEMORY_MCP_SERVER_NAME] = jsonServerDefinition(servers.memory, params.shape);
+  const servers = await enabledServerDefinitions(params.runtime, params.options);
+  const enabledNames = new Set(servers.map((server) => server.name));
+  for (const server of SERVER_CATALOG) {
+    if (!enabledNames.has(server.name)) {
+      delete mcpServers[server.name];
+    }
+  }
+
+  const written: Record<string, unknown> = {};
+  for (const server of servers) {
+    const value = jsonServerDefinition(server.definition, params.shape);
+    mcpServers[server.name] = value;
+    written[server.name] = value;
+  }
+
   root.mcpServers = mcpServers;
   await writeJsonObject(params.configPath, root);
   return {
     client: params.client,
     path: params.configPath,
     configured: true,
-    server: {
-      [GRAPH_MCP_SERVER_NAME]: mcpServers[GRAPH_MCP_SERVER_NAME],
-      [MEMORY_MCP_SERVER_NAME]: mcpServers[MEMORY_MCP_SERVER_NAME]
-    }
+    server: written
   };
 }
 
-async function inspectJsonMcpConfig(client: KnownClientName, path: string): Promise<ClientMcpConfigResult> {
+async function inspectJsonMcpConfig(
+  client: KnownClientName,
+  path: string,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
   try {
     const root = await readJsonObject(path);
-    const graphServer = isObject(root.mcpServers) ? root.mcpServers[GRAPH_MCP_SERVER_NAME] : undefined;
-    const memoryServer = isObject(root.mcpServers) ? root.mcpServers[MEMORY_MCP_SERVER_NAME] : undefined;
+    const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
+    const server: Record<string, unknown> = {};
+    let configured = true;
+    for (const catalogServer of enabledCatalogServers(options.serverToggles)) {
+      const entry = mcpServers[catalogServer.name];
+      server[catalogServer.name] = entry;
+      if (!isObject(entry)) {
+        configured = false;
+      }
+    }
+
     return {
       client,
       path,
-      configured: isObject(graphServer) && isObject(memoryServer),
-      server: {
-        [GRAPH_MCP_SERVER_NAME]: graphServer,
-        [MEMORY_MCP_SERVER_NAME]: memoryServer
-      }
+      configured,
+      server
     };
   } catch (error) {
     return {
@@ -633,53 +657,56 @@ async function inspectJsonMcpConfig(client: KnownClientName, path: string): Prom
   }
 }
 
-async function greybeardServerDefinitions(
+type NamedServerDefinition = {
+  name: string;
+  definition: StdioServerDefinition;
+};
+
+async function enabledServerDefinitions(
   runtime: CliRuntime,
   options: ServerConfigOptions
-): Promise<{ graph: StdioServerDefinition; memory: StdioServerDefinition }> {
-  return {
-    graph: await serverDefinition({
-      runtime,
-      packageName: "@greybeard/graph",
-      packageDir: "graph",
-      localScriptPath: graphServerScriptPath(runtime.repoRoot),
-      options
-    }),
-    memory: await serverDefinition({
-      runtime,
-      packageName: "@greybeard/memory",
-      packageDir: "memory",
-      localScriptPath: memoryServerScriptPath(runtime.repoRoot),
-      options
-    })
-  };
+): Promise<NamedServerDefinition[]> {
+  return Promise.all(enabledCatalogServers(options.serverToggles).map(async (server) => ({
+    name: server.name,
+    definition: await serverDefinition(runtime, server, options)
+  })));
 }
 
-async function serverDefinition(params: {
-  runtime: CliRuntime;
-  packageName: "@greybeard/graph" | "@greybeard/memory";
-  packageDir: "graph" | "memory";
-  localScriptPath: string;
-  options: ServerConfigOptions;
-}): Promise<StdioServerDefinition> {
-  if (params.options.serverPackageSource === "npm") {
-    const tag = params.options.serverUpdate === "pinned"
-      ? await packageVersion(params.runtime, params.packageDir)
+async function serverDefinition(
+  runtime: CliRuntime,
+  server: CatalogServer,
+  options: ServerConfigOptions
+): Promise<StdioServerDefinition> {
+  // Third-party servers have no local build in this repo, so they always run from npm.
+  if (server.source.kind === "npm") {
+    return {
+      command: "npx",
+      args: [
+        "-y",
+        `${server.source.packageName}@latest`
+      ],
+      env: {}
+    };
+  }
+
+  if (options.serverPackageSource === "npm") {
+    const tag = options.serverUpdate === "pinned"
+      ? await packageVersion(runtime, server.source.packageDir)
       : "latest";
     return {
       command: "npx",
       args: [
         "-y",
-        `${params.packageName}@${tag}`
+        `${server.source.packageName}@${tag}`
       ],
       env: {}
     };
   }
 
   return {
-    command: params.runtime.nodePath,
+    command: runtime.nodePath,
     args: [
-      toPortablePath(params.localScriptPath)
+      toPortablePath(join(runtime.repoRoot, server.source.packageDir, "dist", "index.js"))
     ],
     env: {}
   };

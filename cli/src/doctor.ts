@@ -27,11 +27,13 @@ import {
   inspectGeminiSkillWiring,
   type ClientDetection,
   type ClientMcpConfigResult,
+  type InspectServerOptions,
   type KnownClientName,
   type SkillFallbackResult,
   type SkillWireResult
 } from "./clients.js";
 import { CliRuntime, writeLine, writeStatusLine } from "./runtime.js";
+import { enabledCatalogServers } from "./serverCatalog.js";
 
 export type FindingLevel = "PASS" | "WARN" | "FAIL";
 
@@ -86,8 +88,11 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
   const clients = await detectAllClients(runtime, {
     githubCopilot: config.clients?.githubCopilot === true
   });
+  const serverOptions: InspectServerOptions = {
+    serverToggles: config.mcpServers ?? {}
+  };
   for (const client of clients) {
-    findings.push(...await clientFindings(client, runtime));
+    findings.push(...await clientFindings(client, runtime, serverOptions));
   }
 
   return findings;
@@ -226,43 +231,51 @@ function updateFinding(config: GreybeardConfig): DoctorFinding {
   };
 }
 
-async function clientFindings(client: ClientDetection, runtime: CliRuntime): Promise<DoctorFinding[]> {
+async function clientFindings(
+  client: ClientDetection,
+  runtime: CliRuntime,
+  serverOptions: InspectServerOptions
+): Promise<DoctorFinding[]> {
   if (!client.detected) {
     return [];
   }
 
   const [mcp, skills, fallback] = await Promise.all([
-    inspectClientMcp(client.name, runtime),
+    inspectClientMcp(client.name, runtime, serverOptions),
     inspectClientSkills(client.name, runtime),
     inspectClientFallback(client.name, runtime)
   ]);
   return [
-    mcpFinding(client.name, mcp),
+    mcpFinding(client.name, mcp, serverOptions),
     skillFinding(client.name, skills, fallback)
   ];
 }
 
-async function inspectClientMcp(name: KnownClientName, runtime: CliRuntime): Promise<ClientMcpConfigResult> {
+async function inspectClientMcp(
+  name: KnownClientName,
+  runtime: CliRuntime,
+  options: InspectServerOptions
+): Promise<ClientMcpConfigResult> {
   if (name === "Claude Code") {
     return {
       client: name,
-      ...await inspectClaudeMcpConfig(runtime)
+      ...await inspectClaudeMcpConfig(runtime, options)
     };
   }
 
   if (name === "Cursor") {
-    return inspectCursorMcpConfig(runtime);
+    return inspectCursorMcpConfig(runtime, options);
   }
 
   if (name === "Codex CLI") {
-    return inspectCodexMcpConfig(runtime);
+    return inspectCodexMcpConfig(runtime, options);
   }
 
   if (name === "Gemini CLI") {
-    return inspectGeminiMcpConfig(runtime);
+    return inspectGeminiMcpConfig(runtime, options);
   }
 
-  return inspectCopilotMcpConfig(runtime);
+  return inspectCopilotMcpConfig(runtime, options);
 }
 
 async function inspectClientSkills(name: KnownClientName, runtime: CliRuntime): Promise<SkillWireResult> {
@@ -305,19 +318,26 @@ async function inspectClientFallback(name: KnownClientName, runtime: CliRuntime)
   return null;
 }
 
-function mcpFinding(name: KnownClientName, mcp: ClientMcpConfigResult): DoctorFinding {
+function mcpFinding(
+  name: KnownClientName,
+  mcp: ClientMcpConfigResult,
+  serverOptions: InspectServerOptions
+): DoctorFinding {
+  const expected = enabledCatalogServers(serverOptions.serverToggles)
+    .map((server) => server.name)
+    .join(", ");
   if (mcp.configured) {
     return {
       level: "PASS",
       label: `${name} MCP`,
-      detail: `greybeard-graph and greybeard-memory present in ${mcp.path}`
+      detail: `${expected} present in ${mcp.path}`
     };
   }
 
   return {
     level: "FAIL",
     label: `${name} MCP`,
-    detail: mcp.error || `greybeard-graph or greybeard-memory missing from ${mcp.path}`
+    detail: mcp.error || `one of ${expected} missing from ${mcp.path}`
   };
 }
 

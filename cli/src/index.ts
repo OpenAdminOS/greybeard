@@ -7,6 +7,7 @@ import { runApprove } from "./approve.js";
 import { runDoctor } from "./doctor.js";
 import { createRuntime, CliRuntime, writeLine } from "./runtime.js";
 import { runMemory } from "./memory.js";
+import { runScopes } from "./scopes.js";
 import { runSetup } from "./setup.js";
 import { runUpdate } from "./update.js";
 
@@ -33,6 +34,10 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
     return runMemory(args, runtime);
   }
 
+  if (args.command === "scopes") {
+    return runScopes(runtime);
+  }
+
   if (args.command === "update") {
     return runUpdate(args, runtime);
   }
@@ -45,9 +50,10 @@ function printHelp(runtime: CliRuntime): void {
   writeLine(runtime.stdout, "Greybeard CLI");
   writeLine(runtime.stdout, "");
   writeLine(runtime.stdout, "Commands:");
-  writeLine(runtime.stdout, "  greybeard setup [--yes] [--writes] [--memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm]");
+  writeLine(runtime.stdout, "  greybeard setup [--yes] [--verbose] [--writes] [--memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm] [--enable-server <name>] [--disable-server <name>]");
   writeLine(runtime.stdout, "  greybeard update");
   writeLine(runtime.stdout, "  greybeard doctor");
+  writeLine(runtime.stdout, "  greybeard scopes");
   writeLine(runtime.stdout, "  greybeard approve [--plan-id <plan-id>]");
   writeLine(runtime.stdout, "  greybeard memory list [--type <type>] [--limit <n>]");
   writeLine(runtime.stdout, "  greybeard memory forget --id <id>");

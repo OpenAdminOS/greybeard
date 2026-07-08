@@ -5,3 +5,7 @@ args = ["graph/dist/index.js"]
 [mcp_servers.greybeard-memory]
 command = "node"
 args = ["memory/dist/index.js"]
+
+[mcp_servers.intuneautomation]
+command = "npx"
+args = ["-y", "@ugurkocde/intuneautomation-mcp@latest"]

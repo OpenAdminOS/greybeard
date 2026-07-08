@@ -117,10 +117,12 @@ async function skillVersion(runtime: CliRuntime, skillName: string): Promise<str
 function serverOptionsFromConfig(config: GreybeardConfig): {
   serverUpdate: ServerUpdateMode;
   serverPackageSource: ServerPackageSource;
+  serverToggles: Record<string, boolean>;
 } {
   return {
     serverUpdate: config.serverUpdate ?? "latest",
-    serverPackageSource: config.serverPackageSource ?? "local"
+    serverPackageSource: config.serverPackageSource ?? "local",
+    serverToggles: config.mcpServers ?? {}
   };
 }
 

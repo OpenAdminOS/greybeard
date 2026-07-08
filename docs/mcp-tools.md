@@ -1,6 +1,7 @@
 # MCP Tool Contracts
 
 Components: greybeard-graph, greybeard-memory
+Bundled third-party server: intuneautomation (see the end of this doc)
 Status: Draft for implementation
 Companion to: [greybeard-spec.md](../greybeard-spec.md), [write-gate.md](write-gate.md)
 
@@ -181,3 +182,20 @@ Behavior:
 
 - Every Greybeard skill opens with: call `recall` with a one-line task summary before other work; call `remember` when the admin corrects, chooses, or confirms something.
 - Claude Code can install an opt-in `UserPromptSubmit` recall nudge with `greybeard setup --memory-hook`. Codex/Gemini/Cursor are best-effort by instruction; the README says so.
+
+## Server catalog and optional servers
+
+All servers Greybeard wires into clients are declared in `cli/src/serverCatalog.ts`. The two Greybeard servers are `required: true` and always configured. Everything else is optional: enabled or disabled per user with setup flags, persisted in `config.json` under `mcpServers`, and honored by `greybeard setup`, `greybeard update`, and `greybeard doctor`.
+
+- `greybeard setup --disable-server <name>` removes the server from every client config and remembers the choice.
+- `greybeard setup --enable-server <name>` turns it back on.
+- Adding a new optional server means adding one catalog entry (name, description, npm package, `defaultEnabled`); the writers, inspectors, and doctor pick it up automatically.
+- Doctor treats a client as configured only when every enabled server is present.
+
+### intuneautomation (bundled third-party server, optional, on by default)
+
+Not part of this repo. `greybeard setup` wires [`@ugurkocde/intuneautomation-mcp`](https://www.npmjs.com/package/@ugurkocde/intuneautomation-mcp) into every detected client alongside the two Greybeard servers. It exposes search and retrieval over the IntuneAutomation PowerShell script library.
+
+- Always runs from npm via `npx -y @ugurkocde/intuneautomation-mcp@latest`, regardless of `serverPackageSource`, because there is no local build for it in this repo. The `pinned` server update mode does not apply to it.
+- Needs no credentials or environment variables; it serves script content, not tenant data. Graph calls stay in greybeard-graph.
+- Disable with `greybeard setup --disable-server intuneautomation`.

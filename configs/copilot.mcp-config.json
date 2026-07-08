@@ -21,6 +21,18 @@
       "tools": [
         "*"
       ]
+    },
+    "intuneautomation": {
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ugurkocde/intuneautomation-mcp@latest"
+      ],
+      "env": {},
+      "tools": [
+        "*"
+      ]
     }
   }
 }
