@@ -28,8 +28,8 @@ Concretely, it is a portable set of Agent Skills plus MCP servers for Microsoft 
 
 - `greybeard-graph`: Microsoft Graph MCP server with MSAL interactive auth, read-safe Graph access, incremental consent guidance, and the write gate.
 - `greybeard-memory`: local SQLite and FTS5 memory shared across clients.
-- `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, and `update`.
-- Sixteen Agent Skills under `.agents/skills/`, organized into `read/`, `write/`, `craft/`, and `mentor/` categories, for tenant posture, Graph patterns, KQL, Intune, Entra, Conditional Access, licensing, write planning, pre-change interviews, incident triage, decision records, and session handovers.
+- `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, `scopes`, and `update`. Optional MCP servers such as `intuneautomation` toggle with `greybeard setup --enable-server <name>` and `--disable-server <name>`.
+- Sixteen Agent Skills under `.agents/skills/`, organized into `read/`, `write/`, `craft/`, and `mentor/` categories (see the skill catalog below).
 
 ## Install
 
@@ -53,63 +53,45 @@ Run `greybeard setup`. Before a browser opens, setup shows what will happen and 
 
 ```text
 Greybeard setup
-──────────────
 
-Clients
-───────
-      Claude Code              /usr/local/bin/claude
-      Cursor                   /Applications/Cursor.app
-      Codex CLI                not detected, skipped
-      Gemini CLI               not detected, skipped
+Will configure Claude Code and Cursor. (Codex CLI, Gemini CLI, GitHub Copilot not detected)
 
 Sign in to Microsoft
-────────────────────
-      Browser                  login.microsoftonline.com, Microsoft's own sign-in page
-      Application              Microsoft Graph Command Line Tools, a first-party Microsoft application
-      Client ID                14d82eec-204b-4c2f-b7e8-296a70dab67e
-      Password                 Greybeard never sees your password
-      Read-only                Greybeard registers no third-party app for read-only access
-      Writes                   impossible unless you explicitly run greybeard setup --writes
+  Microsoft's own sign-in page (login.microsoftonline.com) with
+  the first-party Microsoft Graph Command Line Tools app.
+  Greybeard never sees your password, registers no app of its own,
+  and cannot write to your tenant.
+  Requests 6 read-only scopes: users, groups, policies, org and license info, audit logs, usage reports.
+  Run greybeard scopes for the full list and reasons.
 
-Consent
-───────
-      User.Read.All                            Read users for identity and account hygiene reports.
-      Group.Read.All                           Read groups and memberships for tenant analysis.
-      Policy.Read.All                          Read Conditional Access and policy configuration.
-      Organization.Read.All                    Read tenant and license information.
-      AuditLog.Read.All                        Read audit and sign-in activity for security posture.
-      Reports.Read.All                         Read reporting endpoints for MFA and usage posture.
 Press Enter to open your browser and sign in (Ctrl+C to cancel)
-OK    Signed in                admin@contoso.com
-OK    Tenant                   contoso.com (tenant-id)
+OK    Signed in                admin@contoso.com (contoso.com)
+      MCP servers              greybeard-graph, greybeard-memory, intuneautomation
+OK    Claude Code              MCP servers and 16 skills configured
+OK    Cursor                   MCP servers and 16 skills configured
+OK    Memory                   ready; weekly auto-update scheduled
 
-Memory
-──────
-OK    Memory DB                /path/to/greybeard/memory.sqlite
-
-Auto-update
-───────────
-OK    Schedule                 weekly via launchd
-
-MCP configuration
-─────────────────
-OK    Claude Code              /Users/you/.claude.json
-OK    Cursor                   /Users/you/.cursor/mcp.json
-
-Skills
-──────
-OK    Claude Code              16 skill links ready in /Users/you/.claude/skills
-OK    Cursor                   16 skill links ready in /Users/you/.cursor/skills
-
-Done
-────
-OK    Setup                    complete
-Try this now: what is my tenant MFA coverage?
+Done. Open Claude Code and ask: what is my tenant MFA coverage?
 ```
 
-After setup, run `greybeard doctor`. Then ask the suggested tenant-pulse question in your client.
+`greybeard scopes` prints every Tier 1, Tier 2, and write scope with the reason it is requested. `--verbose` adds file paths and detection details to the setup ledger. After setup, run `greybeard doctor`, then ask the suggested tenant-pulse question in your client.
 
 Setup is idempotent. It preserves unrelated user MCP config and replaces only Greybeard-owned blocks or symlinks.
+
+## Skill Catalog
+
+Skills live under `.agents/skills/<category>/<skill>/` and are linked into each client by their flat skill name.
+
+| Category | Skills | What they do |
+|---|---|---|
+| `read/` | tenant-pulse, ask-my-tenant, intune-assignments, intune-compliance, entra-identity, conditional-access-review, license-optimizer | Live-tenant analysis and reporting |
+| `write/` | change-plan | Stages tenant writes through the server-side approval gate |
+| `craft/` | posture-script, graph-patterns, kql-authoring, least-privilege-scopes | Scripts, Graph mechanics, KQL, and scope planning without a signed-in tenant |
+| `mentor/` | grill-my-change, diagnose, tenant-decisions, handoff | Pre-change interviews, incident triage, decision records, session handovers |
+
+A skill that cannot work without a specific capability declares it in its frontmatter: MCP servers, delegated Graph scopes, an Entra ID P1 license, a directory role group, or write configuration. `greybeard doctor` compares those declarations against the signed-in account and prints one warning per skill with the exact remedy, for example `run greybeard setup --writes` or `ask the agent to call add-scope`. Unmet requirements never fail doctor, because skills degrade by design.
+
+The mentor skills are the second-brain half of Greybeard. `grill-my-change` interviews you about blast radius, break-glass exclusions, pilot rings, and rollback before a change reaches the write gate. `diagnose` runs hypothesis-driven incident triage with the narrowest read that can falsify each hypothesis. `tenant-decisions` records why the tenant is configured the way it is (`Decision: ... Because: ... Decided: ... Revisit: ...`) so the reasoning survives staff changes, and `handoff` turns a session into paste-ready shift-change notes.
 
 ## Consent And Scope Tiers
 
@@ -187,7 +169,7 @@ Native skills support was rechecked against current client documentation for Cur
 - `--skill-update login`: run on login where the OS scheduler supports it.
 - `--skill-update off`: manual update only.
 
-`greybeard update` runs `git pull --ff-only` in the installed repo, reports changed skills since the previous HEAD, and refreshes client MCP config.
+`greybeard update` runs `git pull --ff-only` in the installed repo, reports changed skills since the previous HEAD, refreshes client MCP config, and re-links skills in every detected client, so layout changes in the repo heal without a full setup re-run.
 
 Server update modes are implemented but npm publishing has not run yet. The default config writes local `node .../graph/dist/index.js` and `node .../memory/dist/index.js` paths. After first npm publish, `--server-source npm --server-update latest` writes `npx -y @greybeard/graph@latest` and `@greybeard/memory@latest`; pinned mode writes the current package versions.
 
