@@ -36,8 +36,11 @@ import {
   geminiFallbackPath,
   geminiSettingsPath,
   geminiSkillsDir,
+  listSkillSourceDirs,
+  repoSkillsDir,
   wireClaudeSkills,
   writeClaudeMcpConfig,
+  writeClaudeMemoryHook,
   writeCodexMcpConfig,
   writeCodexSkillFallback,
   writeCopilotMcpConfig,
@@ -47,7 +50,7 @@ import {
   writeGeminiMcpConfig,
   writeGeminiSkillFallback
 } from "./clients.js";
-import { assembleDoctorFindings } from "./doctor.js";
+import { assembleDoctorFindings, skillRequirementFindings } from "./doctor.js";
 import { runCli } from "./index.js";
 import { CliRuntime, OutputStream } from "./runtime.js";
 import { installAutoUpdateSchedule } from "./setup.js";
@@ -103,7 +106,7 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("After consent, resume with: greybeard setup");
   });
 
-  it("prints first-party sign-in transparency and every Tier 1 scope before setup auth", async () => {
+  it("prints first-party sign-in transparency before setup auth and every Tier 1 scope via greybeard scopes", async () => {
     const paths = await tempPaths();
     const runtime = createMockRuntime(paths);
 
@@ -111,20 +114,25 @@ describe("greybeard CLI", () => {
 
     expect(code).toBe(0);
     const output = runtime.stdout.toString();
-    expect(output).toContain("      Browser                  login.microsoftonline.com, Microsoft's own sign-in page");
-    expect(output).toContain("      Application              Microsoft Graph Command Line Tools, a first-party Microsoft application");
-    expect(output).not.toContain("OK    Browser");
-    expect(output).not.toContain("OK    Application");
-    expect(output).toContain(GRAPH_CLI_CLIENT_ID);
-    expect(output).toContain("Greybeard registers no third-party app for read-only access");
-    expect(output).toContain("Greybeard never sees your password");
-    expect(output).toContain("impossible unless you explicitly run greybeard setup --writes");
-    for (const scope of DEFAULT_TIER1_SCOPES) {
-      expect(output).toContain(`      ${scope}`);
-      expect(output).not.toContain(`OK    ${scope}`);
-      expect(output).toContain(scopeJustification(scope));
-    }
+    expect(output).toContain("Sign in to Microsoft");
+    expect(output).toContain("Microsoft's own sign-in page (login.microsoftonline.com) with");
+    expect(output).toContain("the first-party Microsoft Graph Command Line Tools app");
+    expect(output).toContain(`(app ID ${GRAPH_CLI_CLIENT_ID})`);
+    expect(output).toContain("Greybeard never sees your password, registers no app of its own,");
+    expect(output).toContain("and cannot write to your tenant.");
+    expect(output).toContain(`Requests ${DEFAULT_TIER1_SCOPES.length} read-only scopes`);
+    expect(output).toContain("Run greybeard scopes for the full list and reasons.");
     expect(output).toContain("OK    Signed in");
+
+    const scopesRuntime = createMockRuntime(paths);
+    expect(await runCli(["scopes"], scopesRuntime)).toBe(0);
+    const scopesOutput = scopesRuntime.stdout.toString();
+    expect(scopesOutput).toContain(GRAPH_CLI_CLIENT_ID);
+    expect(scopesOutput).toContain("greybeard setup --writes");
+    for (const scope of DEFAULT_TIER1_SCOPES) {
+      expect(scopesOutput).toContain(scope);
+      expect(scopesOutput).toContain(scopeJustification(scope));
+    }
   });
 
   it("pauses for confirmation before setup token acquisition in interactive mode", async () => {
@@ -250,6 +258,8 @@ describe("greybeard CLI", () => {
       })
     });
     await writeClaudeMcpConfig(runtime);
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    await wireClaudeSkills(runtime);
 
     const findings = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
 
@@ -285,6 +295,197 @@ describe("greybeard CLI", () => {
     expect(findings).toContainEqual(expect.objectContaining({
       level: "WARN",
       label: "CLI approval gate"
+    }));
+    expect(findings).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Claude Code memory hook"
+    }));
+  });
+
+  it("reports context block findings for non-Claude clients in doctor", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      findExecutable: async (command) => command === "codex" ? "/usr/local/bin/codex" : null
+    });
+
+    const missing = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    expect(missing).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Codex CLI context block"
+    }));
+
+    await writeCodexSkillFallback(runtime);
+    const present = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    expect(present).toContainEqual(expect.objectContaining({
+      level: "PASS",
+      label: "Codex CLI context block"
+    }));
+  });
+
+  it("reports skill requirements against granted scopes, servers, writes, and roles", () => {
+    const manifest = (name: string, requires: Record<string, unknown>) => ({
+      name,
+      category: "read",
+      dir: `/repo/.agents/skills/read/${name}`,
+      description: `Use when testing ${name}.`,
+      version: "0.2.0",
+      requires
+    });
+    const status = signedInStatus({
+      grantedScopes: ["User.Read.All", "Group.Read.All"],
+      directoryRoles: ["Global Reader"],
+      entraP1: true
+    });
+
+    const satisfied = skillRequirementFindings({
+      manifests: [manifest("ask-my-tenant", { servers: ["greybeard-graph"], scopes: ["User.Read.All"] })],
+      errors: []
+    }, status, ["greybeard-graph", "greybeard-memory"]);
+    expect(satisfied).toEqual([expect.objectContaining({
+      level: "PASS",
+      label: "Skill requirements"
+    })]);
+
+    const unmet = skillRequirementFindings({
+      manifests: [
+        manifest("tenant-pulse", { scopes: ["Reports.Read.All"], roles: ["reporting"] }),
+        manifest("change-plan", { writes: true }),
+        manifest("intune-compliance", { scopes: ["DeviceManagementManagedDevices.Read.All"] }),
+        manifest("intune-assignments", { servers: ["intuneautomation"] })
+      ],
+      errors: [{ name: "broken-skill", message: "Unknown requires key: gpus" }]
+    }, status, ["greybeard-graph"]);
+
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: broken-skill",
+      detail: expect.stringContaining("Unknown requires key")
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: tenant-pulse",
+      detail: expect.stringContaining("missing scopes Reports.Read.All; ask the agent to call add-scope")
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: intune-assignments",
+      detail: expect.stringContaining("greybeard setup --enable-server intuneautomation")
+    }));
+    expect(unmet).not.toContainEqual(expect.objectContaining({
+      label: "Skill: change-plan"
+    }));
+    expect(unmet).not.toContainEqual(expect.objectContaining({
+      label: "Skill: intune-compliance"
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "PASS",
+      label: "Skill requirements",
+      detail: expect.stringContaining("optional capabilities not yet enabled: change-plan (writes stay off until greybeard setup --writes), intune-compliance (Tier 2 scopes DeviceManagementManagedDevices.Read.All granted on first use)")
+    }));
+    expect(unmet).not.toContainEqual(expect.objectContaining({
+      detail: expect.stringContaining("directory roles")
+    }));
+
+    const signedOut = skillRequirementFindings({
+      manifests: [manifest("tenant-pulse", { scopes: ["Reports.Read.All"] })],
+      errors: []
+    }, {
+      signedIn: false,
+      instruction: "run greybeard setup",
+      account: null,
+      tenantId: null,
+      tenantDomain: null,
+      activeTenantAlias: "organizations",
+      cacheProtection: "keyring"
+    } as AuthStatus, ["greybeard-graph"]);
+    expect(signedOut).toEqual([expect.objectContaining({
+      level: "WARN",
+      label: "Skill requirements",
+      detail: "unknown until sign-in succeeds"
+    })]);
+  });
+
+  it("rejects unknown --enable-server names before any sign-in happens", async () => {
+    const paths = await tempPaths();
+    const getToken = vi.fn();
+    const runtime = createMockRuntime(paths, {
+      authFactory: async () => ({
+        getToken,
+        async getStatus() {
+          return signedInStatus();
+        },
+        async addScopes() {
+          throw new Error("not used");
+        }
+      })
+    });
+
+    const code = await runCli(["setup", "--yes", "--enable-server", "intune", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(1);
+    expect(runtime.stderr.toString()).toContain("Unknown MCP server: intune");
+    expect(getToken).not.toHaveBeenCalled();
+
+    const coreCode = await runCli(["setup", "--yes", "--disable-server", "greybeard-graph", "--app-data", paths.appData], runtime);
+    expect(coreCode).toBe(1);
+    expect(runtime.stderr.toString()).toContain("core Greybeard server");
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it("preserves user-defined MCP entries and honors pinned versions for npm servers", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    const configPath = join(paths.home, ".claude.json");
+    const userEntry = {
+      command: "docker",
+      args: ["run", "--rm", "my-intune-image"],
+      env: { INTUNE_TENANT: "contoso" }
+    };
+    await writeFile(configPath, JSON.stringify({ mcpServers: { intuneautomation: userEntry } }), "utf8");
+
+    const result = await writeClaudeMcpConfig(runtime);
+    expect(result.preservedServers).toEqual(["intuneautomation"]);
+    const written = JSON.parse(await readFile(configPath, "utf8")) as {
+      mcpServers: Record<string, { command: string; args: string[] }>;
+    };
+    expect(written.mcpServers.intuneautomation).toEqual(userEntry);
+    expect(written.mcpServers["greybeard-graph"].args[0]).toContain("graph/dist/index.js");
+
+    const pinnedPaths = await tempPaths();
+    const pinnedRuntime = createMockRuntime(pinnedPaths);
+    await writeClaudeMcpConfig(pinnedRuntime, { serverUpdate: "pinned", serverPackageSource: "npm" });
+    const pinned = JSON.parse(await readFile(join(pinnedPaths.home, ".claude.json"), "utf8")) as {
+      mcpServers: Record<string, { args: string[] }>;
+    };
+    expect(pinned.mcpServers.intuneautomation.args[1]).toMatch(/^@ugurkocde\/intuneautomation-mcp@\d+\.\d+\.\d+$/);
+    expect(pinned.mcpServers.intuneautomation.args[1]).not.toContain("@latest");
+  });
+
+  it("reports missing optional servers as WARN, not FAIL, in doctor", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      findExecutable: async (command) => command === "claude" ? "/usr/local/bin/claude" : null
+    });
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    await wireClaudeSkills(runtime);
+    // Pre-catalog install shape: only the two core servers are configured.
+    await writeFile(join(paths.home, ".claude.json"), JSON.stringify({
+      mcpServers: {
+        "greybeard-graph": { command: "node", args: ["graph/dist/index.js"], env: {} },
+        "greybeard-memory": { command: "node", args: ["memory/dist/index.js"], env: {} }
+      }
+    }), "utf8");
+
+    const findings = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+
+    expect(findings).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Claude Code MCP",
+      detail: expect.stringContaining("optional servers not configured yet: intuneautomation")
+    }));
+    expect(findings).not.toContainEqual(expect.objectContaining({
+      level: "FAIL",
+      label: "Claude Code MCP"
     }));
   });
 
@@ -415,27 +616,140 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).not.toContain("WARN  Bootstrap");
   });
 
-  it("writes Claude memory MCP config and optional recall hook during setup", async () => {
+  it("writes Claude memory MCP config and installs the recall hook by default during setup", async () => {
     const paths = await tempPaths();
     const runtime = createMockRuntime(paths, {
       findExecutable: async (command) => command === "claude" ? "/usr/local/bin/claude" : null
     });
 
-    const code = await runCli(["setup", "--app-data", paths.appData, "--memory-hook"], runtime);
+    const code = await runCli(["setup", "--app-data", paths.appData, "--verbose"], runtime);
 
     expect(code).toBe(0);
-    expect(runtime.stdout.toString()).toContain("Memory DB");
+    expect(runtime.stdout.toString()).toContain("OK    Memory");
     expect(runtime.stdout.toString()).toContain(memoryDbPath(paths.appData));
     const claudeConfig = JSON.parse(await readFile(join(paths.home, ".claude.json"), "utf8")) as {
       mcpServers: Record<string, { args: string[] }>;
     };
     expect(claudeConfig.mcpServers["greybeard-graph"].args[0]).toContain("graph/dist/index.js");
     expect(claudeConfig.mcpServers["greybeard-memory"].args[0]).toContain("memory/dist/index.js");
+    expect(claudeConfig.mcpServers["intuneautomation"].args).toEqual(["-y", "@ugurkocde/intuneautomation-mcp@latest"]);
 
     const claudeSettings = JSON.parse(await readFile(join(paths.home, ".claude", "settings.json"), "utf8")) as {
       hooks: { UserPromptSubmit: Array<{ hooks: Array<{ args: string[] }> }> };
     };
     expect(claudeSettings.hooks.UserPromptSubmit[0]?.hooks[0]?.args[1]).toContain("greybeard-memory recall");
+    expect(claudeSettings.hooks.UserPromptSubmit[0]?.hooks[0]?.args[1]).toContain("greybeard-memory remember");
+  });
+
+  it("skips the recall hook with --no-memory-hook and keeps it off across reruns and update", async () => {
+    const paths = await tempPaths();
+    const claudeOnly = async (command: string) => command === "claude" ? "/usr/local/bin/claude" : null;
+
+    const optOutRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData, "--no-memory-hook"], optOutRuntime)).toBe(0);
+    expect(optOutRuntime.stdout.toString()).toContain("off; re-run greybeard setup --memory-hook");
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+    expect((await readGreybeardConfig(paths.appData)).memoryHook).toBe(false);
+
+    const rerunRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData], rerunRuntime)).toBe(0);
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+
+    const updateRuntime = createMockRuntime(paths, {
+      findExecutable: claudeOnly,
+      runCommand: mockUpdateGit([])
+    });
+    expect(await runCli(["update", "--app-data", paths.appData], updateRuntime)).toBe(0);
+    expect(updateRuntime.stdout.toString()).toContain("memory hook off by setup choice");
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(false);
+
+    const reenableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData, "--memory-hook"], reenableRuntime)).toBe(0);
+    expect((await readGreybeardConfig(paths.appData)).memoryHook).toBe(true);
+    expect(await pathExists(join(paths.home, ".claude", "settings.json"))).toBe(true);
+  });
+
+  it("replaces the old recall hook text instead of stacking a duplicate", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    const oldReminder = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
+    await mkdir(join(paths.home, ".claude"), { recursive: true });
+    await writeFile(join(paths.home, ".claude", "settings.json"), JSON.stringify({
+      hooks: {
+        UserPromptSubmit: [{
+          hooks: [{
+            type: "command",
+            command: process.execPath,
+            args: ["-e", `process.stdout.write(${JSON.stringify(oldReminder)});`],
+            timeout: 5
+          }]
+        }]
+      }
+    }), "utf8");
+
+    const first = await writeClaudeMemoryHook(runtime);
+
+    expect(first.status).toBe("updated");
+    const settings = JSON.parse(await readFile(join(paths.home, ".claude", "settings.json"), "utf8")) as {
+      hooks: { UserPromptSubmit: Array<{ hooks: Array<{ args: string[] }> }> };
+    };
+    const handlers = settings.hooks.UserPromptSubmit
+      .flatMap((group) => group.hooks)
+      .filter((handler) => handler.args[1]?.includes("greybeard-memory recall"));
+    expect(handlers).toHaveLength(1);
+    expect(handlers[0]?.args[1]).toContain("greybeard-memory remember");
+
+    const second = await writeClaudeMemoryHook(runtime);
+    expect(second.status).toBe("already-configured");
+  });
+
+  it("disables and re-enables optional MCP servers with setup flags", async () => {
+    const paths = await tempPaths();
+    const claudeOnly = async (command: string) => command === "claude" ? "/usr/local/bin/claude" : null;
+    const readClaudeServers = async () => {
+      const parsed = JSON.parse(await readFile(join(paths.home, ".claude.json"), "utf8")) as {
+        mcpServers: Record<string, unknown>;
+      };
+      return parsed.mcpServers;
+    };
+
+    const disableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    const disableCode = await runCli([
+      "setup",
+      "--yes",
+      "--app-data",
+      paths.appData,
+      "--disable-server",
+      "intuneautomation"
+    ], disableRuntime);
+
+    expect(disableCode).toBe(0);
+    expect(disableRuntime.stdout.toString()).toContain("disabled: intuneautomation");
+    let servers = await readClaudeServers();
+    expect(servers["greybeard-graph"]).toBeDefined();
+    expect(servers["greybeard-memory"]).toBeDefined();
+    expect(servers["intuneautomation"]).toBeUndefined();
+    expect((await readGreybeardConfig(paths.appData)).mcpServers?.intuneautomation).toBe(false);
+
+    const rerunRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    expect(await runCli(["setup", "--yes", "--app-data", paths.appData], rerunRuntime)).toBe(0);
+    servers = await readClaudeServers();
+    expect(servers["intuneautomation"]).toBeUndefined();
+
+    const enableRuntime = createMockRuntime(paths, { findExecutable: claudeOnly });
+    const enableCode = await runCli([
+      "setup",
+      "--yes",
+      "--app-data",
+      paths.appData,
+      "--enable-server",
+      "intuneautomation"
+    ], enableRuntime);
+
+    expect(enableCode).toBe(0);
+    servers = await readClaudeServers();
+    expect(servers["intuneautomation"]).toBeDefined();
+    expect((await readGreybeardConfig(paths.appData)).mcpServers?.intuneautomation).toBe(true);
   });
 
   it("lists and forgets memory from the CLI", async () => {
@@ -488,10 +802,9 @@ describe("greybeard CLI", () => {
 
   it("replaces a stale Claude skill symlink without overwriting real directories", async () => {
     const paths = await tempPaths();
-    const source = join(paths.repoRoot, ".agents", "skills", "tenant-pulse");
+    const source = await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const staleSource = join(paths.repoRoot, "old-skill");
     const target = join(paths.home, ".claude", "skills", "tenant-pulse");
-    await mkdir(source, { recursive: true });
     await mkdir(staleSource, { recursive: true });
     await mkdir(join(paths.home, ".claude", "skills"), { recursive: true });
     await symlink(staleSource, target, process.platform === "win32" ? "junction" : "dir");
@@ -503,6 +816,38 @@ describe("greybeard CLI", () => {
       status: "replaced-stale-symlink"
     }));
     expect(resolve(join(target, ".."), await readlink(target))).toBe(source);
+  });
+
+  it("lists skills from category subfolders and surfaces duplicates without crashing", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    await createSkillFixture(paths.repoRoot, "craft", "kql-authoring");
+    await mkdir(join(paths.repoRoot, ".agents", "skills", "craft", "broken-skill"), { recursive: true });
+
+    const tree = await listSkillSourceDirs(repoSkillsDir(paths.repoRoot));
+    expect(tree.sources.map((source) => source.name)).toEqual(["kql-authoring", "tenant-pulse"]);
+    expect(tree.sources.map((source) => source.category)).toEqual(["craft", "read"]);
+    expect(tree.missingManifest.map((source) => source.name)).toEqual(["broken-skill"]);
+    expect(tree.duplicates).toEqual([]);
+
+    await createSkillFixture(paths.repoRoot, "write", "tenant-pulse");
+    const withDuplicate = await listSkillSourceDirs(repoSkillsDir(paths.repoRoot));
+    expect(withDuplicate.sources.map((source) => `${source.category}/${source.name}`))
+      .toEqual(["craft/kql-authoring", "read/tenant-pulse"]);
+    expect(withDuplicate.duplicates).toEqual([
+      expect.objectContaining({
+        name: "tenant-pulse",
+        category: "write",
+        existingCategory: "read"
+      })
+    ]);
+
+    const wired = await wireClaudeSkills(createMockRuntime(paths));
+    expect(wired.entries).toContainEqual(expect.objectContaining({
+      name: "write/tenant-pulse",
+      status: "blocked",
+      message: expect.stringContaining("Duplicate skill folder name")
+    }));
   });
 
   it("detects clients only from client-owned signals", async () => {
@@ -636,14 +981,13 @@ describe("greybeard CLI", () => {
     const paths = await tempPaths();
     await mkdir(join(paths.home, ".gemini"), { recursive: true });
     await writeFile(join(paths.home, ".gemini", "oauth_creds.json"), "{}\n", "utf8");
-    await mkdir(join(paths.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const runtime = createMockRuntime(paths);
 
     const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
 
     expect(code).toBe(0);
-    expect(runtime.stdout.toString()).toContain("Gemini CLI");
-    expect(runtime.stdout.toString()).toContain("not detected, skipped");
+    expect(runtime.stdout.toString()).toContain("none detected");
     expect(await pathExists(geminiSettingsPath(paths.home))).toBe(false);
     expect(await pathExists(geminiSkillsDir(paths.home))).toBe(false);
   });
@@ -651,23 +995,21 @@ describe("greybeard CLI", () => {
   it("forces GitHub Copilot setup with --with-copilot", async () => {
     const skipped = await tempPaths();
     await mkdir(join(skipped.home, ".copilot"), { recursive: true });
-    await mkdir(join(skipped.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
+    await createSkillFixture(skipped.repoRoot, "read", "tenant-pulse");
     const skippedRuntime = createMockRuntime(skipped);
 
     const skippedCode = await runCli(["setup", "--yes", "--app-data", skipped.appData], skippedRuntime);
 
     expect(skippedCode).toBe(0);
-    expect(skippedRuntime.stdout.toString()).toContain("GitHub Copilot");
-    expect(skippedRuntime.stdout.toString()).toContain("not detected, skipped");
+    expect(skippedRuntime.stdout.toString()).toContain("none detected");
     expect(await pathExists(copilotMcpConfigPath(skipped.home))).toBe(false);
     expect(await pathExists(copilotSkillsDir(skipped.home))).toBe(false);
 
     const paths = await tempPaths();
-    const source = join(paths.repoRoot, ".agents", "skills", "tenant-pulse");
-    await mkdir(source, { recursive: true });
+    const source = await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const runtime = createMockRuntime(paths);
 
-    const code = await runCli(["setup", "--yes", "--with-copilot", "--app-data", paths.appData], runtime);
+    const code = await runCli(["setup", "--yes", "--with-copilot", "--verbose", "--app-data", paths.appData], runtime);
 
     expect(code).toBe(0);
     expect(runtime.stdout.toString()).toContain("GitHub Copilot");
@@ -892,6 +1234,58 @@ describe("greybeard CLI", () => {
     expect(countOccurrences(copilot, "<!-- GREYBEARD SKILLS START -->")).toBe(1);
     expect(codex).toContain(join(paths.repoRoot, ".agents", "skills"));
     expect(copilot).toContain(join(paths.repoRoot, ".agents", "skills"));
+    expect(cursor).toContain("## Greybeard Memory");
+    expect(codex).toContain("## Greybeard Memory");
+    expect(gemini).toContain("## Greybeard Memory");
+    expect(copilot).toContain("## Greybeard Memory");
+    expect(cursor.startsWith("---\n")).toBe(true);
+    expect(cursor).toContain("alwaysApply: true");
+    expect(countOccurrences(cursor, "alwaysApply:")).toBe(1);
+  });
+
+  it("upgrades an old-format context block in place", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    const oldBlock = [
+      "<!-- GREYBEARD SKILLS START -->",
+      "## Greybeard Skills",
+      "",
+      "Old guidance without the memory section.",
+      "<!-- GREYBEARD SKILLS END -->"
+    ].join("\n");
+    await mkdir(join(paths.home, ".codex"), { recursive: true });
+    await writeFile(codexFallbackPath(paths.home), `Existing Codex notes\n\n${oldBlock}\n`, "utf8");
+
+    const result = await writeCodexSkillFallback(runtime);
+
+    expect(result.status).toBe("updated");
+    const codex = await readFile(codexFallbackPath(paths.home), "utf8");
+    expect(codex).toContain("Existing Codex notes");
+    expect(codex).toContain("## Greybeard Memory");
+    expect(codex).not.toContain("Old guidance without the memory section.");
+    expect(countOccurrences(codex, "<!-- GREYBEARD SKILLS START -->")).toBe(1);
+
+    const again = await writeCodexSkillFallback(runtime);
+    expect(again.status).toBe("already-configured");
+  });
+
+  it("writes context blocks during setup and reports them in the ledger", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      findExecutable: async (command) => command === "cursor" || command === "codex"
+        ? `/usr/local/bin/${command}`
+        : null
+    });
+
+    const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(0);
+    expect(runtime.stdout.toString()).toContain("context block configured");
+    const cursor = await readFile(cursorFallbackPath(paths.home), "utf8");
+    const codex = await readFile(codexFallbackPath(paths.home), "utf8");
+    expect(cursor).toContain("## Greybeard Memory");
+    expect(cursor).toContain("alwaysApply: true");
+    expect(codex).toContain("## Greybeard Memory");
   });
 
   it("installs auto-update schedules through the injected command runner", async () => {
@@ -939,17 +1333,9 @@ describe("greybeard CLI", () => {
     expect(taskCommand).not.toContain("C:/Program Files/nodejs/node.exe");
   });
 
-  it("pulls updates, reports changed skills, and refreshes MCP configs", async () => {
+  it("pulls updates, reports changed skills, and refreshes MCP configs and skill links", async () => {
     const paths = await tempPaths();
-    await mkdir(join(paths.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
-    await writeFile(join(paths.repoRoot, ".agents", "skills", "tenant-pulse", "SKILL.md"), [
-      "---",
-      "name: tenant-pulse",
-      "description: Use when checking tenant health.",
-      "version: 0.2.0",
-      "---",
-      ""
-    ].join("\n"), "utf8");
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse", "0.2.0");
     await writeGreybeardConfig(paths.appData, {
       clients: {
         githubCopilot: true
@@ -978,7 +1364,7 @@ describe("greybeard CLI", () => {
       if (command === "git" && args.includes("diff")) {
         return {
           code: 0,
-          stdout: ".agents/skills/tenant-pulse/SKILL.md\n",
+          stdout: ".agents/skills/read/tenant-pulse/SKILL.md\n",
           stderr: ""
         };
       }
@@ -1004,7 +1390,30 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("MCP configuration");
     expect(runtime.stdout.toString()).toContain("Codex CLI");
     expect(runtime.stdout.toString()).toContain("GitHub Copilot");
+    expect(runtime.stdout.toString()).toContain("Skills");
+    expect(runtime.stdout.toString()).toContain("1 skills linked");
+    expect(runtime.stdout.toString()).toContain("Context files");
     expect(await pathExists(copilotMcpConfigPath(paths.home))).toBe(true);
+    expect(await pathExists(codexFallbackPath(paths.home))).toBe(true);
+    expect(await readFile(codexFallbackPath(paths.home), "utf8")).toContain("## Greybeard Memory");
+  });
+
+  it("reports the real skill, not the old category, when a pull renames a category", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "authoring", "kql-authoring", "0.3.0");
+    const runtime = createMockRuntime(paths, {
+      runCommand: mockUpdateGit([
+        ".agents/skills/craft/kql-authoring/SKILL.md",
+        ".agents/skills/authoring/kql-authoring/SKILL.md"
+      ])
+    });
+
+    const code = await runCli(["update", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(0);
+    expect(runtime.stdout.toString()).toContain("kql-authoring");
+    expect(runtime.stdout.toString()).toContain("version 0.3.0");
+    expect(runtime.stdout.toString()).not.toContain("      craft");
   });
 });
 
@@ -1014,6 +1423,30 @@ type TempPaths = {
   appData: string;
   repoRoot: string;
 };
+
+function mockUpdateGit(diffLines: string[]): CliRuntime["runCommand"] {
+  let revParseCount = 0;
+  return async (command, args) => {
+    if (command === "git" && args.includes("rev-parse")) {
+      revParseCount += 1;
+      return {
+        code: 0,
+        stdout: revParseCount === 1 ? "old-head\n" : "new-head\n",
+        stderr: ""
+      };
+    }
+
+    if (command === "git" && args.includes("pull")) {
+      return { code: 0, stdout: "Fast-forward\n", stderr: "" };
+    }
+
+    if (command === "git" && args.includes("diff")) {
+      return { code: 0, stdout: `${diffLines.join("\n")}\n`, stderr: "" };
+    }
+
+    return { code: 0, stdout: "", stderr: "" };
+  };
+}
 
 class CaptureStream implements OutputStream {
   private readonly chunks: string[] = [];
@@ -1026,6 +1459,20 @@ class CaptureStream implements OutputStream {
   toString(): string {
     return this.chunks.join("");
   }
+}
+
+async function createSkillFixture(repoRoot: string, category: string, name: string, version = "0.1.0"): Promise<string> {
+  const dir = join(repoRoot, ".agents", "skills", category, name);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "SKILL.md"), [
+    "---",
+    `name: ${name}`,
+    `description: Use when testing ${name}.`,
+    `version: ${version}`,
+    "---",
+    ""
+  ].join("\n"), "utf8");
+  return dir;
 }
 
 async function tempPaths(): Promise<TempPaths> {

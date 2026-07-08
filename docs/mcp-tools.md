@@ -1,6 +1,7 @@
 # MCP Tool Contracts
 
 Components: greybeard-graph, greybeard-memory
+Bundled third-party server: intuneautomation (see the end of this doc)
 Status: Draft for implementation
 Companion to: [greybeard-spec.md](../greybeard-spec.md), [write-gate.md](write-gate.md)
 
@@ -119,7 +120,7 @@ One SQLite DB (better-sqlite3, WAL mode) at `<appdata>/greybeard/memory.db`, sha
 ```sql
 CREATE TABLE nodes (
   id           INTEGER PRIMARY KEY,
-  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope')),
+  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope','decision')),
   content      TEXT NOT NULL,
   embedding    BLOB,              -- reserved for v1.1 vectors; NULL in v1
   tenant       TEXT NOT NULL,
@@ -142,6 +143,8 @@ CREATE TABLE edges (
 
 Sync triggers keep `nodes_fts` consistent with `nodes` on insert/update/delete.
 
+The schema version lives in `PRAGMA user_version` (currently 1). A database created before the `decision` type existed carries version 0 and is migrated in place on open: the `nodes` table is rebuilt with the widened CHECK inside one transaction, edges and the FTS index survive by name, and the version is stamped afterward. A crash mid-migration rolls back and retries on the next open.
+
 ### `recall`
 
 Input: `{ "query": "compliance report table choice", "limit": 5 }`
@@ -149,7 +152,7 @@ Input: `{ "query": "compliance report table choice", "limit": 5 }`
 Behavior:
 
 - FTS5 match ranked by bm25, filtered to the active tenant.
-- Rank adjustments: `preference` nodes boosted above other types; recency boost on `last_used_at`.
+- Rank adjustments: `preference` nodes boosted above other types, `decision` nodes boosted above the rest; recency boost on `last_used_at`.
 - Each hit expands one hop over `edges`, so a matched query node brings its linked preference or script along.
 - Matched nodes get `last_used_at` refreshed (this is what keeps useful nodes alive through eviction).
 - Empty result returns an explicit "no memory for this yet", so agents do not retry with paraphrases.
@@ -169,8 +172,9 @@ Input:
 Behavior:
 
 - Privacy rule enforced at the door: the server rejects content matching tenant-output shapes (GUID lists, UPN lists, JSON payloads over a size threshold) with a message telling the agent to store the intent, not the data.
+- The `decision` type records why the tenant is configured a certain way, using the shape `Decision: ... Because: ... Decided: <date> Revisit: ...` with display names over GUIDs. Because a decision legitimately names a few tenant objects, `decision` content may reference up to 3 GUIDs; every other type rejects at 2. The UPN and JSON limits apply to all types.
 - Supersede-not-duplicate: for `preference`, the server FTS-searches existing same-tenant preferences; on strong overlap it updates that node's content in place (same id, edges preserved) instead of inserting. The result says which happened.
-- Eviction on write (spec: Memory eviction): soft cap ~2000 nodes per tenant, usage-weighted LRU, `preference` sticky while referenced, `query` nodes 90-day soft TTL.
+- Eviction on write (spec: Memory eviction): soft cap ~2000 nodes per tenant, usage-weighted LRU, `preference` and `decision` sticky while referenced, `query` nodes 90-day soft TTL.
 
 ### `list` / `forget`
 
@@ -181,3 +185,20 @@ Behavior:
 
 - Every Greybeard skill opens with: call `recall` with a one-line task summary before other work; call `remember` when the admin corrects, chooses, or confirms something.
 - Claude Code can install an opt-in `UserPromptSubmit` recall nudge with `greybeard setup --memory-hook`. Codex/Gemini/Cursor are best-effort by instruction; the README says so.
+
+## Server catalog and optional servers
+
+All servers Greybeard wires into clients are declared in `cli/src/serverCatalog.ts`. The two Greybeard servers are `required: true` and always configured. Everything else is optional: enabled or disabled per user with setup flags, persisted in `config.json` under `mcpServers`, and honored by `greybeard setup`, `greybeard update`, and `greybeard doctor`.
+
+- `greybeard setup --disable-server <name>` removes the server from every client config and remembers the choice.
+- `greybeard setup --enable-server <name>` turns it back on.
+- Adding a new optional server means adding one catalog entry (name, description, npm package, `defaultEnabled`); the writers, inspectors, and doctor pick it up automatically.
+- Doctor treats a client as configured only when every enabled server is present.
+
+### intuneautomation (bundled third-party server, optional, on by default)
+
+Not part of this repo. `greybeard setup` wires [`@ugurkocde/intuneautomation-mcp`](https://www.npmjs.com/package/@ugurkocde/intuneautomation-mcp) into every detected client alongside the two Greybeard servers. It exposes search and retrieval over the IntuneAutomation PowerShell script library.
+
+- Always runs from npm via `npx -y @ugurkocde/intuneautomation-mcp@latest`, regardless of `serverPackageSource`, because there is no local build for it in this repo. The `pinned` server update mode does not apply to it.
+- Needs no credentials or environment variables; it serves script content, not tenant data. Graph calls stay in greybeard-graph.
+- Disable with `greybeard setup --disable-server intuneautomation`.

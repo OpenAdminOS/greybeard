@@ -4,6 +4,7 @@ import {
   getGreybeardAppDataPath,
   graphAuthConfig,
   readGreybeardConfig,
+  TIER2_SCOPES,
   type AuthStatus,
   type CacheProtection,
   type GreybeardConfig
@@ -21,17 +22,22 @@ import {
   inspectCursorSkillFallback,
   inspectCursorSkillWiring,
   inspectClaudeMcpConfig,
+  inspectClaudeMemoryHook,
   inspectClaudeSkillWiring,
   inspectGeminiMcpConfig,
   inspectGeminiSkillFallback,
   inspectGeminiSkillWiring,
+  summarizeSkillWiring,
   type ClientDetection,
   type ClientMcpConfigResult,
+  type InspectServerOptions,
   type KnownClientName,
   type SkillFallbackResult,
   type SkillWireResult
 } from "./clients.js";
 import { CliRuntime, writeLine, writeStatusLine } from "./runtime.js";
+import { enabledCatalogServers, findCatalogServer } from "./serverCatalog.js";
+import { loadSkillManifests, ROLE_GROUPS, type SkillManifestLoadResult } from "./skillManifest.js";
 
 export type FindingLevel = "PASS" | "WARN" | "FAIL";
 
@@ -83,11 +89,18 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
     updateFinding(config)
   ];
 
+  const manifests = await loadSkillManifests(runtime.repoRoot);
+  const enabledServers = enabledCatalogServers(config.mcpServers ?? {}).map((server) => server.name);
+  findings.push(...skillRequirementFindings(manifests, status, enabledServers));
+
   const clients = await detectAllClients(runtime, {
     githubCopilot: config.clients?.githubCopilot === true
   });
+  const serverOptions: InspectServerOptions = {
+    serverToggles: config.mcpServers ?? {}
+  };
   for (const client of clients) {
-    findings.push(...await clientFindings(client, runtime));
+    findings.push(...await clientFindings(client, runtime, serverOptions));
   }
 
   return findings;
@@ -170,7 +183,7 @@ function rolesFinding(status: AuthStatus): DoctorFinding {
     return {
       level: "WARN",
       label: "Directory roles",
-      detail: "none detected. Reports Reader, Security Reader, Global Reader, or higher may be required."
+      detail: `none detected. One of ${ROLE_GROUPS.reporting?.join(", ")} may be required for reporting endpoints.`
     };
   }
 
@@ -226,43 +239,202 @@ function updateFinding(config: GreybeardConfig): DoctorFinding {
   };
 }
 
-async function clientFindings(client: ClientDetection, runtime: CliRuntime): Promise<DoctorFinding[]> {
+export function skillRequirementFindings(
+  result: SkillManifestLoadResult,
+  status: AuthStatus,
+  enabledServers: string[]
+): DoctorFinding[] {
+  const findings: DoctorFinding[] = result.errors.map((error) => ({
+    level: "WARN" as const,
+    label: `Skill: ${error.name}`,
+    detail: `SKILL.md manifest unreadable: ${error.message}`
+  }));
+
+  const declared = result.manifests.filter((manifest) => manifest.requires !== undefined);
+  if (declared.length === 0) {
+    return findings;
+  }
+
+  if (!status.signedIn) {
+    findings.push({
+      level: "WARN",
+      label: "Skill requirements",
+      detail: "unknown until sign-in succeeds"
+    });
+    return findings;
+  }
+
+  const grantedScopes = new Set(status.grantedScopes.map((scope) => scope.toLowerCase()));
+  const heldRoles = new Set(status.directoryRoles.map((role) => role.toLowerCase()));
+  const tier2Scopes = new Set(TIER2_SCOPES.map((scope) => scope.toLowerCase()));
+  const onDemand: string[] = [];
+  const warnCountBefore = findings.length;
+
+  for (const manifest of declared) {
+    const requires = manifest.requires;
+    if (requires === undefined) {
+      continue;
+    }
+
+    const unmet: string[] = [];
+    // Capabilities the product grants on demand by design are informational,
+    // not warnings; a default install must be able to come out clean.
+    const pending: string[] = [];
+
+    for (const server of requires.servers ?? []) {
+      if (!enabledServers.includes(server)) {
+        unmet.push(`MCP server ${server} is not enabled; run greybeard setup --enable-server ${server}`);
+      }
+    }
+
+    const missingScopes = (requires.scopes ?? []).filter((scope) => !grantedScopes.has(scope.toLowerCase()));
+    const missingTier2 = missingScopes.filter((scope) => tier2Scopes.has(scope.toLowerCase()));
+    const missingTier1 = missingScopes.filter((scope) => !tier2Scopes.has(scope.toLowerCase()));
+    if (missingTier1.length > 0) {
+      unmet.push(`missing scopes ${missingTier1.join(", ")}; ask the agent to call add-scope, or re-run greybeard setup`);
+    }
+
+    if (missingTier2.length > 0) {
+      pending.push(`Tier 2 scopes ${missingTier2.join(", ")} granted on first use`);
+    }
+
+    if (requires.license === "entra-p1" && status.entraP1 !== true) {
+      unmet.push(status.entraP1 === false
+        ? "requires Entra ID P1; gated pillars will degrade"
+        : "requires Entra ID P1; license status unknown");
+    }
+
+    for (const group of requires.roles ?? []) {
+      const roles = ROLE_GROUPS[group];
+      if (!roles) {
+        unmet.push(`unknown role group ${group}`);
+        continue;
+      }
+
+      if (!roles.some((role) => heldRoles.has(role.toLowerCase()))) {
+        unmet.push(`requires one of these directory roles: ${roles.join(", ")}`);
+      }
+    }
+
+    if (requires.writes === true && !status.gate.writesConfigured) {
+      pending.push("writes stay off until greybeard setup --writes");
+    }
+
+    if (unmet.length > 0) {
+      findings.push({
+        level: "WARN",
+        label: `Skill: ${manifest.name}`,
+        detail: [...unmet, ...pending].join("; ")
+      });
+    } else if (pending.length > 0) {
+      onDemand.push(`${manifest.name} (${pending.join("; ")})`);
+    }
+  }
+
+  const allSatisfied = findings.length === warnCountBefore && result.errors.length === 0;
+  if (allSatisfied) {
+    findings.push({
+      level: "PASS",
+      label: "Skill requirements",
+      detail: onDemand.length > 0
+        ? `satisfied; optional capabilities not yet enabled: ${onDemand.join(", ")}`
+        : `declared requirements satisfied for all ${declared.length} skills`
+    });
+  } else if (onDemand.length > 0) {
+    findings.push({
+      level: "PASS",
+      label: "Skill requirements",
+      detail: `optional capabilities not yet enabled: ${onDemand.join(", ")}`
+    });
+  }
+
+  return findings;
+}
+
+async function clientFindings(
+  client: ClientDetection,
+  runtime: CliRuntime,
+  serverOptions: InspectServerOptions
+): Promise<DoctorFinding[]> {
   if (!client.detected) {
     return [];
   }
 
   const [mcp, skills, fallback] = await Promise.all([
-    inspectClientMcp(client.name, runtime),
+    inspectClientMcp(client.name, runtime, serverOptions),
     inspectClientSkills(client.name, runtime),
     inspectClientFallback(client.name, runtime)
   ]);
-  return [
-    mcpFinding(client.name, mcp),
+  const findings = [
+    mcpFinding(client.name, mcp, serverOptions),
     skillFinding(client.name, skills, fallback)
   ];
+  findings.push(client.name === "Claude Code"
+    ? await memoryHookFinding(runtime)
+    : contextBlockFinding(client.name, fallback));
+  return findings;
 }
 
-async function inspectClientMcp(name: KnownClientName, runtime: CliRuntime): Promise<ClientMcpConfigResult> {
+async function memoryHookFinding(runtime: CliRuntime): Promise<DoctorFinding> {
+  const hook = await inspectClaudeMemoryHook(runtime);
+  if (hook.configured) {
+    return {
+      level: "PASS",
+      label: "Claude Code memory hook",
+      detail: `recall hook present in ${hook.path}`
+    };
+  }
+
+  return {
+    level: "WARN",
+    label: "Claude Code memory hook",
+    detail: "recall hook missing; run greybeard setup to install it"
+  };
+}
+
+function contextBlockFinding(name: KnownClientName, fallback: SkillFallbackResult | null): DoctorFinding {
+  if (fallback?.configured) {
+    return {
+      level: "PASS",
+      label: `${name} context block`,
+      detail: `memory and skill guidance present in ${fallback.path}`
+    };
+  }
+
+  return {
+    level: "WARN",
+    label: `${name} context block`,
+    detail: fallback
+      ? `context block missing from ${fallback.path}; run greybeard update`
+      : "context block missing; run greybeard update"
+  };
+}
+
+async function inspectClientMcp(
+  name: KnownClientName,
+  runtime: CliRuntime,
+  options: InspectServerOptions
+): Promise<ClientMcpConfigResult> {
   if (name === "Claude Code") {
     return {
       client: name,
-      ...await inspectClaudeMcpConfig(runtime)
+      ...await inspectClaudeMcpConfig(runtime, options)
     };
   }
 
   if (name === "Cursor") {
-    return inspectCursorMcpConfig(runtime);
+    return inspectCursorMcpConfig(runtime, options);
   }
 
   if (name === "Codex CLI") {
-    return inspectCodexMcpConfig(runtime);
+    return inspectCodexMcpConfig(runtime, options);
   }
 
   if (name === "Gemini CLI") {
-    return inspectGeminiMcpConfig(runtime);
+    return inspectGeminiMcpConfig(runtime, options);
   }
 
-  return inspectCopilotMcpConfig(runtime);
+  return inspectCopilotMcpConfig(runtime, options);
 }
 
 async function inspectClientSkills(name: KnownClientName, runtime: CliRuntime): Promise<SkillWireResult> {
@@ -305,19 +477,36 @@ async function inspectClientFallback(name: KnownClientName, runtime: CliRuntime)
   return null;
 }
 
-function mcpFinding(name: KnownClientName, mcp: ClientMcpConfigResult): DoctorFinding {
+function mcpFinding(
+  name: KnownClientName,
+  mcp: ClientMcpConfigResult,
+  serverOptions: InspectServerOptions
+): DoctorFinding {
+  const expected = enabledCatalogServers(serverOptions.serverToggles)
+    .map((server) => server.name)
+    .join(", ");
   if (mcp.configured) {
     return {
       level: "PASS",
       label: `${name} MCP`,
-      detail: `greybeard-graph and greybeard-memory present in ${mcp.path}`
+      detail: `${expected} present in ${mcp.path}`
+    };
+  }
+
+  const missing = mcp.missingServers ?? [];
+  const missingCore = missing.filter((serverName) => findCatalogServer(serverName)?.required !== false);
+  if (missing.length > 0 && missingCore.length === 0) {
+    return {
+      level: "WARN",
+      label: `${name} MCP`,
+      detail: `optional servers not configured yet: ${missing.join(", ")}. Run greybeard update to add them, or greybeard setup --disable-server <name> to drop one.`
     };
   }
 
   return {
     level: "FAIL",
     label: `${name} MCP`,
-    detail: mcp.error || `greybeard-graph or greybeard-memory missing from ${mcp.path}`
+    detail: mcp.error || `${missing.length > 0 ? missing.join(", ") : `one of ${expected}`} missing from ${mcp.path}`
   };
 }
 
@@ -326,16 +515,8 @@ function skillFinding(
   skills: SkillWireResult,
   fallback: SkillFallbackResult | null
 ): DoctorFinding {
-  if (skills.empty) {
-    return {
-      level: "PASS",
-      label: `${name} skills`,
-      detail: `no skill folders found in ${skills.sourceDir}`
-    };
-  }
-
-  const blocked = skills.entries.filter((entry) => entry.status === "blocked");
-  if (blocked.length === 0) {
+  const summary = summarizeSkillWiring(skills);
+  if (summary.ok) {
     return {
       level: "PASS",
       label: `${name} skills`,
@@ -351,9 +532,12 @@ function skillFinding(
     };
   }
 
+  const blocked = skills.entries.filter((entry) => entry.status === "blocked");
   return {
     level: "FAIL",
     label: `${name} skills`,
-    detail: blocked.map((entry) => `${entry.name}: ${entry.message || "not wired"}`).join("; ")
+    detail: blocked.length > 0
+      ? blocked.map((entry) => `${entry.name}: ${entry.message || "not wired"}`).join("; ")
+      : summary.detail
   };
 }

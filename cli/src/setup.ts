@@ -1,10 +1,12 @@
 import {
   buildAdminConsentUrl,
   DEFAULT_TIER1_SCOPES,
+  DEFAULT_WRITE_SCOPES,
   GRAPH_CLI_CLIENT_ID,
   getGreybeardAppDataPath,
   graphAuthConfig,
   isAdminConsentError,
+  isWriteScope,
   readGreybeardConfig,
   scopeJustification,
   updateGreybeardConfig,
@@ -22,26 +24,43 @@ import { initializeMemoryDatabase, memoryDbPath } from "@greybeard/memory";
 import { flagValue, flagValues, hasFlag, ParsedArgs } from "./args.js";
 import {
   detectAllClients,
+  summarizeSkillWiring,
   wireAllClientSkills,
   writeAllClientMcpConfigs,
+  writeAllClientSkillFallbacks,
   writeClaudeMemoryHook,
   type ClientDetectionOptions,
-  type ClientDetection
+  type ClientDetection,
+  type ClientMcpConfigResult,
+  type KnownClientName,
+  type SkillFallbackResult,
+  type SkillWireResult
 } from "./clients.js";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime, writeInfoLine, writeLine, writeNoteLine, writeSection, writeStatusLine } from "./runtime.js";
+import {
+  findCatalogServer,
+  isServerEnabled,
+  optionalCatalogServers,
+  SERVER_CATALOG,
+  serverOptionsFromConfig
+} from "./serverCatalog.js";
 
 const GRAPH_RESOURCE_APP_ID = "00000003-0000-0000-c000-000000000000";
 const BOOTSTRAP_SCOPE = "Application.ReadWrite.All";
-export const DEFAULT_WRITE_SCOPES = [
-  "User.ReadWrite.All",
-  "Group.ReadWrite.All",
-  "Policy.ReadWrite.ConditionalAccess"
-] as const;
 
 export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
   const config = await readGreybeardConfig(appDataPath);
+  // Validate flag values that can fail before any interactive sign-in happens.
+  let mcpServerToggles: Record<string, boolean> | undefined;
+  try {
+    mcpServerToggles = serverTogglesFromArgs(args, config.mcpServers);
+  } catch (error) {
+    writeLine(runtime.stderr, error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+
   const tenantId = flagValue(args, "tenant") || runtime.env.GREYBEARD_TENANT_ID || config.activeTenantId;
   const auth = await runtime.authFactory({
     tenantId,
@@ -53,18 +72,34 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     fetcher: runtime.fetcher
   });
 
+  const verbose = hasFlag(args, "verbose");
   writeLine(runtime.stdout, "Greybeard setup");
-  writeLine(runtime.stdout, "──────────────");
+  writeLine(runtime.stdout, "");
 
   const clients = await detectAllClients(runtime, clientDetectionOptions(args, config));
   const detectedClients = clients.filter((client) => client.detected);
-  writeSection(runtime.stdout, "Clients");
-  for (const client of clients) {
-    writeInfoLine(
+  const missingClients = clients.filter((client) => !client.detected);
+  if (detectedClients.length === 0) {
+    writeStatusLine(
       runtime.stdout,
-      client.name,
-      client.detected ? clientDetectionDetail(client) : "not detected, skipped"
+      "WARN",
+      "Clients",
+      "none detected; sign-in and memory still run, re-run greybeard setup after installing a client"
     );
+  } else {
+    const missingNote = missingClients.length > 0
+      ? ` (${formatNameList(missingClients.map((client) => client.name))} not detected)`
+      : "";
+    writeLine(
+      runtime.stdout,
+      `Will configure ${formatNameList(detectedClients.map((client) => client.name))}.${missingNote}`
+    );
+  }
+
+  if (verbose) {
+    for (const client of detectedClients) {
+      writeInfoLine(runtime.stdout, client.name, clientDetectionDetail(client));
+    }
   }
 
   let token: AuthToken;
@@ -104,57 +139,49 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     skillUpdate: skillUpdateFromArgs(args, current.skillUpdate),
     serverUpdate: serverUpdateFromArgs(args, current.serverUpdate),
     serverPackageSource: serverPackageSourceFromArgs(args, current.serverPackageSource),
+    mcpServers: mcpServerToggles,
+    memoryHook: memoryHookFromArgs(args, current.memoryHook),
     clients: clientsFromArgs(args, current.clients),
     gate: gateFromArgs(args, current.gate)
   }));
-  writeStatusLine(runtime.stdout, "OK", "Signed in", token.account);
-  writeStatusLine(runtime.stdout, "OK", "Tenant", `${token.tenantDomain} (${token.tenantId})`);
+  writeStatusLine(runtime.stdout, "OK", "Signed in", `${token.account} (${token.tenantDomain})`);
+  if (verbose) {
+    writeInfoLine(runtime.stdout, "Tenant ID", token.tenantId);
+  }
 
-  writeSection(runtime.stdout, "Memory");
   initializeMemoryDatabase(appDataPath);
-  writeStatusLine(runtime.stdout, "OK", "Memory DB", memoryDbPath(appDataPath));
-
-  if (hasFlag(args, "memory-hook")) {
-    if (detectedClients.some((client) => client.name === "Claude Code")) {
-      const hook = await writeClaudeMemoryHook(runtime);
-      writeStatusLine(runtime.stdout, "OK", "Memory hook", `${hook.status} in ${hook.path}`);
-    } else {
-      writeInfoLine(runtime.stdout, "Memory hook", "Claude Code not detected, skipped");
-    }
-  }
-
-  writeSection(runtime.stdout, "Auto-update");
   const schedule = await installAutoUpdateSchedule(runtime, updatedConfig.skillUpdate ?? "weekly");
-  writeStatusLine(runtime.stdout, schedule.configured ? "OK" : "WARN", "Schedule", schedule.detail);
-
-  writeSection(runtime.stdout, "MCP configuration");
+  printServerSelection(runtime, updatedConfig);
   const mcpResults = await writeAllClientMcpConfigs(runtime, serverOptionsFromConfig(updatedConfig), detectedClients);
-  if (mcpResults.length === 0) {
-    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
-  }
-  for (const mcp of mcpResults) {
-    writeStatusLine(runtime.stdout, "OK", mcp.client, mcp.path);
+  const skillResults = await wireAllClientSkills(runtime, detectedClients);
+  const fallbackResults = await writeAllClientSkillFallbacks(runtime, detectedClients);
+
+  for (const client of detectedClients) {
+    printClientLedgerLine({
+      runtime,
+      client: client.name,
+      mcp: mcpResults.find((result) => result.client === client.name),
+      skills: skillResults.find((result) => result.client === client.name),
+      fallback: fallbackResults.find((result) => result.client === client.name),
+      verbose
+    });
   }
 
-  writeSection(runtime.stdout, "Skills");
-  const skillResults = await wireAllClientSkills(runtime, detectedClients);
-  if (skillResults.length === 0) {
-    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
-  }
-  for (const skills of skillResults) {
-    if (skills.empty) {
-      writeStatusLine(runtime.stdout, "WARN", skills.client ?? "Skills", `no skill folders found in ${skills.sourceDir}`);
-    } else {
-      const blocked = skills.entries.filter((entry) => entry.status === "blocked");
-      writeStatusLine(
-        runtime.stdout,
-        blocked.length === 0 ? "OK" : "WARN",
-        skills.client ?? "Skills",
-        blocked.length === 0
-          ? `${skills.entries.length} skill links ready in ${skills.targetDir}`
-          : `${skills.entries.length - blocked.length}/${skills.entries.length} skill links ready; ${blocked.map((entry) => entry.name).join(", ")} blocked`
-      );
-    }
+  printMemoryLedgerLine({
+    runtime,
+    appDataPath,
+    mode: updatedConfig.skillUpdate ?? "weekly",
+    schedule,
+    verbose
+  });
+
+  if (updatedConfig.memoryHook === false) {
+    writeInfoLine(runtime.stdout, "Memory hook", "off; re-run greybeard setup --memory-hook to enable recall in Claude Code");
+  } else if (detectedClients.some((client) => client.name === "Claude Code")) {
+    const hook = await writeClaudeMemoryHook(runtime);
+    writeStatusLine(runtime.stdout, "OK", "Memory hook", `${hook.status} in ${hook.path}`);
+  } else if (hasFlag(args, "memory-hook")) {
+    writeInfoLine(runtime.stdout, "Memory hook", "Claude Code not detected, skipped");
   }
 
   if (!hasFlag(args, "writes")) {
@@ -180,10 +207,121 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     });
   }
 
-  writeSection(runtime.stdout, "Done");
-  writeStatusLine(runtime.stdout, "OK", "Setup", "complete");
-  writeLine(runtime.stdout, "Try this now: what is my tenant MFA coverage?");
+  writeLine(runtime.stdout, "");
+  const firstClient = detectedClients[0]?.name;
+  writeLine(
+    runtime.stdout,
+    firstClient
+      ? `Done. Open ${firstClient} and ask: what is my tenant MFA coverage?`
+      : "Done. Install a supported AI client and re-run greybeard setup."
+  );
   return 0;
+}
+
+function printClientLedgerLine(params: {
+  runtime: CliRuntime;
+  client: KnownClientName;
+  mcp: ClientMcpConfigResult | undefined;
+  skills: SkillWireResult | undefined;
+  fallback: SkillFallbackResult | undefined;
+  verbose: boolean;
+}): void {
+  const configured: string[] = [];
+  const problems: string[] = [];
+  const notes: string[] = [];
+
+  if (params.mcp) {
+    if (params.mcp.configured) {
+      configured.push("MCP servers");
+      if (params.mcp.preservedServers && params.mcp.preservedServers.length > 0) {
+        notes.push(`kept existing user-defined entries: ${params.mcp.preservedServers.join(", ")}`);
+      }
+    } else {
+      problems.push(`MCP config failed: ${params.mcp.error ?? "unknown error"}`);
+    }
+  }
+
+  if (params.skills) {
+    const summary = summarizeSkillWiring(params.skills);
+    if (summary.ok) {
+      configured.push(`${params.skills.entries.length} skills`);
+    } else {
+      problems.push(summary.detail);
+    }
+  }
+
+  if (params.fallback?.configured) {
+    configured.push("context block");
+  }
+
+  const detail = [
+    configured.length > 0 ? `${formatNameList(configured)} configured` : "",
+    ...problems,
+    ...notes
+  ].filter((part) => part.length > 0).join("; ");
+  writeStatusLine(params.runtime.stdout, problems.length === 0 ? "OK" : "WARN", params.client, detail);
+
+  if (params.verbose) {
+    if (params.mcp) {
+      writeInfoLine(params.runtime.stdout, "MCP config", params.mcp.path);
+    }
+
+    if (params.skills && !params.skills.empty) {
+      writeInfoLine(params.runtime.stdout, "Skills", params.skills.targetDir);
+    }
+
+    if (params.fallback) {
+      writeInfoLine(params.runtime.stdout, "Context file", params.fallback.path);
+    }
+  }
+}
+
+function printMemoryLedgerLine(params: {
+  runtime: CliRuntime;
+  appDataPath: string;
+  mode: SkillUpdateMode;
+  schedule: ScheduleResult;
+  verbose: boolean;
+}): void {
+  const updateNote = params.mode === "off"
+    ? "auto-update off"
+    : params.schedule.configured
+      ? params.mode === "weekly" ? "weekly auto-update scheduled" : "auto-update on login"
+      : "";
+  writeStatusLine(params.runtime.stdout, "OK", "Memory", updateNote ? `ready; ${updateNote}` : "ready");
+  if (!params.schedule.configured && params.mode !== "off") {
+    writeStatusLine(params.runtime.stdout, "WARN", "Auto-update", params.schedule.detail);
+  }
+
+  if (params.verbose) {
+    writeInfoLine(params.runtime.stdout, "Memory DB", memoryDbPath(params.appDataPath));
+    writeInfoLine(params.runtime.stdout, "Auto-update", params.schedule.detail);
+  }
+}
+
+export function formatNameList(names: readonly string[]): string {
+  if (names.length <= 1) {
+    return names[0] ?? "";
+  }
+
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
+  }
+
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
+}
+
+const SHORT_SCOPE_LABELS: Record<string, string> = {
+  "User.Read.All": "users",
+  "Group.Read.All": "groups",
+  "Policy.Read.All": "policies",
+  "Organization.Read.All": "org and license info",
+  "AuditLog.Read.All": "audit logs",
+  "Reports.Read.All": "usage reports"
+};
+
+function shortScopeLabel(scope: string): string {
+  return SHORT_SCOPE_LABELS[scope] ?? scope;
 }
 
 function clientDetectionDetail(client: ClientDetection): string {
@@ -347,32 +485,41 @@ async function printSignInDisclosure(params: {
   mode: SignInDisclosureMode;
   clientId: string;
 }): Promise<"continue" | "cancelled"> {
-  writeSection(params.runtime.stdout, "Sign in to Microsoft");
-  writeInfoLine(params.runtime.stdout, "Browser", "login.microsoftonline.com, Microsoft's own sign-in page");
-
-  if (params.mode === "workspace") {
-    writeInfoLine(params.runtime.stdout, "Application", "Greybeard workspace app registered in this tenant");
-  } else {
-    writeInfoLine(params.runtime.stdout, "Application", "Microsoft Graph Command Line Tools, a first-party Microsoft application");
-  }
-
-  writeInfoLine(params.runtime.stdout, "Client ID", params.clientId);
-  writeInfoLine(params.runtime.stdout, "Password", "Greybeard never sees your password");
+  const stdout = params.runtime.stdout;
+  writeLine(stdout, "");
+  writeLine(stdout, "Sign in to Microsoft");
+  writeLine(stdout, "  Microsoft's own sign-in page (login.microsoftonline.com) with");
+  writeLine(stdout, params.mode === "workspace"
+    ? "  the Greybeard workspace app registered in this tenant"
+    : "  the first-party Microsoft Graph Command Line Tools app");
+  writeLine(stdout, `  (app ID ${params.clientId}).`);
 
   if (params.mode === "read-only") {
-    writeInfoLine(params.runtime.stdout, "Read-only", "Greybeard registers no third-party app for read-only access");
-    writeInfoLine(params.runtime.stdout, "Writes", "impossible unless you explicitly run greybeard setup --writes");
-  } else if (params.mode === "bootstrap") {
-    writeNoteLine(params.runtime.stdout, "Application.ReadWrite.All is used only to create the workspace app");
-    writeInfoLine(params.runtime.stdout, "Writes", "tenant writes still require an approved plan");
+    writeLine(stdout, "  Greybeard never sees your password, registers no app of its own,");
+    writeLine(stdout, "  and cannot write to your tenant.");
+    writeLine(stdout, `  Requests ${params.scopes.length} read-only scopes: ${params.scopes.map(shortScopeLabel).join(", ")}.`);
+    writeLine(stdout, "  Run greybeard scopes for the full list and reasons.");
   } else {
-    writeInfoLine(params.runtime.stdout, "Writes", "tenant writes still require an approved plan");
+    writeLine(stdout, "  Greybeard never sees your password.");
+    const readScopes = params.scopes.filter((scope) => !isWriteScope(scope));
+    const writeScopes = params.scopes.filter((scope) => isWriteScope(scope));
+    if (readScopes.length > 0) {
+      writeLine(stdout, `  Read scopes: ${readScopes.map(shortScopeLabel).join(", ")}`);
+    }
+
+    if (writeScopes.length > 0) {
+      writeLine(stdout, `  Write scopes: ${writeScopes.join(", ")}`);
+    }
+
+    if (params.mode === "bootstrap") {
+      writeNoteLine(stdout, "Application.ReadWrite.All is used only to create the workspace app");
+    }
+
+    writeNoteLine(stdout, "tenant writes still require an approved plan");
+    writeLine(stdout, "  Run greybeard scopes for the full list and reasons.");
   }
 
-  writeSection(params.runtime.stdout, "Consent");
-  for (const scope of params.scopes) {
-    writeInfoLine(params.runtime.stdout, scope, scopeJustification(scope), 40);
-  }
+  writeLine(stdout, "");
 
   if (hasFlag(params.args, "yes")) {
     writeStatusLine(params.runtime.stdout, "OK", "Confirmation", "skipped by --yes");
@@ -618,6 +765,18 @@ function clientDetectionOptions(args: ParsedArgs, config: GreybeardConfig): Clie
   };
 }
 
+function memoryHookFromArgs(args: ParsedArgs, current: boolean | undefined): boolean | undefined {
+  if (hasFlag(args, "no-memory-hook")) {
+    return false;
+  }
+
+  if (hasFlag(args, "memory-hook")) {
+    return true;
+  }
+
+  return current;
+}
+
 function clientsFromArgs(
   args: ParsedArgs,
   current: GreybeardConfig["clients"]
@@ -632,14 +791,53 @@ function clientsFromArgs(
   return current;
 }
 
-function serverOptionsFromConfig(config: GreybeardConfig): {
-  serverUpdate: ServerUpdateMode;
-  serverPackageSource: ServerPackageSource;
-} {
-  return {
-    serverUpdate: config.serverUpdate ?? "latest",
-    serverPackageSource: config.serverPackageSource ?? "local"
-  };
+function serverTogglesFromArgs(
+  args: ParsedArgs,
+  current: Record<string, boolean> | undefined
+): Record<string, boolean> | undefined {
+  const enable = flagValues(args, "enable-server");
+  const disable = flagValues(args, "disable-server");
+  if (enable.length === 0 && disable.length === 0) {
+    return current;
+  }
+
+  const next = { ...current };
+  for (const name of enable) {
+    next[optionalServerName(name)] = true;
+  }
+
+  for (const name of disable) {
+    next[optionalServerName(name)] = false;
+  }
+
+  return next;
+}
+
+function optionalServerName(name: string): string {
+  const server = findCatalogServer(name);
+  if (!server) {
+    const available = optionalCatalogServers().map((candidate) => candidate.name);
+    throw new Error(`Unknown MCP server: ${name}. Optional servers: ${available.join(", ") || "none"}.`);
+  }
+
+  if (server.required) {
+    throw new Error(`${name} is a core Greybeard server and is always enabled.`);
+  }
+
+  return server.name;
+}
+
+function printServerSelection(runtime: CliRuntime, config: GreybeardConfig): void {
+  const enabled = SERVER_CATALOG
+    .filter((server) => isServerEnabled(server, config.mcpServers))
+    .map((server) => server.name);
+  const disabled = optionalCatalogServers()
+    .filter((server) => !isServerEnabled(server, config.mcpServers))
+    .map((server) => server.name);
+  const detail = disabled.length > 0
+    ? `${enabled.join(", ")} (disabled: ${disabled.join(", ")})`
+    : enabled.join(", ");
+  writeInfoLine(runtime.stdout, "MCP servers", detail);
 }
 
 async function installLaunchdSchedule(runtime: CliRuntime, mode: SkillUpdateMode): Promise<ScheduleResult> {

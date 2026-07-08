@@ -15,6 +15,15 @@
         "memory/dist/index.js"
       ],
       "env": {}
+    },
+    "intuneautomation": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ugurkocde/intuneautomation-mcp@latest"
+      ],
+      "env": {}
     }
   }
 }

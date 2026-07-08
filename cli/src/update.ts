@@ -1,15 +1,16 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import {
-  getGreybeardAppDataPath,
-  readGreybeardConfig,
-  type GreybeardConfig,
-  type ServerPackageSource,
-  type ServerUpdateMode
-} from "@greybeard/graph";
+import { getGreybeardAppDataPath, readGreybeardConfig } from "@greybeard/graph";
 import { flagValue, ParsedArgs } from "./args.js";
-import { detectAllClients, repoSkillsDir, writeAllClientMcpConfigs } from "./clients.js";
+import {
+  detectAllClients,
+  summarizeSkillWiring,
+  wireAllClientSkills,
+  writeAllClientMcpConfigs,
+  writeAllClientSkillFallbacks,
+  writeClaudeMemoryHook
+} from "./clients.js";
 import { CliRuntime, writeInfoLine, writeLine, writeSection, writeStatusLine } from "./runtime.js";
+import { serverOptionsFromConfig } from "./serverCatalog.js";
+import { loadSkillManifests } from "./skillManifest.js";
 
 export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
@@ -62,6 +63,34 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
     writeStatusLine(runtime.stdout, "OK", result.client, result.path);
   }
 
+  writeSection(runtime.stdout, "Skills");
+  const skillResults = await wireAllClientSkills(runtime, clients);
+  if (skillResults.length === 0) {
+    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
+  }
+  for (const result of skillResults) {
+    const summary = summarizeSkillWiring(result);
+    writeStatusLine(runtime.stdout, summary.ok ? "OK" : "WARN", result.client ?? "Client", summary.detail);
+  }
+
+  writeSection(runtime.stdout, "Context files");
+  const fallbackResults = await writeAllClientSkillFallbacks(runtime, clients);
+  const claudeDetected = clients.some((client) => client.detected && client.name === "Claude Code");
+  if (fallbackResults.length === 0 && !claudeDetected) {
+    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
+  }
+  for (const result of fallbackResults) {
+    writeStatusLine(runtime.stdout, "OK", result.client, `${result.status} in ${result.path}`);
+  }
+  if (claudeDetected) {
+    if (config.memoryHook === false) {
+      writeInfoLine(runtime.stdout, "Claude Code", "memory hook off by setup choice");
+    } else {
+      const hook = await writeClaudeMemoryHook(runtime);
+      writeStatusLine(runtime.stdout, "OK", "Claude Code", `memory hook ${hook.status} in ${hook.path}`);
+    }
+  }
+
   return 0;
 }
 
@@ -76,52 +105,38 @@ async function changedSkills(runtime: CliRuntime, before: string, after: string)
     throw new Error(diff.stderr || diff.stdout || "git diff failed");
   }
 
+  const { manifests, errors } = await loadSkillManifests(runtime.repoRoot);
+  const versions = new Map(manifests.map((manifest) => [manifest.name, manifest.version]));
+  const unreadable = new Set(errors.map((error) => error.name));
+  const known = new Set([...versions.keys(), ...unreadable]);
+  const categories = new Set(manifests.map((manifest) => manifest.category).filter((category) => category.length > 0));
+
   const names = new Set<string>();
   for (const line of diff.stdout.split(/\r?\n/u)) {
-    const parts = line.split("/");
-    if (parts[0] === ".agents" && parts[1] === "skills" && parts[2]) {
-      names.add(parts[2]);
+    const [first, second, third, fourth, fifth] = line.split("/");
+    if (first !== ".agents" || second !== "skills" || !third || !fourth) {
+      continue;
+    }
+
+    // Resolve the skill name against the current tree first, so paths under a
+    // renamed or deleted category still report the skill, not the category.
+    if (known.has(fourth)) {
+      names.add(fourth);
+    } else if (known.has(third)) {
+      names.add(third);
+    } else if (fifth) {
+      names.add(fourth);
+    } else if (!categories.has(third)) {
+      names.add(third);
     }
   }
 
-  const result: ChangedSkill[] = [];
-  for (const name of [...names].sort()) {
-    result.push({
-      name,
-      version: await skillVersion(runtime, name)
-    });
-  }
-
-  return result;
-}
-
-async function skillVersion(runtime: CliRuntime, skillName: string): Promise<string> {
-  try {
-    const content = await readFile(join(repoSkillsDir(runtime.repoRoot), skillName, "SKILL.md"), "utf8");
-    const frontmatterVersion = /^version:\s*(.+)$/mu.exec(content);
-    if (frontmatterVersion?.[1]) {
-      return `version ${frontmatterVersion[1].trim()}`;
-    }
-
-    const bodyVersion = /^Version:\s*(.+)$/mu.exec(content);
-    if (bodyVersion?.[1]) {
-      return `Version: ${bodyVersion[1].trim()}`;
-    }
-
-    return "version unknown";
-  } catch {
-    return "removed";
-  }
-}
-
-function serverOptionsFromConfig(config: GreybeardConfig): {
-  serverUpdate: ServerUpdateMode;
-  serverPackageSource: ServerPackageSource;
-} {
-  return {
-    serverUpdate: config.serverUpdate ?? "latest",
-    serverPackageSource: config.serverPackageSource ?? "local"
-  };
+  return [...names].sort().map((name) => ({
+    name,
+    version: unreadable.has(name)
+      ? "manifest unreadable"
+      : versions.has(name) ? `version ${versions.get(name)}` : "removed"
+  }));
 }
 
 function git(runtime: CliRuntime, args: string[]) {

@@ -91,6 +91,53 @@ export function writeSection(stream: OutputStream, title: string): void {
   writeLine(stream, "─".repeat(title.length));
 }
 
+export type OutputStyle = {
+  color: boolean;
+  unicode: boolean;
+};
+
+type MaybeTtyStream = OutputStream & { isTTY?: boolean };
+
+const ANSI_RESET = "\u001b[0m";
+
+const MARKER_STYLES: Record<string, { symbol: string; ansiColor: string }> = {
+  OK: { symbol: "✓", ansiColor: "\u001b[32m" },
+  PASS: { symbol: "✓", ansiColor: "\u001b[32m" },
+  WARN: { symbol: "!", ansiColor: "\u001b[33m" },
+  FAIL: { symbol: "✗", ansiColor: "\u001b[31m" }
+};
+
+export function outputStyle(
+  stream: OutputStream,
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform
+): OutputStyle {
+  const tty = Boolean((stream as MaybeTtyStream).isTTY);
+  const color = env.FORCE_COLOR !== undefined && env.FORCE_COLOR !== "0"
+    ? true
+    : tty && env.NO_COLOR === undefined && env.TERM !== "dumb";
+  return {
+    color,
+    unicode: tty && supportsUnicodeSymbols(env, platform)
+  };
+}
+
+function supportsUnicodeSymbols(env: NodeJS.ProcessEnv, platform: NodeJS.Platform): boolean {
+  if (platform === "win32") {
+    // Legacy conhost code pages garble U+2713; modern Windows terminals identify themselves.
+    return Boolean(
+      env.WT_SESSION
+      || env.TERM_PROGRAM
+      || env.ConEmuANSI === "ON"
+      || env.TERMINAL_EMULATOR === "JetBrains-JediTerm"
+      || (env.TERM && env.TERM !== "dumb")
+    );
+  }
+
+  // The bare Linux console font lacks the check-mark glyphs; terminal emulators render them.
+  return env.TERM !== "linux";
+}
+
 export function writeStatusLine(
   stream: OutputStream,
   marker: string,
@@ -98,7 +145,11 @@ export function writeStatusLine(
   detail: string,
   labelWidth = 24
 ): void {
-  writeLine(stream, `${marker.padEnd(5)} ${label.padEnd(labelWidth)} ${detail}`);
+  const style = outputStyle(stream);
+  const known = MARKER_STYLES[marker];
+  const text = (style.unicode && known ? known.symbol : marker).padEnd(5);
+  const painted = style.color && known ? `${known.ansiColor}${text}${ANSI_RESET}` : text;
+  writeLine(stream, `${painted} ${label.padEnd(labelWidth)} ${detail}`);
 }
 
 export function writeInfoLine(

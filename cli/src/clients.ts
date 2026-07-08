@@ -3,13 +3,15 @@ import { dirname, join, resolve } from "node:path";
 import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime } from "./runtime.js";
+import {
+  enabledCatalogServers,
+  findCatalogServer,
+  isGreybeardManagedEntry,
+  SERVER_CATALOG,
+  type CatalogServer
+} from "./serverCatalog.js";
 
-export const CLAUDE_GRAPH_MCP_SERVER_NAME = "greybeard-graph";
-export const CLAUDE_MEMORY_MCP_SERVER_NAME = "greybeard-memory";
-export const CLAUDE_MCP_SERVER_NAME = CLAUDE_GRAPH_MCP_SERVER_NAME;
-export const GRAPH_MCP_SERVER_NAME = "greybeard-graph";
-export const MEMORY_MCP_SERVER_NAME = "greybeard-memory";
-export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
+export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work. When the admin confirms a durable correction, preference, or environment fact, call greybeard-memory remember with intent only.\n";
 
 const GREYBEARD_BLOCK_START = "<!-- GREYBEARD SKILLS START -->";
 const GREYBEARD_BLOCK_END = "<!-- GREYBEARD SKILLS END -->";
@@ -41,6 +43,8 @@ export type ClientMcpConfigResult = {
   configured: boolean;
   server?: unknown;
   error?: string;
+  missingServers?: string[];
+  preservedServers?: string[];
 };
 
 export type ClaudeMcpConfigResult = Omit<ClientMcpConfigResult, "client">;
@@ -48,7 +52,12 @@ export type ClaudeMcpConfigResult = Omit<ClientMcpConfigResult, "client">;
 export type ClaudeMemoryHookResult = {
   path: string;
   configured: boolean;
-  status: "installed" | "already-configured";
+  status: "installed" | "already-configured" | "updated";
+};
+
+export type ClaudeMemoryHookInspection = {
+  path: string;
+  configured: boolean;
 };
 
 export type SkillWireEntry = {
@@ -71,12 +80,17 @@ export type SkillFallbackResult = {
   client: KnownClientName;
   path: string;
   configured: boolean;
-  status: "installed" | "already-configured" | "missing";
+  status: "installed" | "already-configured" | "updated" | "missing";
 };
 
 export type ServerConfigOptions = {
   serverUpdate?: ServerUpdateMode;
   serverPackageSource?: ServerPackageSource;
+  serverToggles?: Record<string, boolean>;
+};
+
+export type InspectServerOptions = {
+  serverToggles?: Record<string, boolean>;
 };
 
 type StdioServerDefinition = {
@@ -240,14 +254,6 @@ export function repoSkillsDir(repoRoot: string): string {
   return join(repoRoot, ".agents", "skills");
 }
 
-export function graphServerScriptPath(repoRoot: string): string {
-  return join(repoRoot, "graph", "dist", "index.js");
-}
-
-export function memoryServerScriptPath(repoRoot: string): string {
-  return join(repoRoot, "memory", "dist", "index.js");
-}
-
 export async function writeClaudeMcpConfig(
   runtime: CliRuntime,
   options: ServerConfigOptions = {}
@@ -262,8 +268,11 @@ export async function writeClaudeMcpConfig(
   return withoutClient(result);
 }
 
-export async function inspectClaudeMcpConfig(runtime: CliRuntime): Promise<ClaudeMcpConfigResult> {
-  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir));
+export async function inspectClaudeMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClaudeMcpConfigResult> {
+  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir), options);
   return withoutClient(result);
 }
 
@@ -280,8 +289,11 @@ export async function writeCursorMcpConfig(
   });
 }
 
-export async function inspectCursorMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("Cursor", cursorMcpConfigPath(runtime.homeDir));
+export async function inspectCursorMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("Cursor", cursorMcpConfigPath(runtime.homeDir), options);
 }
 
 export async function writeGeminiMcpConfig(
@@ -297,8 +309,11 @@ export async function writeGeminiMcpConfig(
   });
 }
 
-export async function inspectGeminiMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("Gemini CLI", geminiSettingsPath(runtime.homeDir));
+export async function inspectGeminiMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("Gemini CLI", geminiSettingsPath(runtime.homeDir), options);
 }
 
 export async function writeCopilotMcpConfig(
@@ -314,8 +329,11 @@ export async function writeCopilotMcpConfig(
   });
 }
 
-export async function inspectCopilotMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
-  return inspectJsonMcpConfig("GitHub Copilot", copilotMcpConfigPath(runtime.homeDir));
+export async function inspectCopilotMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("GitHub Copilot", copilotMcpConfigPath(runtime.homeDir), options);
 }
 
 export async function writeCodexMcpConfig(
@@ -323,38 +341,54 @@ export async function writeCodexMcpConfig(
   options: ServerConfigOptions = {}
 ): Promise<ClientMcpConfigResult> {
   const configPath = codexConfigPath(runtime.homeDir);
-  const servers = await greybeardServerDefinitions(runtime, options);
+  const servers = await enabledServerDefinitions(runtime, options);
   const current = await readTextFile(configPath);
-  const cleaned = [GRAPH_MCP_SERVER_NAME, MEMORY_MCP_SERVER_NAME]
-    .reduce((text, name) => removeTomlTable(text, `mcp_servers.${name}`), current)
+  const preserved: string[] = [];
+  const replaceable = SERVER_CATALOG.filter((server) => {
+    const table = extractTomlTable(current, `mcp_servers.${server.name}`);
+    if (table !== null && !isGreybeardManagedEntry(server, table)) {
+      preserved.push(server.name);
+      return false;
+    }
+
+    return true;
+  });
+  const cleaned = replaceable
+    .reduce((text, server) => removeTomlTable(text, `mcp_servers.${server.name}`), current)
     .trimEnd();
-  const block = [
-    tomlServerBlock(GRAPH_MCP_SERVER_NAME, servers.graph),
-    tomlServerBlock(MEMORY_MCP_SERVER_NAME, servers.memory)
-  ].join("\n");
-  const next = cleaned.length > 0 ? `${cleaned}\n\n${block}\n` : `${block}\n`;
+  const preservedNames = new Set(preserved);
+  const block = servers
+    .filter((server) => !preservedNames.has(server.name))
+    .map((server) => tomlServerBlock(server.name, server.definition))
+    .join("\n");
+  const next = block.length === 0
+    ? `${cleaned}\n`
+    : cleaned.length > 0 ? `${cleaned}\n\n${block}\n` : `${block}\n`;
   await writeTextFile(configPath, next);
   return {
     client: "Codex CLI",
     path: configPath,
     configured: true,
-    server: {
-      [GRAPH_MCP_SERVER_NAME]: servers.graph,
-      [MEMORY_MCP_SERVER_NAME]: servers.memory
-    }
+    server: Object.fromEntries(servers.map((server) => [server.name, server.definition])),
+    ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
 }
 
-export async function inspectCodexMcpConfig(runtime: CliRuntime): Promise<ClientMcpConfigResult> {
+export async function inspectCodexMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
   const path = codexConfigPath(runtime.homeDir);
   try {
     const text = await readTextFile(path);
-    const configured = hasTomlTable(text, `mcp_servers.${GRAPH_MCP_SERVER_NAME}`)
-      && hasTomlTable(text, `mcp_servers.${MEMORY_MCP_SERVER_NAME}`);
+    const missing = enabledCatalogServers(options.serverToggles)
+      .filter((server) => !hasTomlTable(text, `mcp_servers.${server.name}`))
+      .map((server) => server.name);
     return {
       client: "Codex CLI",
       path,
-      configured
+      configured: missing.length === 0,
+      ...(missing.length > 0 ? { missingServers: missing } : {})
     };
   } catch (error) {
     return {
@@ -408,35 +442,72 @@ export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<Claude
   const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
   const handler = memoryHookHandler(runtime.nodePath);
 
+  // Strip every Greybeard-owned handler (old reminder text included) so a
+  // wording change replaces the hook instead of stacking a duplicate.
+  let found: "none" | "identical" | "different" = "none";
+  const remaining: unknown[] = [];
   for (const group of promptSubmit) {
     if (!isObject(group) || !Array.isArray(group.hooks)) {
+      remaining.push(group);
       continue;
     }
 
-    if (group.hooks.some((candidate) => isSameHookHandler(candidate, handler))) {
-      root.hooks = hooks;
-      await writeJsonObject(path, root);
-      return {
-        path,
-        configured: true,
-        status: "already-configured"
-      };
+    const kept = group.hooks.filter((candidate) => {
+      if (!isGreybeardMemoryHookHandler(candidate)) {
+        return true;
+      }
+
+      if (isSameHookHandler(candidate, handler)) {
+        if (found === "none") {
+          found = "identical";
+        }
+      } else {
+        found = "different";
+      }
+
+      return false;
+    });
+    if (kept.length > 0) {
+      remaining.push({
+        ...group,
+        hooks: kept
+      });
     }
   }
 
-  promptSubmit.push({
+  remaining.push({
     hooks: [
       handler
     ]
   });
-  hooks.UserPromptSubmit = promptSubmit;
+  hooks.UserPromptSubmit = remaining;
   root.hooks = hooks;
   await writeJsonObject(path, root);
   return {
     path,
     configured: true,
-    status: "installed"
+    status: found === "none" ? "installed" : found === "different" ? "updated" : "already-configured"
   };
+}
+
+export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
+  const path = claudeSettingsPath(runtime.homeDir);
+  try {
+    const root = await readJsonObject(path);
+    const hooks = isObject(root.hooks) ? root.hooks : {};
+    const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
+    const configured = promptSubmit.some((group) =>
+      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(isGreybeardMemoryHookHandler));
+    return {
+      path,
+      configured
+    };
+  } catch {
+    return {
+      path,
+      configured: false
+    };
+  }
 }
 
 export async function wireClaudeSkills(runtime: CliRuntime): Promise<SkillWireResult> {
@@ -523,7 +594,12 @@ export async function inspectGeminiSkillFallback(runtime: CliRuntime): Promise<S
 }
 
 export async function writeCursorSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return writeSkillFallbackBlock("Cursor", cursorFallbackPath(runtime.homeDir), repoSkillsDir(runtime.repoRoot));
+  return writeSkillFallbackBlock(
+    "Cursor",
+    cursorFallbackPath(runtime.homeDir),
+    repoSkillsDir(runtime.repoRoot),
+    ensureCursorRuleHeader
+  );
 }
 
 export async function inspectCursorSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
@@ -536,6 +612,38 @@ export async function writeCopilotSkillFallback(runtime: CliRuntime): Promise<Sk
 
 export async function inspectCopilotSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
   return inspectSkillFallbackBlock("GitHub Copilot", copilotFallbackPath(runtime.homeDir));
+}
+
+export async function writeClientSkillFallback(
+  runtime: CliRuntime,
+  client: KnownClientName
+): Promise<SkillFallbackResult | null> {
+  if (client === "Claude Code") {
+    // Claude Code's ambient channel is the UserPromptSubmit memory hook.
+    return null;
+  }
+
+  if (client === "Cursor") {
+    return writeCursorSkillFallback(runtime);
+  }
+
+  if (client === "Codex CLI") {
+    return writeCodexSkillFallback(runtime);
+  }
+
+  if (client === "Gemini CLI") {
+    return writeGeminiSkillFallback(runtime);
+  }
+
+  return writeCopilotSkillFallback(runtime);
+}
+
+export async function writeAllClientSkillFallbacks(
+  runtime: CliRuntime,
+  clients?: readonly ClientDetection[]
+): Promise<SkillFallbackResult[]> {
+  const results = await Promise.all(clientNames(clients).map((client) => writeClientSkillFallback(runtime, client)));
+  return results.filter((result): result is SkillFallbackResult => result !== null);
 }
 
 function clientNames(clients?: readonly ClientDetection[]): KnownClientName[] {
@@ -578,7 +686,8 @@ async function claudeConfigDetectionSignal(path: string): Promise<boolean> {
       return true;
     }
 
-    return serverNames.some((name) => name !== GRAPH_MCP_SERVER_NAME && name !== MEMORY_MCP_SERVER_NAME);
+    const catalogNames = new Set(SERVER_CATALOG.map((server) => server.name));
+    return serverNames.some((name) => !catalogNames.has(name));
   } catch {
     return true;
   }
@@ -593,35 +702,84 @@ async function writeJsonMcpConfig(params: {
 }): Promise<ClientMcpConfigResult> {
   const root = await readJsonObject(params.configPath);
   const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
-  const servers = await greybeardServerDefinitions(params.runtime, params.options);
-  mcpServers[GRAPH_MCP_SERVER_NAME] = jsonServerDefinition(servers.graph, params.shape);
-  mcpServers[MEMORY_MCP_SERVER_NAME] = jsonServerDefinition(servers.memory, params.shape);
+  const servers = await enabledServerDefinitions(params.runtime, params.options);
+  const enabledNames = new Set(servers.map((server) => server.name));
+  const preserved: string[] = [];
+  for (const server of SERVER_CATALOG) {
+    const existing = mcpServers[server.name];
+    if (enabledNames.has(server.name) || existing === undefined) {
+      continue;
+    }
+
+    if (isForeignJsonServerEntry(server, existing)) {
+      preserved.push(server.name);
+    } else {
+      delete mcpServers[server.name];
+    }
+  }
+
+  const written: Record<string, unknown> = {};
+  for (const server of servers) {
+    const catalogServer = findCatalogServer(server.name);
+    const existing = mcpServers[server.name];
+    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing)) {
+      preserved.push(server.name);
+      written[server.name] = existing;
+      continue;
+    }
+
+    const value = jsonServerDefinition(server.definition, params.shape);
+    mcpServers[server.name] = value;
+    written[server.name] = value;
+  }
+
   root.mcpServers = mcpServers;
   await writeJsonObject(params.configPath, root);
   return {
     client: params.client,
     path: params.configPath,
     configured: true,
-    server: {
-      [GRAPH_MCP_SERVER_NAME]: mcpServers[GRAPH_MCP_SERVER_NAME],
-      [MEMORY_MCP_SERVER_NAME]: mcpServers[MEMORY_MCP_SERVER_NAME]
-    }
+    server: written,
+    ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
 }
 
-async function inspectJsonMcpConfig(client: KnownClientName, path: string): Promise<ClientMcpConfigResult> {
+function isForeignJsonServerEntry(server: CatalogServer, entry: unknown): boolean {
+  if (!isObject(entry)) {
+    return false;
+  }
+
+  if (isObject(entry.env) && Object.keys(entry.env).length > 0) {
+    return true;
+  }
+
+  return !isGreybeardManagedEntry(server, JSON.stringify(entry));
+}
+
+async function inspectJsonMcpConfig(
+  client: KnownClientName,
+  path: string,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
   try {
     const root = await readJsonObject(path);
-    const graphServer = isObject(root.mcpServers) ? root.mcpServers[GRAPH_MCP_SERVER_NAME] : undefined;
-    const memoryServer = isObject(root.mcpServers) ? root.mcpServers[MEMORY_MCP_SERVER_NAME] : undefined;
+    const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
+    const server: Record<string, unknown> = {};
+    const missing: string[] = [];
+    for (const catalogServer of enabledCatalogServers(options.serverToggles)) {
+      const entry = mcpServers[catalogServer.name];
+      server[catalogServer.name] = entry;
+      if (!isObject(entry)) {
+        missing.push(catalogServer.name);
+      }
+    }
+
     return {
       client,
       path,
-      configured: isObject(graphServer) && isObject(memoryServer),
-      server: {
-        [GRAPH_MCP_SERVER_NAME]: graphServer,
-        [MEMORY_MCP_SERVER_NAME]: memoryServer
-      }
+      configured: missing.length === 0,
+      server,
+      ...(missing.length > 0 ? { missingServers: missing } : {})
     };
   } catch (error) {
     return {
@@ -633,53 +791,58 @@ async function inspectJsonMcpConfig(client: KnownClientName, path: string): Prom
   }
 }
 
-async function greybeardServerDefinitions(
+type NamedServerDefinition = {
+  name: string;
+  definition: StdioServerDefinition;
+};
+
+async function enabledServerDefinitions(
   runtime: CliRuntime,
   options: ServerConfigOptions
-): Promise<{ graph: StdioServerDefinition; memory: StdioServerDefinition }> {
-  return {
-    graph: await serverDefinition({
-      runtime,
-      packageName: "@greybeard/graph",
-      packageDir: "graph",
-      localScriptPath: graphServerScriptPath(runtime.repoRoot),
-      options
-    }),
-    memory: await serverDefinition({
-      runtime,
-      packageName: "@greybeard/memory",
-      packageDir: "memory",
-      localScriptPath: memoryServerScriptPath(runtime.repoRoot),
-      options
-    })
-  };
+): Promise<NamedServerDefinition[]> {
+  return Promise.all(enabledCatalogServers(options.serverToggles).map(async (server) => ({
+    name: server.name,
+    definition: await serverDefinition(runtime, server, options)
+  })));
 }
 
-async function serverDefinition(params: {
-  runtime: CliRuntime;
-  packageName: "@greybeard/graph" | "@greybeard/memory";
-  packageDir: "graph" | "memory";
-  localScriptPath: string;
-  options: ServerConfigOptions;
-}): Promise<StdioServerDefinition> {
-  if (params.options.serverPackageSource === "npm") {
-    const tag = params.options.serverUpdate === "pinned"
-      ? await packageVersion(params.runtime, params.packageDir)
+async function serverDefinition(
+  runtime: CliRuntime,
+  server: CatalogServer,
+  options: ServerConfigOptions
+): Promise<StdioServerDefinition> {
+  // Third-party servers have no local build in this repo, so they always run from npm.
+  // Pinned mode uses the version vetted in the server catalog, bumped via repo updates.
+  if (server.source.kind === "npm") {
+    const tag = options.serverUpdate === "pinned" ? server.source.pinnedVersion : "latest";
+    return {
+      command: "npx",
+      args: [
+        "-y",
+        `${server.source.packageName}@${tag}`
+      ],
+      env: {}
+    };
+  }
+
+  if (options.serverPackageSource === "npm") {
+    const tag = options.serverUpdate === "pinned"
+      ? await packageVersion(runtime, server.source.packageDir)
       : "latest";
     return {
       command: "npx",
       args: [
         "-y",
-        `${params.packageName}@${tag}`
+        `${server.source.packageName}@${tag}`
       ],
       env: {}
     };
   }
 
   return {
-    command: params.runtime.nodePath,
+    command: runtime.nodePath,
     args: [
-      toPortablePath(params.localScriptPath)
+      toPortablePath(join(runtime.repoRoot, server.source.packageDir, "dist", "index.js"))
     ],
     env: {}
   };
@@ -739,6 +902,32 @@ function removeTomlTable(text: string, table: string): string {
   return output.join("\n");
 }
 
+function extractTomlTable(text: string, table: string): string | null {
+  const lines = text.split(/\r?\n/u);
+  const collected: string[] = [];
+  let inside = false;
+  const header = `[${table}]`;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === header) {
+      inside = true;
+      collected.push(line);
+      continue;
+    }
+
+    if (inside && /^\[[^\]]+\]\s*$/u.test(trimmed)) {
+      break;
+    }
+
+    if (inside) {
+      collected.push(line);
+    }
+  }
+
+  return collected.length > 0 ? collected.join("\n") : null;
+}
+
 function hasTomlTable(text: string, table: string): boolean {
   const escaped = table.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`^\\s*\\[${escaped}\\]\\s*$`, "mu").test(text);
@@ -774,17 +963,25 @@ function isSameHookHandler(candidate: unknown, expected: Record<string, unknown>
     && JSON.stringify(candidate.args) === JSON.stringify(expected.args);
 }
 
+function isGreybeardMemoryHookHandler(candidate: unknown): boolean {
+  if (!isObject(candidate) || candidate.type !== "command" || !Array.isArray(candidate.args)) {
+    return false;
+  }
+
+  return candidate.args.some((arg) => typeof arg === "string" && arg.includes("greybeard-memory recall"));
+}
+
 async function wireSkillsToDir(
   runtime: CliRuntime,
   client: KnownClientName,
   targetDir: string
 ): Promise<SkillWireResult> {
   const sourceDir = repoSkillsDir(runtime.repoRoot);
-  const sources = await listSkillSourceDirs(sourceDir);
+  const tree = await listSkillSourceDirs(sourceDir);
   await mkdir(targetDir, { recursive: true });
 
   const entries: SkillWireEntry[] = [];
-  for (const source of sources) {
+  for (const source of tree.sources) {
     const target = join(targetDir, source.name);
     entries.push(await ensureSkillLink({
       source: source.path,
@@ -794,11 +991,12 @@ async function wireSkillsToDir(
     }));
   }
 
+  entries.push(...duplicateSkillEntries(tree, targetDir));
   return {
     client,
     sourceDir,
     targetDir,
-    empty: sources.length === 0,
+    empty: entries.length === 0,
     entries
   };
 }
@@ -809,21 +1007,32 @@ async function inspectSkillsInDir(
   targetDir: string
 ): Promise<SkillWireResult> {
   const sourceDir = repoSkillsDir(runtime.repoRoot);
-  const sources = await listSkillSourceDirs(sourceDir);
+  const tree = await listSkillSourceDirs(sourceDir);
   const entries: SkillWireEntry[] = [];
 
-  for (const source of sources) {
+  for (const source of tree.sources) {
     const target = join(targetDir, source.name);
     entries.push(await inspectSkillLink(source.name, source.path, target));
   }
 
+  entries.push(...duplicateSkillEntries(tree, targetDir));
   return {
     client,
     sourceDir,
     targetDir,
-    empty: sources.length === 0,
+    empty: entries.length === 0,
     entries
   };
+}
+
+function duplicateSkillEntries(tree: SkillTree, targetDir: string): SkillWireEntry[] {
+  return tree.duplicates.map((duplicate) => ({
+    name: `${duplicate.category}/${duplicate.name}`,
+    source: duplicate.path,
+    target: join(targetDir, duplicate.name),
+    status: "blocked",
+    message: `Duplicate skill folder name; "${duplicate.name}" already exists in "${duplicate.existingCategory}". Skill folder names must be unique across categories.`
+  }));
 }
 
 async function ensureSkillLink(params: {
@@ -919,17 +1128,26 @@ async function inspectSkillLink(name: string, source: string, target: string): P
 async function writeSkillFallbackBlock(
   client: KnownClientName,
   path: string,
-  skillsPath: string
+  skillsPath: string,
+  finalize?: (text: string) => string
 ): Promise<SkillFallbackResult> {
   const current = await readTextFile(path);
   const block = greybeardFallbackBlock(skillsPath);
-  const next = replaceDelimitedBlock(current, block);
-  await writeTextFile(path, next);
+  let next = replaceDelimitedBlock(current, block);
+  if (finalize) {
+    next = finalize(next);
+  }
+
+  const hadBlock = current.includes(GREYBEARD_BLOCK_START);
+  if (next !== current) {
+    await writeTextFile(path, next);
+  }
+
   return {
     client,
     path,
     configured: true,
-    status: current.includes(GREYBEARD_BLOCK_START) ? "already-configured" : "installed"
+    status: next === current ? "already-configured" : hadBlock ? "updated" : "installed"
   };
 }
 
@@ -949,11 +1167,49 @@ function greybeardFallbackBlock(skillsPath: string): string {
     GREYBEARD_BLOCK_START,
     "## Greybeard Skills",
     "",
-    `Greybeard skills live at \`${skillsPath}\`.`,
-    "When the user asks about Microsoft 365, Intune, Entra, Microsoft Graph, KQL, Conditional Access, compliance, licensing, or tenant posture, inspect the skill folders in that directory.",
+    `Greybeard skills live at \`${skillsPath}\`, one folder per skill inside category subfolders (for example \`read/tenant-pulse\`).`,
+    "When the user asks about Microsoft 365, Intune, Entra, Microsoft Graph, KQL, Conditional Access, compliance, licensing, or tenant posture, inspect the skill folders one level below that directory.",
     "Pick the skill whose `SKILL.md` description starts with `Use when` and matches the task. Read that skill's `SKILL.md` before acting. Load files under `references/` or `scripts/` only when the skill instructs you to.",
+    "",
+    "## Greybeard Memory",
+    "",
+    "Greybeard ships a local memory server, `greybeard-memory`, shared across every configured client.",
+    "Before starting any Microsoft 365, Intune, or Entra task, call its `recall` tool with a one-line task summary and apply what it returns.",
+    "When the admin confirms a correction, a preference, a working query or script, or a durable fact about the environment, call `remember` with the reusable intent only. Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
+    "Call `recall` before `remember` and skip storing when an equivalent memory already exists.",
     GREYBEARD_BLOCK_END
   ].join("\n");
+}
+
+const CURSOR_RULE_HEADER = [
+  "---",
+  "description: Greybeard guidance for Microsoft 365, Intune, and Entra work.",
+  "alwaysApply: true",
+  "---"
+].join("\n");
+
+// Cursor only injects a rule into every session when its frontmatter says
+// alwaysApply: true; without it the block is agent-requested, not ambient.
+function ensureCursorRuleHeader(text: string): string {
+  if (!text.startsWith("---\n")) {
+    return `${CURSOR_RULE_HEADER}\n\n${text}`;
+  }
+
+  const close = text.indexOf("\n---", 3);
+  if (close === -1) {
+    return `${CURSOR_RULE_HEADER}\n\n${text}`;
+  }
+
+  const frontmatter = text.slice(0, close);
+  if (/^alwaysApply:\s*true$/mu.test(frontmatter)) {
+    return text;
+  }
+
+  if (/^alwaysApply:/mu.test(frontmatter)) {
+    return `${frontmatter.replace(/^alwaysApply:.*$/mu, "alwaysApply: true")}${text.slice(close)}`;
+  }
+
+  return `${frontmatter}\nalwaysApply: true${text.slice(close)}`;
 }
 
 function replaceDelimitedBlock(current: string, block: string): string {
@@ -971,16 +1227,89 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
-async function listSkillSourceDirs(sourceDir: string): Promise<Array<{ name: string; path: string }>> {
+export interface SkillSourceDir {
+  name: string;
+  category: string;
+  path: string;
+}
+
+export interface SkillTree {
+  sources: SkillSourceDir[];
+  missingManifest: SkillSourceDir[];
+  duplicates: Array<SkillSourceDir & { existingCategory: string }>;
+}
+
+export async function listSkillSourceDirs(sourceDir: string): Promise<SkillTree> {
+  const sources: SkillSourceDir[] = [];
+  const missingManifest: SkillSourceDir[] = [];
+  const duplicates: Array<SkillSourceDir & { existingCategory: string }> = [];
+  const seenCategories = new Map<string, string>();
+
+  const addSource = (name: string, category: string, path: string): void => {
+    const existing = seenCategories.get(name);
+    if (existing !== undefined) {
+      duplicates.push({ name, category, path, existingCategory: existing || sourceDir });
+      return;
+    }
+
+    seenCategories.set(name, category);
+    sources.push({ name, category, path });
+  };
+
+  for (const category of await listChildDirNames(sourceDir)) {
+    const categoryPath = join(sourceDir, category);
+    if (await lstatOrNull(join(categoryPath, "SKILL.md"))) {
+      addSource(category, "", categoryPath);
+      continue;
+    }
+
+    for (const name of await listChildDirNames(categoryPath)) {
+      const skillPath = join(categoryPath, name);
+      if (await lstatOrNull(join(skillPath, "SKILL.md"))) {
+        addSource(name, category, skillPath);
+      } else {
+        missingManifest.push({ name, category, path: skillPath });
+      }
+    }
+  }
+
+  const byName = (left: { name: string }, right: { name: string }) => left.name.localeCompare(right.name);
+  return {
+    sources: sources.sort(byName),
+    missingManifest: missingManifest.sort(byName),
+    duplicates: duplicates.sort(byName)
+  };
+}
+
+export function summarizeSkillWiring(result: SkillWireResult): { ok: boolean; detail: string } {
+  if (result.empty) {
+    return {
+      ok: false,
+      detail: `no skill folders found in ${result.sourceDir}`
+    };
+  }
+
+  const blocked = result.entries.filter((entry) => entry.status === "blocked");
+  if (blocked.length > 0) {
+    return {
+      ok: false,
+      detail: `${result.entries.length - blocked.length}/${result.entries.length} skills linked, ${blocked.map((entry) => entry.name).join(", ")} blocked`
+    };
+  }
+
+  return {
+    ok: true,
+    detail: `${result.entries.length} skills linked`
+  };
+}
+
+async function listChildDirNames(parent: string): Promise<string[]> {
   try {
-    const entries = await readdir(sourceDir, { withFileTypes: true });
+    const entries = await readdir(parent, { withFileTypes: true });
     return entries
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-      .map((entry) => ({
-        name: entry.name,
-        path: join(sourceDir, entry.name)
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right));
   } catch (error) {
     if (isNodeError(error) && error.code === "ENOENT") {
       return [];
@@ -1064,12 +1393,8 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 function withoutClient(result: ClientMcpConfigResult): ClaudeMcpConfigResult {
-  return {
-    path: result.path,
-    configured: result.configured,
-    server: result.server,
-    error: result.error
-  };
+  const { client: _client, ...rest } = result;
+  return rest;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

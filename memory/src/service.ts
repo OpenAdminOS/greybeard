@@ -3,6 +3,8 @@ import { readGreybeardConfig } from "@greybeard/graph";
 import { openMemoryDatabase } from "./database.js";
 import {
   GreybeardMemoryError,
+  memoryTypePolicy,
+  stickyMemoryTypes,
   type EdgeRelation,
   type ForgetInput,
   type ForgetResult,
@@ -121,7 +123,7 @@ export class MemoryService {
   }
 
   async remember(input: RememberInput): Promise<RememberResult> {
-    enforcePrivacy(input.content);
+    enforcePrivacy(input.content, input.type);
     const tenant = await this.activeTenant();
     const now = this.nowSeconds();
     const content = input.content.trim();
@@ -328,10 +330,10 @@ export class MemoryService {
 
   private scoreMatch(row: MatchRow, now: number): number {
     const base = -Number(row.rank);
-    const preferenceBoost = row.type === "preference" ? 1000 : 0;
+    const typeBoost = memoryTypePolicy(row.type).recallBoost;
     const ageDays = Math.max(0, (now - row.last_used_at) / SECONDS_PER_DAY);
     const recencyBoost = Math.max(0, 30 - ageDays);
-    return base + preferenceBoost + recencyBoost;
+    return base + typeBoost + recencyBoost;
   }
 
   private refreshLastUsed(ids: number[], tenant: string, now: number): void {
@@ -438,7 +440,7 @@ export class MemoryService {
       LEFT JOIN edges e ON e.source = n.id OR e.target = n.id
       WHERE n.tenant = @tenant
         AND NOT (
-          n.type = 'preference'
+          n.type IN (${stickyMemoryTypes().map((type) => `'${type}'`).join(",")})
           AND EXISTS (SELECT 1 FROM edges sticky WHERE sticky.source = n.id OR sticky.target = n.id)
         )
       GROUP BY n.id
@@ -458,9 +460,10 @@ export class MemoryService {
   }
 }
 
-export function enforcePrivacy(content: string): void {
+export function enforcePrivacy(content: string, type?: MemoryType): void {
   const guids = content.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu) ?? [];
-  if (guids.length >= 2) {
+  const guidLimit = memoryTypePolicy(type).guidPrivacyThreshold;
+  if (guids.length >= guidLimit) {
     throw new GreybeardMemoryError({
       code: "privacy-rejected",
       message: "Memory content looks like raw tenant output because it contains multiple GUIDs.",

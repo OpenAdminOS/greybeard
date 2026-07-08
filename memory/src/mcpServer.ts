@@ -52,7 +52,7 @@ export function createGreybeardMemoryMcpServer(service: MemoryService): McpServe
     "remember",
     {
       title: "Remember Greybeard preference",
-      description: "Store a local tenant-scoped intent, preference, script reference, fact, or scope note. Never store raw tenant output.",
+      description: "Store a local tenant-scoped intent, preference, script reference, fact, scope note, or configuration decision record. Never store raw tenant output.",
       inputSchema: rememberInputSchema
     },
     async (input) => withMemoryMcpErrors(() => service.remember(input))

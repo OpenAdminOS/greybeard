@@ -28,6 +28,8 @@ export async function readGreybeardConfig(appDataPath: string): Promise<Greybear
       serverPackageSource: parsed.serverPackageSource === "local" || parsed.serverPackageSource === "npm"
         ? parsed.serverPackageSource
         : undefined,
+      mcpServers: booleanRecord(parsed.mcpServers),
+      memoryHook: typeof parsed.memoryHook === "boolean" ? parsed.memoryHook : undefined,
       clients: clients
         ? {
             githubCopilot: clients.githubCopilot === true
@@ -83,6 +85,15 @@ export function graphAuthConfig(config: GreybeardConfig): {
     credentialMode: writesConfigured ? "writes" : "read-only",
     writesConfigured
   };
+}
+
+function booleanRecord(value: unknown): Record<string, boolean> | undefined {
+  if (!isObject(value)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(value).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean");
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function stringArray(value: unknown): string[] | undefined {

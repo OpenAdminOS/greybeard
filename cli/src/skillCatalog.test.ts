@@ -3,99 +3,134 @@ import { constants } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_TIER1_SCOPES, DEFAULT_WRITE_SCOPES, TIER2_SCOPES } from "@greybeard/graph";
+import { SERVER_CATALOG } from "./serverCatalog.js";
+import {
+  KNOWN_LICENSES,
+  parseSkillFrontmatter,
+  ROLE_GROUPS
+} from "./skillManifest.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const skillsRoot = resolve(repoRoot, ".agents/skills");
 
-const expectedSkills = [
-  "tenant-pulse",
-  "ask-my-tenant",
-  "posture-script",
-  "change-plan",
-  "least-privilege-scopes",
-  "graph-patterns",
-  "kql-authoring",
-  "intune-assignments",
-  "intune-compliance",
-  "entra-identity",
-  "conditional-access-review",
-  "license-optimizer"
-];
+const expectedCatalog: Record<string, string[]> = {
+  read: [
+    "tenant-pulse",
+    "ask-my-tenant",
+    "intune-assignments",
+    "intune-compliance",
+    "entra-identity",
+    "conditional-access-review",
+    "license-optimizer"
+  ],
+  write: ["change-plan"],
+  craft: ["posture-script", "graph-patterns", "kql-authoring", "least-privilege-scopes"],
+  mentor: ["grill-my-change", "tenant-decisions", "diagnose", "handoff", "learn-my-tenant"]
+};
+
+const expectedSkills: Array<{ category: string; name: string }> = Object.entries(expectedCatalog)
+  .flatMap(([category, names]) => names.map((name) => ({ category, name })));
+
+const knownServers = SERVER_CATALOG.map((server) => server.name);
+const knownScopes = new Set(
+  [...DEFAULT_TIER1_SCOPES, ...TIER2_SCOPES, ...DEFAULT_WRITE_SCOPES].map((scope) => scope.toLowerCase())
+);
 
 describe("Greybeard skill catalog", () => {
-  it("contains all v1 skill folders and no unexpected skill folders", async () => {
-    const entries = await readdir(skillsRoot, { withFileTypes: true });
-    const folders = entries
+  it("contains all expected category and skill folders and no unexpected ones", async () => {
+    const categoryEntries = await readdir(skillsRoot, { withFileTypes: true });
+    const categories = categoryEntries
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
 
-    expect(folders).toEqual([...expectedSkills].sort());
+    expect(categories).toEqual(Object.keys(expectedCatalog).sort());
+
+    for (const [category, names] of Object.entries(expectedCatalog)) {
+      const entries = await readdir(resolve(skillsRoot, category), { withFileTypes: true });
+      const folders = entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort();
+
+      expect(folders, category).toEqual([...names].sort());
+    }
   });
 
   it("uses portable frontmatter with unique trigger descriptions", async () => {
     const seenNames = new Set<string>();
     const seenPrefixes = new Map<string, string>();
 
-    for (const skillName of expectedSkills) {
-      const skillPath = resolve(skillsRoot, skillName, "SKILL.md");
-      const content = normalizeLineEndings(await readFile(skillPath, "utf8"));
-      const frontmatter = parseFrontmatter(content);
-      const keys = Object.keys(frontmatter).sort();
+    for (const { category, name: skillName } of expectedSkills) {
+      const skillPath = resolve(skillsRoot, category, skillName, "SKILL.md");
+      const content = (await readFile(skillPath, "utf8")).replace(/\r\n/gu, "\n");
+      const { fields } = parseSkillFrontmatter(content);
 
-      expect(keys, skillName).toEqual(["description", "name", "version"]);
-      expect(frontmatter.name, skillName).toBe(skillName);
-      expect(frontmatter.version, skillName).toBe("0.1.0");
-      expect(seenNames.has(frontmatter.name), skillName).toBe(false);
-      seenNames.add(frontmatter.name);
+      expect(Object.keys(fields).sort(), skillName).toEqual(["description", "name", "version"]);
 
-      expect(frontmatter.description, skillName).toMatch(/^Use when\b/);
+      const { name, description, version } = fields;
+      expect(name, skillName).toBe(skillName);
+      expect(version, skillName).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(content, skillName).toContain(`\nVersion: ${version}\n`);
+      expect(seenNames.has(name), `${skillName} duplicates a skill name in another category`).toBe(false);
+      seenNames.add(name);
 
-      const firstEightWords = frontmatter.description.split(/\s+/).slice(0, 8).join(" ");
+      expect(description, skillName).toMatch(/^Use when\b/);
+
+      const firstEightWords = description.split(/\s+/).slice(0, 8).join(" ");
       const previous = seenPrefixes.get(firstEightWords);
       expect(previous, `${skillName} overlaps first 8 words with ${previous}`).toBeUndefined();
       seenPrefixes.set(firstEightWords, skillName);
+    }
+  });
 
-      expect(content, skillName).toMatch(/^Version: 0\.1\.0$/m);
+  it("declares requires blocks that reference known servers, scopes, licenses, and role groups", async () => {
+    for (const { category, name: skillName } of expectedSkills) {
+      const skillPath = resolve(skillsRoot, category, skillName, "SKILL.md");
+      const content = (await readFile(skillPath, "utf8")).replace(/\r\n/gu, "\n");
+      const { requires } = parseSkillFrontmatter(content);
+      if (requires === undefined) {
+        continue;
+      }
+
+      for (const server of requires.servers ?? []) {
+        expect(knownServers, `${skillName} requires unknown server ${server}`).toContain(server);
+      }
+
+      for (const scope of requires.scopes ?? []) {
+        expect(knownScopes.has(scope.toLowerCase()), `${skillName} requires unknown scope ${scope}`).toBe(true);
+      }
+
+      if (requires.license !== undefined) {
+        expect(KNOWN_LICENSES, skillName).toContain(requires.license);
+      }
+
+      for (const role of requires.roles ?? []) {
+        expect(Object.keys(ROLE_GROUPS), `${skillName} requires unknown role group ${role}`).toContain(role);
+      }
+    }
+  });
+
+  it("carries the shared memory preamble in every skill body", async () => {
+    const preambleLines = [
+      "Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.",
+      "When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.",
+      "When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed."
+    ];
+
+    for (const { category, name: skillName } of expectedSkills) {
+      const skillPath = resolve(skillsRoot, category, skillName, "SKILL.md");
+      const content = (await readFile(skillPath, "utf8")).replace(/\r\n/gu, "\n");
+      expect(content, `${skillName} is missing the memory preamble`).toContain(preambleLines.join("\n"));
     }
   });
 
   it("includes a trigger test document for every skill", async () => {
-    for (const skillName of expectedSkills) {
-      await expect(access(resolve(skillsRoot, skillName, "test.md"), constants.R_OK), skillName)
+    for (const { category, name: skillName } of expectedSkills) {
+      await expect(access(resolve(skillsRoot, category, skillName, "test.md"), constants.R_OK), skillName)
         .resolves
         .toBeUndefined();
     }
   });
 });
-
-function normalizeLineEndings(content: string): string {
-  return content.replace(/\r\n/gu, "\n");
-}
-
-function parseFrontmatter(content: string): Record<string, string> {
-  const normalized = normalizeLineEndings(content);
-  expect(normalized.startsWith("---\n")).toBe(true);
-  const end = normalized.indexOf("\n---", 4);
-  expect(end).toBeGreaterThan(0);
-
-  const raw = normalized.slice(4, end);
-  const parsed: Record<string, string> = {};
-
-  for (const line of raw.split("\n")) {
-    if (line.trim().length === 0) {
-      continue;
-    }
-
-    const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
-    expect(match, `invalid frontmatter line: ${line}`).not.toBeNull();
-    if (!match) {
-      continue;
-    }
-
-    const [, key, value] = match;
-    parsed[key] = value;
-  }
-
-  return parsed;
-}

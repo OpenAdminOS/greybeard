@@ -13,12 +13,17 @@ npm run ci
 
 ## Skill Authoring Rules
 
-Skills live under `.agents/skills/<skill-name>/`.
+Skills live under `.agents/skills/<category>/<skill-name>/`. The categories are:
+
+- `read/`: live-tenant analysis and reporting skills.
+- `write/`: skills that stage tenant changes through the write gate.
+- `craft/`: authoring skills for scripts, queries, and Graph mechanics that work without a signed-in tenant.
+- `mentor/`: process skills that interview, triage, record decisions, or hand work over.
 
 Required layout:
 
 ```text
-.agents/skills/<skill-name>/
+.agents/skills/<category>/<skill-name>/
 ├── SKILL.md
 ├── test.md
 ├── references/
@@ -26,6 +31,8 @@ Required layout:
 ```
 
 `references/` and `scripts/` are optional directories, but use them when a skill needs deeper material. Keep `SKILL.md` concise. The agent should load extra files only when the skill says to.
+
+Skill folder names must be unique across all categories. Clients link each skill by its folder name, without the category, so two categories cannot both contain a skill with the same name.
 
 Required `SKILL.md` frontmatter:
 
@@ -47,6 +54,49 @@ Rules:
 - Include a body `Version: x.y.z` line and a `## CHANGELOG` section.
 - Add `test.md` with at least one trigger prompt and expected behavior.
 - Do not store secrets, tenant data, or live customer output in a skill file.
+
+## Memory Preamble And Capture Moments
+
+Every skill body starts its `## Workflow` section with the shared three-line memory preamble, verbatim (the skill catalog test enforces the exact lines):
+
+1. Recall before other work with a one-line task summary.
+2. Remember confirmed corrections and preferences as intent only, never raw tenant data.
+3. Capture confirmed working artifacts and durable environment facts: recall for an equivalent memory first, then remember the reusable intent, and ask before storing anything the admin has not explicitly confirmed.
+
+When a skill has a natural capture moment (a crafted script or query the admin confirms works, a verified root cause, a completed change), add a tailored workflow step that names the memory type to use (`script`, `query`, `fact`, `preference`, or a `decision` routed through the tenant-decisions shape). Capture steps must recall before remember, because only the `preference` type supersedes on overlap; every other type inserts and would duplicate. Interview answers and explicit confirmations may be stored directly; anything the agent merely inferred needs a yes first.
+
+## Declaring Requirements
+
+A skill that cannot do its job without a specific capability declares it in an optional `requires` frontmatter block:
+
+```yaml
+---
+name: skill-name
+description: Use when the user asks for a specific task.
+version: 0.1.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [User.Read.All, AuditLog.Read.All]
+  license: entra-p1
+  roles: [reporting]
+  writes: true
+---
+```
+
+All keys are optional. The grammar is one nested block with two-space indentation, flow-style lists like `[a, b]`, and `true`/`false` for `writes`. The allowed values live in code and are enforced by the skill catalog test:
+
+- `servers`: MCP server names from `SERVER_CATALOG` in `cli/src/serverCatalog.ts`.
+- `scopes`: delegated Graph scopes from the Tier 1, Tier 2, or write scope catalogs (`greybeard scopes` prints them).
+- `license`: `entra-p1` is the only known value, in `KNOWN_LICENSES` in `cli/src/skillManifest.ts`.
+- `roles`: semantic role groups from `ROLE_GROUPS` in `cli/src/skillManifest.ts`, not raw directory role names.
+- `writes`: `true` when the skill stages tenant writes through the write gate.
+
+`greybeard doctor` compares every declared block against the signed-in account and reports unmet requirements with the remedy. Capabilities the product grants on demand by design, Tier 2 scopes and the writes opt-in, show up as one informational line instead of per-skill warnings, so a healthy default install stays warning-free. Skills must still degrade gracefully at runtime; a declared requirement is a doctor signal, not a runtime guard.
+
+Apply the hard and soft dependency rule:
+
+- Hard dependency: the skill produces wrong or no output without it. Declare it in `requires` and state the remedy in the skill body (for example `run greybeard setup --writes`).
+- Soft dependency: the skill only gets sharper with it (for example `greybeard-memory` recall, an optional Tier 2 scope fetched via `add-scope` on a 403). Keep it in prose, do not declare it, and make sure the skill still works without it.
 
 ## Keep Triggers Distinct
 

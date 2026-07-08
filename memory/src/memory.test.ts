@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { writeGreybeardConfig } from "@greybeard/graph";
 import {
+  MEMORY_TYPES,
   MemoryService,
   initializeMemoryDatabase,
   memoryDbPath
@@ -24,7 +25,10 @@ describe("greybeard memory", () => {
       expect(db.pragma("journal_mode", { simple: true })).toBe("wal");
       const nodesSql = schemaSql(db, "nodes");
       expect(nodesSql).toContain("CREATE TABLE nodes");
-      expect(nodesSql).toContain("type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope'))");
+      // The CHECK constraint must stay in lockstep with MEMORY_TYPES; a type
+      // added to the constant without a schema version bump fails here.
+      expect(nodesSql).toContain(`type IN (${MEMORY_TYPES.map((type) => `'${type}'`).join(",")})`);
+      expect(db.pragma("user_version", { simple: true })).toBe(1);
       expect(schemaSql(db, "nodes_fts")).toContain("tokenize='porter'");
       expect(schemaSql(db, "edges")).toContain("ON DELETE CASCADE");
       const triggerCount = db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'trigger' AND name IN ('nodes_ai','nodes_au','nodes_ad')")
@@ -153,6 +157,68 @@ describe("greybeard memory", () => {
     }
   });
 
+  it("migrates a version 0 database in place and keeps nodes, edges, and FTS intact", async () => {
+    const appDataPath = await tempAppData("tenant-a");
+    const dbPath = memoryDbPath(appDataPath);
+    const legacy = new Database(dbPath);
+    try {
+      legacy.pragma("journal_mode = WAL");
+      legacy.exec(`CREATE TABLE nodes (
+  id           INTEGER PRIMARY KEY,
+  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope')),
+  content      TEXT NOT NULL,
+  embedding    BLOB,
+  tenant       TEXT NOT NULL,
+  created_at   INTEGER NOT NULL,
+  last_used_at INTEGER NOT NULL
+);
+CREATE VIRTUAL TABLE nodes_fts USING fts5(content, content='nodes', content_rowid='id', tokenize='porter');
+CREATE TABLE edges (
+  source   INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+  target   INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+  relation TEXT NOT NULL CHECK (relation IN ('used','depends_on','needs','prefers')),
+  weight   REAL NOT NULL DEFAULT 1.0,
+  PRIMARY KEY (source, target, relation)
+);
+CREATE TRIGGER nodes_ai AFTER INSERT ON nodes BEGIN
+  INSERT INTO nodes_fts(rowid, content) VALUES (new.id, new.content);
+END;
+INSERT INTO nodes (id, type, content, embedding, tenant, created_at, last_used_at)
+VALUES (1, 'fact', 'Legacy DeviceComplianceOrg fact', NULL, 'tenant-a', 1, 1),
+       (2, 'preference', 'Use DeviceComplianceOrg for compliance reports.', NULL, 'tenant-a', 1, 1);
+INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on', 1.0);`);
+      expect(legacy.pragma("user_version", { simple: true })).toBe(0);
+    } finally {
+      legacy.close();
+    }
+
+    const service = new MemoryService({ appDataPath, now: () => BASE_TIME });
+    try {
+      const recalled = await service.recall({ query: "DeviceComplianceOrg compliance", limit: 5 });
+      expect(recalled.results.map((node) => node.id)).toContain(1);
+
+      const decision = await service.remember({
+        type: "decision",
+        content: "Decision: keep DeviceComplianceOrg. Because: trend table is incomplete. Decided: 2026-07-08."
+      });
+      expect(decision.action).toBe("inserted");
+    } finally {
+      service.close();
+    }
+
+    const migrated = new Database(dbPath);
+    try {
+      expect(migrated.pragma("user_version", { simple: true })).toBe(1);
+      expect(schemaSql(migrated, "nodes")).toContain("'decision'");
+      const edge = migrated.prepare("SELECT COUNT(*) AS count FROM edges WHERE source = 2 AND target = 1").get() as { count: number };
+      expect(edge.count).toBe(1);
+      const rows = migrated.prepare("SELECT COUNT(*) AS count FROM nodes").get() as { count: number };
+      expect(rows.count).toBe(3);
+    } finally {
+      migrated.close();
+    }
+  });
+
   it("rejects raw tenant-output shapes and accepts a legitimate preference", async () => {
     const appDataPath = await tempAppData("tenant-a");
     const service = new MemoryService({ appDataPath, now: () => BASE_TIME });
@@ -183,6 +249,20 @@ describe("greybeard memory", () => {
         content: "For Intune compliance reports, use DeviceComplianceOrg instead of DeviceComplianceTrend."
       })).resolves.toMatchObject({
         action: "inserted"
+      });
+
+      await expect(service.remember({
+        type: "decision",
+        content: "Decision: CA policy 11111111-1111-4111-8111-111111111111 excludes group 22222222-2222-4222-8222-222222222222 and app 33333333-3333-4333-8333-333333333333. Because: warehouse scanners cannot do MFA. Decided: 2026-07-08."
+      })).resolves.toMatchObject({
+        action: "inserted"
+      });
+
+      await expect(service.remember({
+        type: "decision",
+        content: "Objects 11111111-1111-4111-8111-111111111111, 22222222-2222-4222-8222-222222222222, 33333333-3333-4333-8333-333333333333, 44444444-4444-4444-8444-444444444444 were returned."
+      })).rejects.toMatchObject({
+        code: "privacy-rejected"
       });
     } finally {
       service.close();
@@ -294,6 +374,42 @@ describe("greybeard memory", () => {
       expect(all.results.length).toBeLessThanOrEqual(2);
     } finally {
       stickyService.close();
+    }
+
+    const decisionAppDataPath = await tempAppData("tenant-a");
+    const decisionService = new MemoryService({
+      appDataPath: decisionAppDataPath,
+      now: () => BASE_TIME,
+      softCap: 2
+    });
+    try {
+      const query = await decisionService.remember({
+        type: "query",
+        content: "Why does the warehouse group skip MFA?"
+      });
+      const decision = await decisionService.remember({
+        type: "decision",
+        content: "Decision: warehouse group stays excluded from MFA policy. Because: scanners cannot do MFA. Decided: 2026-07-08.",
+        links: [
+          {
+            target: query.id,
+            relation: "used"
+          }
+        ]
+      });
+      await decisionService.remember({
+        type: "fact",
+        content: "Temporary decision-pressure fact one."
+      });
+      await decisionService.remember({
+        type: "fact",
+        content: "Temporary decision-pressure fact two."
+      });
+
+      const all = await decisionService.list({ limit: 10 });
+      expect(all.results.map((node) => node.id)).toContain(decision.id);
+    } finally {
+      decisionService.close();
     }
   });
 
