@@ -1,6 +1,6 @@
 {
   "name": "greybeard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Greybeard Claude Code plugin overlay for Microsoft 365 admin skills.",
   "owner": {
     "name": "Ugur Koc"
