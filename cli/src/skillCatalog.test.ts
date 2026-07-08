@@ -28,7 +28,8 @@ const expectedCatalog: Record<string, string[]> = {
     "license-optimizer"
   ],
   write: ["change-plan"],
-  craft: ["posture-script", "graph-patterns", "kql-authoring", "least-privilege-scopes"]
+  craft: ["posture-script", "graph-patterns", "kql-authoring", "least-privilege-scopes"],
+  mentor: ["grill-my-change", "tenant-decisions", "diagnose", "handoff"]
 };
 
 const expectedSkills: Array<{ category: string; name: string }> = Object.entries(expectedCatalog)
