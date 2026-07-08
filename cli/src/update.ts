@@ -8,7 +8,13 @@ import {
   type ServerUpdateMode
 } from "@greybeard/graph";
 import { flagValue, ParsedArgs } from "./args.js";
-import { detectAllClients, repoSkillsDir, writeAllClientMcpConfigs } from "./clients.js";
+import {
+  detectAllClients,
+  listSkillSourceDirs,
+  repoSkillsDir,
+  wireAllClientSkills,
+  writeAllClientMcpConfigs
+} from "./clients.js";
 import { CliRuntime, writeInfoLine, writeLine, writeSection, writeStatusLine } from "./runtime.js";
 
 export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
@@ -62,6 +68,31 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
     writeStatusLine(runtime.stdout, "OK", result.client, result.path);
   }
 
+  writeSection(runtime.stdout, "Skills");
+  const skillResults = await wireAllClientSkills(runtime, clients);
+  if (skillResults.length === 0) {
+    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
+  }
+  for (const result of skillResults) {
+    const clientName = result.client ?? "Client";
+    if (result.empty) {
+      writeStatusLine(runtime.stdout, "WARN", clientName, `no skill folders found in ${result.sourceDir}`);
+      continue;
+    }
+
+    const blocked = result.entries.filter((entry) => entry.status === "blocked");
+    if (blocked.length > 0) {
+      writeStatusLine(
+        runtime.stdout,
+        "WARN",
+        clientName,
+        `${result.entries.length - blocked.length}/${result.entries.length} skills linked, ${blocked.map((entry) => entry.name).join(", ")} blocked`
+      );
+    } else {
+      writeStatusLine(runtime.stdout, "OK", clientName, `${result.entries.length} skills linked`);
+    }
+  }
+
   return 0;
 }
 
@@ -76,11 +107,23 @@ async function changedSkills(runtime: CliRuntime, before: string, after: string)
     throw new Error(diff.stderr || diff.stdout || "git diff failed");
   }
 
+  const sources = await listSkillSourceDirs(repoSkillsDir(runtime.repoRoot));
+  const categories = new Set(sources.map((source) => source.category).filter((category) => category.length > 0));
+  const skillPaths = new Map(sources.map((source) => [source.name, source.path]));
+
   const names = new Set<string>();
   for (const line of diff.stdout.split(/\r?\n/u)) {
-    const parts = line.split("/");
-    if (parts[0] === ".agents" && parts[1] === "skills" && parts[2]) {
-      names.add(parts[2]);
+    const [first, second, third, fourth, fifth] = line.split("/");
+    if (first !== ".agents" || second !== "skills" || !third || !fourth) {
+      continue;
+    }
+
+    if (categories.has(third)) {
+      if (fifth) {
+        names.add(fourth);
+      }
+    } else {
+      names.add(third);
     }
   }
 
@@ -88,16 +131,20 @@ async function changedSkills(runtime: CliRuntime, before: string, after: string)
   for (const name of [...names].sort()) {
     result.push({
       name,
-      version: await skillVersion(runtime, name)
+      version: await skillVersion(skillPaths.get(name))
     });
   }
 
   return result;
 }
 
-async function skillVersion(runtime: CliRuntime, skillName: string): Promise<string> {
+async function skillVersion(skillPath: string | undefined): Promise<string> {
+  if (!skillPath) {
+    return "removed";
+  }
+
   try {
-    const content = await readFile(join(repoSkillsDir(runtime.repoRoot), skillName, "SKILL.md"), "utf8");
+    const content = await readFile(join(skillPath, "SKILL.md"), "utf8");
     const frontmatterVersion = /^version:\s*(.+)$/mu.exec(content);
     if (frontmatterVersion?.[1]) {
       return `version ${frontmatterVersion[1].trim()}`;

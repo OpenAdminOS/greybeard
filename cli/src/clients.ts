@@ -976,8 +976,8 @@ function greybeardFallbackBlock(skillsPath: string): string {
     GREYBEARD_BLOCK_START,
     "## Greybeard Skills",
     "",
-    `Greybeard skills live at \`${skillsPath}\`.`,
-    "When the user asks about Microsoft 365, Intune, Entra, Microsoft Graph, KQL, Conditional Access, compliance, licensing, or tenant posture, inspect the skill folders in that directory.",
+    `Greybeard skills live at \`${skillsPath}\`, one folder per skill inside category subfolders (for example \`read/tenant-pulse\`).`,
+    "When the user asks about Microsoft 365, Intune, Entra, Microsoft Graph, KQL, Conditional Access, compliance, licensing, or tenant posture, inspect the skill folders one level below that directory.",
     "Pick the skill whose `SKILL.md` description starts with `Use when` and matches the task. Read that skill's `SKILL.md` before acting. Load files under `references/` or `scripts/` only when the skill instructs you to.",
     GREYBEARD_BLOCK_END
   ].join("\n");
@@ -998,16 +998,53 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
-async function listSkillSourceDirs(sourceDir: string): Promise<Array<{ name: string; path: string }>> {
+export interface SkillSourceDir {
+  name: string;
+  category: string;
+  path: string;
+}
+
+export async function listSkillSourceDirs(sourceDir: string): Promise<SkillSourceDir[]> {
+  const sources: SkillSourceDir[] = [];
+  const seenCategories = new Map<string, string>();
+
+  const addSource = (name: string, category: string, path: string): void => {
+    const existing = seenCategories.get(name);
+    if (existing !== undefined) {
+      throw new Error(
+        `Duplicate skill folder "${name}" in "${existing || sourceDir}" and "${category || sourceDir}". Skill folder names must be unique across categories.`
+      );
+    }
+
+    seenCategories.set(name, category);
+    sources.push({ name, category, path });
+  };
+
+  for (const category of await listChildDirNames(sourceDir)) {
+    const categoryPath = join(sourceDir, category);
+    if (await lstatOrNull(join(categoryPath, "SKILL.md"))) {
+      addSource(category, "", categoryPath);
+      continue;
+    }
+
+    for (const name of await listChildDirNames(categoryPath)) {
+      const skillPath = join(categoryPath, name);
+      if (await lstatOrNull(join(skillPath, "SKILL.md"))) {
+        addSource(name, category, skillPath);
+      }
+    }
+  }
+
+  return sources.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+async function listChildDirNames(parent: string): Promise<string[]> {
   try {
-    const entries = await readdir(sourceDir, { withFileTypes: true });
+    const entries = await readdir(parent, { withFileTypes: true });
     return entries
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-      .map((entry) => ({
-        name: entry.name,
-        path: join(sourceDir, entry.name)
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name));
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right));
   } catch (error) {
     if (isNodeError(error) && error.code === "ENOENT") {
       return [];

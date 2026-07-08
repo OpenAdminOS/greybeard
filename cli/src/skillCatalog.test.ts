@@ -7,38 +7,50 @@ import { describe, expect, it } from "vitest";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const skillsRoot = resolve(repoRoot, ".agents/skills");
 
-const expectedSkills = [
-  "tenant-pulse",
-  "ask-my-tenant",
-  "posture-script",
-  "change-plan",
-  "least-privilege-scopes",
-  "graph-patterns",
-  "kql-authoring",
-  "intune-assignments",
-  "intune-compliance",
-  "entra-identity",
-  "conditional-access-review",
-  "license-optimizer"
-];
+const expectedCatalog: Record<string, string[]> = {
+  read: [
+    "tenant-pulse",
+    "ask-my-tenant",
+    "intune-assignments",
+    "intune-compliance",
+    "entra-identity",
+    "conditional-access-review",
+    "license-optimizer"
+  ],
+  write: ["change-plan"],
+  craft: ["posture-script", "graph-patterns", "kql-authoring", "least-privilege-scopes"]
+};
+
+const expectedSkills: Array<{ category: string; name: string }> = Object.entries(expectedCatalog)
+  .flatMap(([category, names]) => names.map((name) => ({ category, name })));
 
 describe("Greybeard skill catalog", () => {
-  it("contains all v1 skill folders and no unexpected skill folders", async () => {
-    const entries = await readdir(skillsRoot, { withFileTypes: true });
-    const folders = entries
+  it("contains all expected category and skill folders and no unexpected ones", async () => {
+    const categoryEntries = await readdir(skillsRoot, { withFileTypes: true });
+    const categories = categoryEntries
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
 
-    expect(folders).toEqual([...expectedSkills].sort());
+    expect(categories).toEqual(Object.keys(expectedCatalog).sort());
+
+    for (const [category, names] of Object.entries(expectedCatalog)) {
+      const entries = await readdir(resolve(skillsRoot, category), { withFileTypes: true });
+      const folders = entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name)
+        .sort();
+
+      expect(folders, category).toEqual([...names].sort());
+    }
   });
 
   it("uses portable frontmatter with unique trigger descriptions", async () => {
     const seenNames = new Set<string>();
     const seenPrefixes = new Map<string, string>();
 
-    for (const skillName of expectedSkills) {
-      const skillPath = resolve(skillsRoot, skillName, "SKILL.md");
+    for (const { category, name: skillName } of expectedSkills) {
+      const skillPath = resolve(skillsRoot, category, skillName, "SKILL.md");
       const content = normalizeLineEndings(await readFile(skillPath, "utf8"));
       const frontmatter = parseFrontmatter(content);
       const keys = Object.keys(frontmatter).sort();
@@ -46,7 +58,7 @@ describe("Greybeard skill catalog", () => {
       expect(keys, skillName).toEqual(["description", "name", "version"]);
       expect(frontmatter.name, skillName).toBe(skillName);
       expect(frontmatter.version, skillName).toBe("0.1.0");
-      expect(seenNames.has(frontmatter.name), skillName).toBe(false);
+      expect(seenNames.has(frontmatter.name), `${skillName} duplicates a skill name in another category`).toBe(false);
       seenNames.add(frontmatter.name);
 
       expect(frontmatter.description, skillName).toMatch(/^Use when\b/);
@@ -61,8 +73,8 @@ describe("Greybeard skill catalog", () => {
   });
 
   it("includes a trigger test document for every skill", async () => {
-    for (const skillName of expectedSkills) {
-      await expect(access(resolve(skillsRoot, skillName, "test.md"), constants.R_OK), skillName)
+    for (const { category, name: skillName } of expectedSkills) {
+      await expect(access(resolve(skillsRoot, category, skillName, "test.md"), constants.R_OK), skillName)
         .resolves
         .toBeUndefined();
     }

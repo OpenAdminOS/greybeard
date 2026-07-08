@@ -29,7 +29,7 @@ Concretely, it is a portable set of Agent Skills plus MCP servers for Microsoft 
 - `greybeard-graph`: Microsoft Graph MCP server with MSAL interactive auth, read-safe Graph access, incremental consent guidance, and the write gate.
 - `greybeard-memory`: local SQLite and FTS5 memory shared across clients.
 - `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, and `update`.
-- Twelve Agent Skills under `.agents/skills/` for tenant posture, Graph patterns, KQL, Intune, Entra, Conditional Access, licensing, and write planning.
+- Twelve Agent Skills under `.agents/skills/`, organized into `read/`, `write/`, and `craft/` categories, for tenant posture, Graph patterns, KQL, Intune, Entra, Conditional Access, licensing, and write planning.
 
 ## Install
 

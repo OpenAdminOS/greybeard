@@ -13,12 +13,17 @@ npm run ci
 
 ## Skill Authoring Rules
 
-Skills live under `.agents/skills/<skill-name>/`.
+Skills live under `.agents/skills/<category>/<skill-name>/`. The categories are:
+
+- `read/`: live-tenant analysis and reporting skills.
+- `write/`: skills that stage tenant changes through the write gate.
+- `craft/`: authoring skills for scripts, queries, and Graph mechanics that work without a signed-in tenant.
+- `mentor/`: process skills that interview, triage, record decisions, or hand work over.
 
 Required layout:
 
 ```text
-.agents/skills/<skill-name>/
+.agents/skills/<category>/<skill-name>/
 ├── SKILL.md
 ├── test.md
 ├── references/
@@ -26,6 +31,8 @@ Required layout:
 ```
 
 `references/` and `scripts/` are optional directories, but use them when a skill needs deeper material. Keep `SKILL.md` concise. The agent should load extra files only when the skill says to.
+
+Skill folder names must be unique across all categories. Clients link each skill by its folder name, without the category, so two categories cannot both contain a skill with the same name.
 
 Required `SKILL.md` frontmatter:
 

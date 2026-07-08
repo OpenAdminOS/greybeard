@@ -36,6 +36,8 @@ import {
   geminiFallbackPath,
   geminiSettingsPath,
   geminiSkillsDir,
+  listSkillSourceDirs,
+  repoSkillsDir,
   wireClaudeSkills,
   writeClaudeMcpConfig,
   writeCodexMcpConfig,
@@ -542,10 +544,9 @@ describe("greybeard CLI", () => {
 
   it("replaces a stale Claude skill symlink without overwriting real directories", async () => {
     const paths = await tempPaths();
-    const source = join(paths.repoRoot, ".agents", "skills", "tenant-pulse");
+    const source = await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const staleSource = join(paths.repoRoot, "old-skill");
     const target = join(paths.home, ".claude", "skills", "tenant-pulse");
-    await mkdir(source, { recursive: true });
     await mkdir(staleSource, { recursive: true });
     await mkdir(join(paths.home, ".claude", "skills"), { recursive: true });
     await symlink(staleSource, target, process.platform === "win32" ? "junction" : "dir");
@@ -557,6 +558,21 @@ describe("greybeard CLI", () => {
       status: "replaced-stale-symlink"
     }));
     expect(resolve(join(target, ".."), await readlink(target))).toBe(source);
+  });
+
+  it("lists skills from category subfolders and rejects duplicate skill names across categories", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    await createSkillFixture(paths.repoRoot, "craft", "kql-authoring");
+
+    const sources = await listSkillSourceDirs(repoSkillsDir(paths.repoRoot));
+    expect(sources.map((source) => source.name)).toEqual(["kql-authoring", "tenant-pulse"]);
+    expect(sources.map((source) => source.category)).toEqual(["craft", "read"]);
+
+    await createSkillFixture(paths.repoRoot, "write", "tenant-pulse");
+    await expect(listSkillSourceDirs(repoSkillsDir(paths.repoRoot)))
+      .rejects
+      .toThrow(/Duplicate skill folder "tenant-pulse"/);
   });
 
   it("detects clients only from client-owned signals", async () => {
@@ -690,7 +706,7 @@ describe("greybeard CLI", () => {
     const paths = await tempPaths();
     await mkdir(join(paths.home, ".gemini"), { recursive: true });
     await writeFile(join(paths.home, ".gemini", "oauth_creds.json"), "{}\n", "utf8");
-    await mkdir(join(paths.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const runtime = createMockRuntime(paths);
 
     const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
@@ -704,7 +720,7 @@ describe("greybeard CLI", () => {
   it("forces GitHub Copilot setup with --with-copilot", async () => {
     const skipped = await tempPaths();
     await mkdir(join(skipped.home, ".copilot"), { recursive: true });
-    await mkdir(join(skipped.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
+    await createSkillFixture(skipped.repoRoot, "read", "tenant-pulse");
     const skippedRuntime = createMockRuntime(skipped);
 
     const skippedCode = await runCli(["setup", "--yes", "--app-data", skipped.appData], skippedRuntime);
@@ -715,8 +731,7 @@ describe("greybeard CLI", () => {
     expect(await pathExists(copilotSkillsDir(skipped.home))).toBe(false);
 
     const paths = await tempPaths();
-    const source = join(paths.repoRoot, ".agents", "skills", "tenant-pulse");
-    await mkdir(source, { recursive: true });
+    const source = await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
     const runtime = createMockRuntime(paths);
 
     const code = await runCli(["setup", "--yes", "--with-copilot", "--verbose", "--app-data", paths.appData], runtime);
@@ -991,17 +1006,9 @@ describe("greybeard CLI", () => {
     expect(taskCommand).not.toContain("C:/Program Files/nodejs/node.exe");
   });
 
-  it("pulls updates, reports changed skills, and refreshes MCP configs", async () => {
+  it("pulls updates, reports changed skills, and refreshes MCP configs and skill links", async () => {
     const paths = await tempPaths();
-    await mkdir(join(paths.repoRoot, ".agents", "skills", "tenant-pulse"), { recursive: true });
-    await writeFile(join(paths.repoRoot, ".agents", "skills", "tenant-pulse", "SKILL.md"), [
-      "---",
-      "name: tenant-pulse",
-      "description: Use when checking tenant health.",
-      "version: 0.2.0",
-      "---",
-      ""
-    ].join("\n"), "utf8");
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse", "0.2.0");
     await writeGreybeardConfig(paths.appData, {
       clients: {
         githubCopilot: true
@@ -1030,7 +1037,7 @@ describe("greybeard CLI", () => {
       if (command === "git" && args.includes("diff")) {
         return {
           code: 0,
-          stdout: ".agents/skills/tenant-pulse/SKILL.md\n",
+          stdout: ".agents/skills/read/tenant-pulse/SKILL.md\n",
           stderr: ""
         };
       }
@@ -1056,6 +1063,8 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("MCP configuration");
     expect(runtime.stdout.toString()).toContain("Codex CLI");
     expect(runtime.stdout.toString()).toContain("GitHub Copilot");
+    expect(runtime.stdout.toString()).toContain("Skills");
+    expect(runtime.stdout.toString()).toContain("1 skills linked");
     expect(await pathExists(copilotMcpConfigPath(paths.home))).toBe(true);
   });
 });
@@ -1078,6 +1087,20 @@ class CaptureStream implements OutputStream {
   toString(): string {
     return this.chunks.join("");
   }
+}
+
+async function createSkillFixture(repoRoot: string, category: string, name: string, version = "0.1.0"): Promise<string> {
+  const dir = join(repoRoot, ".agents", "skills", category, name);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "SKILL.md"), [
+    "---",
+    `name: ${name}`,
+    `description: Use when testing ${name}.`,
+    `version: ${version}`,
+    "---",
+    ""
+  ].join("\n"), "utf8");
+  return dir;
 }
 
 async function tempPaths(): Promise<TempPaths> {
