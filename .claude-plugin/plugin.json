@@ -21,6 +21,7 @@
     "./.agents/skills/mentor/grill-my-change",
     "./.agents/skills/mentor/tenant-decisions",
     "./.agents/skills/mentor/diagnose",
-    "./.agents/skills/mentor/handoff"
+    "./.agents/skills/mentor/handoff",
+    "./.agents/skills/mentor/learn-my-tenant"
   ]
 }

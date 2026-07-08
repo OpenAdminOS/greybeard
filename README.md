@@ -29,7 +29,7 @@ Concretely, it is a portable set of Agent Skills plus MCP servers for Microsoft 
 - `greybeard-graph`: Microsoft Graph MCP server with MSAL interactive auth, read-safe Graph access, incremental consent guidance, and the write gate.
 - `greybeard-memory`: local SQLite and FTS5 memory shared across clients.
 - `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, `scopes`, and `update`. Optional MCP servers such as `intuneautomation` toggle with `greybeard setup --enable-server <name>` and `--disable-server <name>`. Setup never overwrites an MCP server entry you wrote yourself, and pinned mode pins third-party servers to the version vetted in the server catalog.
-- Sixteen Agent Skills under `.agents/skills/`, organized into `read/`, `write/`, `craft/`, and `mentor/` categories (see the skill catalog below).
+- Seventeen Agent Skills under `.agents/skills/`, organized into `read/`, `write/`, `craft/`, and `mentor/` categories (see the skill catalog below).
 
 ## Install
 
@@ -67,9 +67,10 @@ Sign in to Microsoft
 Press Enter to open your browser and sign in (Ctrl+C to cancel)
 OK    Signed in                admin@contoso.com (contoso.com)
       MCP servers              greybeard-graph, greybeard-memory, intuneautomation
-OK    Claude Code              MCP servers and 16 skills configured
-OK    Cursor                   MCP servers and 16 skills configured
+OK    Claude Code              MCP servers and 17 skills configured
+OK    Cursor                   MCP servers, 17 skills, and context block configured
 OK    Memory                   ready; weekly auto-update scheduled
+OK    Memory hook              installed in ~/.claude/settings.json
 
 Done. Open Claude Code and ask: what is my tenant MFA coverage?
 ```
@@ -87,11 +88,11 @@ Skills live under `.agents/skills/<category>/<skill>/` and are linked into each 
 | `read/` | tenant-pulse, ask-my-tenant, intune-assignments, intune-compliance, entra-identity, conditional-access-review, license-optimizer | Live-tenant analysis and reporting |
 | `write/` | change-plan | Stages tenant writes through the server-side approval gate |
 | `craft/` | posture-script, graph-patterns, kql-authoring, least-privilege-scopes | Scripts, Graph mechanics, KQL, and scope planning without a signed-in tenant |
-| `mentor/` | grill-my-change, diagnose, tenant-decisions, handoff | Pre-change interviews, incident triage, decision records, session handovers |
+| `mentor/` | grill-my-change, diagnose, tenant-decisions, handoff, learn-my-tenant | Pre-change interviews, incident triage, decision records, session handovers, tenant onboarding |
 
 A skill that cannot work without a specific capability declares it in its frontmatter: MCP servers, delegated Graph scopes, an Entra ID P1 license, a directory role group, or write configuration. `greybeard doctor` compares those declarations against the signed-in account and prints one warning per skill with the exact remedy, for example `run greybeard setup --writes` or `ask the agent to call add-scope`. Unmet requirements never fail doctor, because skills degrade by design.
 
-The mentor skills are the second-brain half of Greybeard. `grill-my-change` interviews you about blast radius, break-glass exclusions, pilot rings, and rollback before a change reaches the write gate. `diagnose` runs hypothesis-driven incident triage with the narrowest read that can falsify each hypothesis. `tenant-decisions` records why the tenant is configured the way it is (`Decision: ... Because: ... Decided: ... Revisit: ...`) so the reasoning survives staff changes, and `handoff` turns a session into paste-ready shift-change notes.
+The mentor skills are the second-brain half of Greybeard. `grill-my-change` interviews you about blast radius, break-glass exclusions, pilot rings, and rollback before a change reaches the write gate. `diagnose` runs hypothesis-driven incident triage with the narrowest read that can falsify each hypothesis. `tenant-decisions` records why the tenant is configured the way it is (`Decision: ... Because: ... Decided: ... Revisit: ...`) so the reasoning survives staff changes, and `handoff` turns a session into paste-ready shift-change notes. `learn-my-tenant` bootstraps all of it: it interviews you about naming conventions, rings, break-glass accounts, and change windows, takes a narrow read-only look at the tenant, and seeds memory so the first real session already knows your environment.
 
 ## Consent And Scope Tiers
 
