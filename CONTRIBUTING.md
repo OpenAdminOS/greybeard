@@ -55,6 +55,16 @@ Rules:
 - Add `test.md` with at least one trigger prompt and expected behavior.
 - Do not store secrets, tenant data, or live customer output in a skill file.
 
+## Memory Preamble And Capture Moments
+
+Every skill body starts its `## Workflow` section with the shared three-line memory preamble, verbatim (the skill catalog test enforces the exact lines):
+
+1. Recall before other work with a one-line task summary.
+2. Remember confirmed corrections and preferences as intent only, never raw tenant data.
+3. Capture confirmed working artifacts and durable environment facts: recall for an equivalent memory first, then remember the reusable intent, and ask before storing anything the admin has not explicitly confirmed.
+
+When a skill has a natural capture moment (a crafted script or query the admin confirms works, a verified root cause, a completed change), add a tailored workflow step that names the memory type to use (`script`, `query`, `fact`, `preference`, or a `decision` routed through the tenant-decisions shape). Capture steps must recall before remember, because only the `preference` type supersedes on overlap; every other type inserts and would duplicate. Interview answers and explicit confirmations may be stored directly; anything the agent merely inferred needs a yes first.
+
 ## Declaring Requirements
 
 A skill that cannot do its job without a specific capability declares it in an optional `requires` frontmatter block:
