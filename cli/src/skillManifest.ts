@@ -10,6 +10,11 @@ export interface SkillRequires {
   writes?: boolean;
 }
 
+export interface SkillFrontmatter {
+  fields: Record<string, string>;
+  requires?: SkillRequires;
+}
+
 export interface SkillManifest {
   name: string;
   category: string;
@@ -24,7 +29,6 @@ export interface SkillManifestLoadResult {
   errors: Array<{ name: string; message: string }>;
 }
 
-export const REQUIRES_LIST_KEYS = ["servers", "scopes", "roles"] as const;
 export const KNOWN_LICENSES = ["entra-p1"] as const;
 
 export const ROLE_GROUPS: Record<string, string[]> = {
@@ -43,21 +47,22 @@ export const ROLE_GROUPS: Record<string, string[]> = {
   ]
 };
 
-export function parseSkillFrontmatter(content: string): Record<string, string | SkillRequires> {
-  const normalized = content.replace(/\r\n/gu, "\n");
-  if (!normalized.startsWith("---\n")) {
+export function parseSkillFrontmatter(content: string): SkillFrontmatter {
+  const lines = content.replace(/\r\n/gu, "\n").split("\n");
+  if (lines[0] !== "---") {
     throw new Error("SKILL.md must start with a --- frontmatter block.");
   }
 
-  const end = normalized.indexOf("\n---", 4);
-  if (end < 0) {
+  const closer = lines.indexOf("---", 1);
+  if (closer < 0) {
     throw new Error("SKILL.md frontmatter block is not closed with ---.");
   }
 
-  const parsed: Record<string, string | SkillRequires> = {};
-  let requires: SkillRequires | null = null;
+  const fields: Record<string, string> = {};
+  let requires: SkillRequires | undefined;
+  let inRequiresBlock = false;
 
-  for (const line of normalized.slice(4, end).split("\n")) {
+  for (const line of lines.slice(1, closer)) {
     if (line.trim().length === 0) {
       continue;
     }
@@ -66,7 +71,7 @@ export function parseSkillFrontmatter(content: string): Record<string, string | 
       throw new Error(`Frontmatter must not contain tabs: ${line}`);
     }
 
-    if (requires !== null && line.startsWith("  ")) {
+    if (inRequiresBlock && requires !== undefined && line.startsWith("  ")) {
       if (line.startsWith("   ")) {
         throw new Error(`The requires block supports one level of two-space indentation only: ${line}`);
       }
@@ -75,14 +80,14 @@ export function parseSkillFrontmatter(content: string): Record<string, string | 
       continue;
     }
 
-    requires = null;
+    inRequiresBlock = false;
     const match = /^([A-Za-z0-9_-]+):\s*(.*)$/u.exec(line);
     if (!match?.[1]) {
       throw new Error(`Invalid frontmatter line: ${line}`);
     }
 
     const [, key, value] = match;
-    if (key in parsed) {
+    if (key in fields || (key === "requires" && requires !== undefined)) {
       throw new Error(`Duplicate frontmatter key: ${key}`);
     }
 
@@ -92,14 +97,17 @@ export function parseSkillFrontmatter(content: string): Record<string, string | 
       }
 
       requires = {};
-      parsed[key] = requires;
+      inRequiresBlock = true;
       continue;
     }
 
-    parsed[key] = value ?? "";
+    fields[key] = value ?? "";
   }
 
-  return parsed;
+  return {
+    fields,
+    ...(requires !== undefined ? { requires } : {})
+  };
 }
 
 function parseRequiresLine(requires: SkillRequires, line: string): void {
@@ -111,13 +119,12 @@ function parseRequiresLine(requires: SkillRequires, line: string): void {
   const key = match[1];
   const value = (match[2] ?? "").trim();
 
-  if ((REQUIRES_LIST_KEYS as readonly string[]).includes(key)) {
-    const listKey = key as "servers" | "scopes" | "roles";
-    if (requires[listKey] !== undefined) {
+  if (key === "servers" || key === "scopes" || key === "roles") {
+    if (requires[key] !== undefined) {
       throw new Error(`Duplicate requires key: ${key}`);
     }
 
-    requires[listKey] = parseFlowList(key, value);
+    requires[key] = parseFlowList(key, value);
     return;
   }
 
@@ -172,22 +179,35 @@ function parseFlowList(key: string, value: string): string[] {
 }
 
 export async function loadSkillManifests(repoRoot: string): Promise<SkillManifestLoadResult> {
-  const sources = await listSkillSourceDirs(repoSkillsDir(repoRoot));
+  const tree = await listSkillSourceDirs(repoSkillsDir(repoRoot));
   const manifests: SkillManifest[] = [];
   const errors: Array<{ name: string; message: string }> = [];
 
-  for (const source of sources) {
+  for (const skipped of tree.missingManifest) {
+    errors.push({
+      name: skipped.name,
+      message: `SKILL.md is missing in ${skipped.category}/${skipped.name}.`
+    });
+  }
+
+  for (const duplicate of tree.duplicates) {
+    errors.push({
+      name: `${duplicate.category}/${duplicate.name}`,
+      message: `Duplicate skill folder name; "${duplicate.name}" already exists in "${duplicate.existingCategory}".`
+    });
+  }
+
+  for (const source of tree.sources) {
     try {
       const content = await readFile(join(source.path, "SKILL.md"), "utf8");
       const frontmatter = parseSkillFrontmatter(content);
-      const requires = frontmatter.requires;
       manifests.push({
         name: source.name,
         category: source.category,
         dir: source.path,
-        description: typeof frontmatter.description === "string" ? frontmatter.description : "",
-        version: typeof frontmatter.version === "string" ? frontmatter.version : "",
-        ...(requires !== undefined && typeof requires !== "string" ? { requires } : {})
+        description: frontmatter.fields.description ?? "",
+        version: frontmatter.fields.version ?? "",
+        ...(frontmatter.requires !== undefined ? { requires: frontmatter.requires } : {})
       });
     } catch (error) {
       errors.push({

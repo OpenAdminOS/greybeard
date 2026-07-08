@@ -28,6 +28,9 @@ export function initializeMemoryDatabase(appDataPath: string, path = memoryDbPat
 
 export const MEMORY_SCHEMA_VERSION = 1;
 
+// This is the LIVE latest schema, shared by fresh creates and the rebuild
+// migration. A future schema version must either rebuild-to-latest again or
+// account for older databases already carrying newer columns.
 const NODES_TABLE_DDL = (name: string) => `CREATE TABLE ${name} (
   id           INTEGER PRIMARY KEY,
   type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope','decision')),
@@ -40,6 +43,10 @@ const NODES_TABLE_DDL = (name: string) => `CREATE TABLE ${name} (
 
 export function initializeMemorySchema(db: SqliteDatabase): void {
   const version = db.pragma("user_version", { simple: true }) as number;
+  if (version === MEMORY_SCHEMA_VERSION) {
+    return;
+  }
+
   if (objectExists(db, "nodes") && version < 1) {
     migrateNodesToV1(db);
   }

@@ -1,6 +1,8 @@
+import type { GreybeardConfig, ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
+
 export type CatalogServerSource =
   | { kind: "workspace"; packageName: "@greybeard/graph" | "@greybeard/memory"; packageDir: "graph" | "memory" }
-  | { kind: "npm"; packageName: string };
+  | { kind: "npm"; packageName: string; pinnedVersion: string };
 
 export type CatalogServer = {
   name: string;
@@ -40,7 +42,8 @@ export const SERVER_CATALOG: readonly CatalogServer[] = [
     defaultEnabled: true,
     source: {
       kind: "npm",
-      packageName: "@ugurkocde/intuneautomation-mcp"
+      packageName: "@ugurkocde/intuneautomation-mcp",
+      pinnedVersion: "1.0.1"
     }
   }
 ];
@@ -63,4 +66,27 @@ export function optionalCatalogServers(): CatalogServer[] {
 
 export function findCatalogServer(name: string): CatalogServer | undefined {
   return SERVER_CATALOG.find((server) => server.name === name);
+}
+
+export function isGreybeardManagedEntry(server: CatalogServer, entryText: string): boolean {
+  const matchers = server.source.kind === "npm"
+    ? [server.source.packageName]
+    : [
+        server.source.packageName,
+        `${server.source.packageDir}/dist/index.js`,
+        `${server.source.packageDir}\\\\dist\\\\index.js`
+      ];
+  return matchers.some((matcher) => entryText.includes(matcher));
+}
+
+export function serverOptionsFromConfig(config: GreybeardConfig): {
+  serverUpdate: ServerUpdateMode;
+  serverPackageSource: ServerPackageSource;
+  serverToggles: Record<string, boolean>;
+} {
+  return {
+    serverUpdate: config.serverUpdate ?? "latest",
+    serverPackageSource: config.serverPackageSource ?? "local",
+    serverToggles: config.mcpServers ?? {}
+  };
 }

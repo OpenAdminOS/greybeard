@@ -81,7 +81,7 @@ All keys are optional. The grammar is one nested block with two-space indentatio
 - `roles`: semantic role groups from `ROLE_GROUPS` in `cli/src/skillManifest.ts`, not raw directory role names.
 - `writes`: `true` when the skill stages tenant writes through the write gate.
 
-`greybeard doctor` compares every declared block against the signed-in account and reports unmet requirements with the remedy. Skills must still degrade gracefully at runtime; a declared requirement is a doctor signal, not a runtime guard.
+`greybeard doctor` compares every declared block against the signed-in account and reports unmet requirements with the remedy. Capabilities the product grants on demand by design, Tier 2 scopes and the writes opt-in, show up as one informational line instead of per-skill warnings, so a healthy default install stays warning-free. Skills must still degrade gracefully at runtime; a declared requirement is a doctor signal, not a runtime guard.
 
 Apply the hard and soft dependency rule:
 

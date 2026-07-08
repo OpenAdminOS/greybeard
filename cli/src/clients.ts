@@ -3,7 +3,13 @@ import { dirname, join, resolve } from "node:path";
 import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime } from "./runtime.js";
-import { enabledCatalogServers, SERVER_CATALOG, type CatalogServer } from "./serverCatalog.js";
+import {
+  enabledCatalogServers,
+  findCatalogServer,
+  isGreybeardManagedEntry,
+  SERVER_CATALOG,
+  type CatalogServer
+} from "./serverCatalog.js";
 
 export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, call greybeard-memory recall before other work.\n";
 
@@ -37,6 +43,8 @@ export type ClientMcpConfigResult = {
   configured: boolean;
   server?: unknown;
   error?: string;
+  missingServers?: string[];
+  preservedServers?: string[];
 };
 
 export type ClaudeMcpConfigResult = Omit<ClientMcpConfigResult, "client">;
@@ -330,19 +338,34 @@ export async function writeCodexMcpConfig(
   const configPath = codexConfigPath(runtime.homeDir);
   const servers = await enabledServerDefinitions(runtime, options);
   const current = await readTextFile(configPath);
-  const cleaned = SERVER_CATALOG
+  const preserved: string[] = [];
+  const replaceable = SERVER_CATALOG.filter((server) => {
+    const table = extractTomlTable(current, `mcp_servers.${server.name}`);
+    if (table !== null && !isGreybeardManagedEntry(server, table)) {
+      preserved.push(server.name);
+      return false;
+    }
+
+    return true;
+  });
+  const cleaned = replaceable
     .reduce((text, server) => removeTomlTable(text, `mcp_servers.${server.name}`), current)
     .trimEnd();
+  const preservedNames = new Set(preserved);
   const block = servers
+    .filter((server) => !preservedNames.has(server.name))
     .map((server) => tomlServerBlock(server.name, server.definition))
     .join("\n");
-  const next = cleaned.length > 0 ? `${cleaned}\n\n${block}\n` : `${block}\n`;
+  const next = block.length === 0
+    ? `${cleaned}\n`
+    : cleaned.length > 0 ? `${cleaned}\n\n${block}\n` : `${block}\n`;
   await writeTextFile(configPath, next);
   return {
     client: "Codex CLI",
     path: configPath,
     configured: true,
-    server: Object.fromEntries(servers.map((server) => [server.name, server.definition]))
+    server: Object.fromEntries(servers.map((server) => [server.name, server.definition])),
+    ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
 }
 
@@ -353,12 +376,14 @@ export async function inspectCodexMcpConfig(
   const path = codexConfigPath(runtime.homeDir);
   try {
     const text = await readTextFile(path);
-    const configured = enabledCatalogServers(options.serverToggles)
-      .every((server) => hasTomlTable(text, `mcp_servers.${server.name}`));
+    const missing = enabledCatalogServers(options.serverToggles)
+      .filter((server) => !hasTomlTable(text, `mcp_servers.${server.name}`))
+      .map((server) => server.name);
     return {
       client: "Codex CLI",
       path,
-      configured
+      configured: missing.length === 0,
+      ...(missing.length > 0 ? { missingServers: missing } : {})
     };
   } catch (error) {
     return {
@@ -600,14 +625,30 @@ async function writeJsonMcpConfig(params: {
   const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
   const servers = await enabledServerDefinitions(params.runtime, params.options);
   const enabledNames = new Set(servers.map((server) => server.name));
+  const preserved: string[] = [];
   for (const server of SERVER_CATALOG) {
-    if (!enabledNames.has(server.name)) {
+    const existing = mcpServers[server.name];
+    if (enabledNames.has(server.name) || existing === undefined) {
+      continue;
+    }
+
+    if (isForeignJsonServerEntry(server, existing)) {
+      preserved.push(server.name);
+    } else {
       delete mcpServers[server.name];
     }
   }
 
   const written: Record<string, unknown> = {};
   for (const server of servers) {
+    const catalogServer = findCatalogServer(server.name);
+    const existing = mcpServers[server.name];
+    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing)) {
+      preserved.push(server.name);
+      written[server.name] = existing;
+      continue;
+    }
+
     const value = jsonServerDefinition(server.definition, params.shape);
     mcpServers[server.name] = value;
     written[server.name] = value;
@@ -619,8 +660,21 @@ async function writeJsonMcpConfig(params: {
     client: params.client,
     path: params.configPath,
     configured: true,
-    server: written
+    server: written,
+    ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
+}
+
+function isForeignJsonServerEntry(server: CatalogServer, entry: unknown): boolean {
+  if (!isObject(entry)) {
+    return false;
+  }
+
+  if (isObject(entry.env) && Object.keys(entry.env).length > 0) {
+    return true;
+  }
+
+  return !isGreybeardManagedEntry(server, JSON.stringify(entry));
 }
 
 async function inspectJsonMcpConfig(
@@ -632,20 +686,21 @@ async function inspectJsonMcpConfig(
     const root = await readJsonObject(path);
     const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
     const server: Record<string, unknown> = {};
-    let configured = true;
+    const missing: string[] = [];
     for (const catalogServer of enabledCatalogServers(options.serverToggles)) {
       const entry = mcpServers[catalogServer.name];
       server[catalogServer.name] = entry;
       if (!isObject(entry)) {
-        configured = false;
+        missing.push(catalogServer.name);
       }
     }
 
     return {
       client,
       path,
-      configured,
-      server
+      configured: missing.length === 0,
+      server,
+      ...(missing.length > 0 ? { missingServers: missing } : {})
     };
   } catch (error) {
     return {
@@ -678,12 +733,14 @@ async function serverDefinition(
   options: ServerConfigOptions
 ): Promise<StdioServerDefinition> {
   // Third-party servers have no local build in this repo, so they always run from npm.
+  // Pinned mode uses the version vetted in the server catalog, bumped via repo updates.
   if (server.source.kind === "npm") {
+    const tag = options.serverUpdate === "pinned" ? server.source.pinnedVersion : "latest";
     return {
       command: "npx",
       args: [
         "-y",
-        `${server.source.packageName}@latest`
+        `${server.source.packageName}@${tag}`
       ],
       env: {}
     };
@@ -766,6 +823,32 @@ function removeTomlTable(text: string, table: string): string {
   return output.join("\n");
 }
 
+function extractTomlTable(text: string, table: string): string | null {
+  const lines = text.split(/\r?\n/u);
+  const collected: string[] = [];
+  let inside = false;
+  const header = `[${table}]`;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === header) {
+      inside = true;
+      collected.push(line);
+      continue;
+    }
+
+    if (inside && /^\[[^\]]+\]\s*$/u.test(trimmed)) {
+      break;
+    }
+
+    if (inside) {
+      collected.push(line);
+    }
+  }
+
+  return collected.length > 0 ? collected.join("\n") : null;
+}
+
 function hasTomlTable(text: string, table: string): boolean {
   const escaped = table.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return new RegExp(`^\\s*\\[${escaped}\\]\\s*$`, "mu").test(text);
@@ -807,11 +890,11 @@ async function wireSkillsToDir(
   targetDir: string
 ): Promise<SkillWireResult> {
   const sourceDir = repoSkillsDir(runtime.repoRoot);
-  const sources = await listSkillSourceDirs(sourceDir);
+  const tree = await listSkillSourceDirs(sourceDir);
   await mkdir(targetDir, { recursive: true });
 
   const entries: SkillWireEntry[] = [];
-  for (const source of sources) {
+  for (const source of tree.sources) {
     const target = join(targetDir, source.name);
     entries.push(await ensureSkillLink({
       source: source.path,
@@ -821,11 +904,12 @@ async function wireSkillsToDir(
     }));
   }
 
+  entries.push(...duplicateSkillEntries(tree, targetDir));
   return {
     client,
     sourceDir,
     targetDir,
-    empty: sources.length === 0,
+    empty: entries.length === 0,
     entries
   };
 }
@@ -836,21 +920,32 @@ async function inspectSkillsInDir(
   targetDir: string
 ): Promise<SkillWireResult> {
   const sourceDir = repoSkillsDir(runtime.repoRoot);
-  const sources = await listSkillSourceDirs(sourceDir);
+  const tree = await listSkillSourceDirs(sourceDir);
   const entries: SkillWireEntry[] = [];
 
-  for (const source of sources) {
+  for (const source of tree.sources) {
     const target = join(targetDir, source.name);
     entries.push(await inspectSkillLink(source.name, source.path, target));
   }
 
+  entries.push(...duplicateSkillEntries(tree, targetDir));
   return {
     client,
     sourceDir,
     targetDir,
-    empty: sources.length === 0,
+    empty: entries.length === 0,
     entries
   };
+}
+
+function duplicateSkillEntries(tree: SkillTree, targetDir: string): SkillWireEntry[] {
+  return tree.duplicates.map((duplicate) => ({
+    name: `${duplicate.category}/${duplicate.name}`,
+    source: duplicate.path,
+    target: join(targetDir, duplicate.name),
+    status: "blocked",
+    message: `Duplicate skill folder name; "${duplicate.name}" already exists in "${duplicate.existingCategory}". Skill folder names must be unique across categories.`
+  }));
 }
 
 async function ensureSkillLink(params: {
@@ -1004,16 +1099,23 @@ export interface SkillSourceDir {
   path: string;
 }
 
-export async function listSkillSourceDirs(sourceDir: string): Promise<SkillSourceDir[]> {
+export interface SkillTree {
+  sources: SkillSourceDir[];
+  missingManifest: SkillSourceDir[];
+  duplicates: Array<SkillSourceDir & { existingCategory: string }>;
+}
+
+export async function listSkillSourceDirs(sourceDir: string): Promise<SkillTree> {
   const sources: SkillSourceDir[] = [];
+  const missingManifest: SkillSourceDir[] = [];
+  const duplicates: Array<SkillSourceDir & { existingCategory: string }> = [];
   const seenCategories = new Map<string, string>();
 
   const addSource = (name: string, category: string, path: string): void => {
     const existing = seenCategories.get(name);
     if (existing !== undefined) {
-      throw new Error(
-        `Duplicate skill folder "${name}" in "${existing || sourceDir}" and "${category || sourceDir}". Skill folder names must be unique across categories.`
-      );
+      duplicates.push({ name, category, path, existingCategory: existing || sourceDir });
+      return;
     }
 
     seenCategories.set(name, category);
@@ -1031,11 +1133,40 @@ export async function listSkillSourceDirs(sourceDir: string): Promise<SkillSourc
       const skillPath = join(categoryPath, name);
       if (await lstatOrNull(join(skillPath, "SKILL.md"))) {
         addSource(name, category, skillPath);
+      } else {
+        missingManifest.push({ name, category, path: skillPath });
       }
     }
   }
 
-  return sources.sort((left, right) => left.name.localeCompare(right.name));
+  const byName = (left: { name: string }, right: { name: string }) => left.name.localeCompare(right.name);
+  return {
+    sources: sources.sort(byName),
+    missingManifest: missingManifest.sort(byName),
+    duplicates: duplicates.sort(byName)
+  };
+}
+
+export function summarizeSkillWiring(result: SkillWireResult): { ok: boolean; detail: string } {
+  if (result.empty) {
+    return {
+      ok: false,
+      detail: `no skill folders found in ${result.sourceDir}`
+    };
+  }
+
+  const blocked = result.entries.filter((entry) => entry.status === "blocked");
+  if (blocked.length > 0) {
+    return {
+      ok: false,
+      detail: `${result.entries.length - blocked.length}/${result.entries.length} skills linked, ${blocked.map((entry) => entry.name).join(", ")} blocked`
+    };
+  }
+
+  return {
+    ok: true,
+    detail: `${result.entries.length} skills linked`
+  };
 }
 
 async function listChildDirNames(parent: string): Promise<string[]> {
@@ -1128,12 +1259,8 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 function withoutClient(result: ClientMcpConfigResult): ClaudeMcpConfigResult {
-  return {
-    path: result.path,
-    configured: result.configured,
-    server: result.server,
-    error: result.error
-  };
+  const { client: _client, ...rest } = result;
+  return rest;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

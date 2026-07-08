@@ -9,6 +9,24 @@ export const DEFAULT_TIER1_SCOPES = [
   "Reports.Read.All"
 ] as const;
 
+export const TIER2_SCOPES = [
+  "Device.Read.All",
+  "DeviceManagementConfiguration.Read.All",
+  "DeviceManagementManagedDevices.Read.All",
+  "DeviceManagementApps.Read.All",
+  "DeviceManagementServiceConfig.Read.All",
+  "Application.Read.All",
+  "RoleManagement.Read.Directory",
+  "IdentityRiskyUser.Read.All",
+  "SecurityEvents.Read.All"
+] as const;
+
+export const DEFAULT_WRITE_SCOPES = [
+  "User.ReadWrite.All",
+  "Group.ReadWrite.All",
+  "Policy.ReadWrite.ConditionalAccess"
+] as const;
+
 export type CredentialMode = "read-only" | "writes";
 export type ClientIdKind = "first-party" | "workspace";
 export type CacheProtection = "keychain" | "dpapi" | "libsecret" | "plaintext";

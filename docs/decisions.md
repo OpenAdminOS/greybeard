@@ -1,5 +1,15 @@
 # Implementation Decisions
 
+## 2026-07-08 - Review fixes: plugin discovery, ownership guard, non-crashing skill enumeration
+
+- Claude Code plugin skill discovery is non-recursive (verified empirically against Claude Code 2.1.204), so `.claude-plugin/plugin.json` lists all sixteen nested skill paths explicitly instead of pointing at the skills directory. `marketplace.json` gained the `owner` and `source` fields the validator requires.
+- The skill enumerator no longer throws on duplicate leaf names. It returns `{ sources, missingManifest, duplicates }`; duplicates surface as blocked wire entries in setup, update, and doctor, and folders without a SKILL.md surface as manifest errors instead of vanishing silently. One shared `summarizeSkillWiring` renders skill wiring in all three commands so the empty and blocked cases cannot diverge again.
+- MCP config writers never overwrite or delete a server entry Greybeard cannot recognize as its own (matched against the catalog package name or dist path, and anything carrying custom env vars is treated as user-owned). Doctor reports missing optional servers as WARN with a remedy; only missing core servers FAIL.
+- Third-party npm servers honor `--server-update pinned` through a `pinnedVersion` recorded in the server catalog and bumped with repo updates, because there is no local package to read a version from.
+- `--enable-server`/`--disable-server` values are validated before the sign-in disclosure, so a typo fails fast instead of after interactive auth. The sign-in disclosure prints the app ID being consented to in every mode, including the workspace app for `--writes`.
+- Doctor reports Tier 2 scopes and the writes opt-in as one informational line instead of per-skill warnings; those are granted on demand by design and a healthy default install must come out warning-free.
+- The Tier 2 and write scope catalogs moved to `@greybeard/graph` next to Tier 1, so `greybeard scopes`, setup, doctor, and the skill catalog test consume one source; `greybeard scopes` also lists custom write scopes recorded in config. Memory per-type behavior (privacy GUID threshold, recall boost, eviction stickiness) lives in one `MEMORY_TYPE_POLICY` table, and the schema initializer returns early when `user_version` is current so an up-to-date database open performs no writes.
+
 ## 2026-07-08 - Skill categories, requires frontmatter, and the decision memory type
 
 - Skills moved from a flat `.agents/skills/<skill>/` layout into one category level: `read/`, `write/`, `craft/`, and `mentor/`. Client wiring keeps flat symlink names, so skill folder names must stay unique across categories; the enumerator and the catalog test both enforce it. `greybeard update` now re-wires skill links after a pull because the restructure dangles old flat symlinks until they are relinked.

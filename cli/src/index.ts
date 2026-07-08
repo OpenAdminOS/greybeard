@@ -35,7 +35,7 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
   }
 
   if (args.command === "scopes") {
-    return runScopes(runtime);
+    return runScopes(args, runtime);
   }
 
   if (args.command === "update") {

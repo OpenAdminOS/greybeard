@@ -2,10 +2,14 @@
   "name": "greybeard",
   "version": "0.1.0",
   "description": "Greybeard Claude Code plugin overlay for Microsoft 365 admin skills.",
+  "owner": {
+    "name": "Ugur Koc"
+  },
   "plugins": [
     {
       "name": "greybeard",
-      "path": "."
+      "source": "./",
+      "description": "Microsoft 365, Intune, and Entra admin skills with Greybeard MCP server wiring."
     }
   ]
 }

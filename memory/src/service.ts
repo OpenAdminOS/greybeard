@@ -3,6 +3,8 @@ import { readGreybeardConfig } from "@greybeard/graph";
 import { openMemoryDatabase } from "./database.js";
 import {
   GreybeardMemoryError,
+  memoryTypePolicy,
+  stickyMemoryTypes,
   type EdgeRelation,
   type ForgetInput,
   type ForgetResult,
@@ -23,8 +25,6 @@ const MAX_LIMIT = 50;
 const DEFAULT_SOFT_CAP = 2000;
 const QUERY_TTL_DAYS = 90;
 const JSON_PRIVACY_BYTE_THRESHOLD = 2048;
-const DEFAULT_GUID_PRIVACY_THRESHOLD = 2;
-const DECISION_GUID_PRIVACY_THRESHOLD = 4;
 const SECONDS_PER_DAY = 24 * 60 * 60;
 const NO_MEMORY_MESSAGE = "no memory for this yet";
 const RECALL_MESSAGE = "memory recalled";
@@ -330,7 +330,7 @@ export class MemoryService {
 
   private scoreMatch(row: MatchRow, now: number): number {
     const base = -Number(row.rank);
-    const typeBoost = row.type === "preference" ? 1000 : row.type === "decision" ? 500 : 0;
+    const typeBoost = memoryTypePolicy(row.type).recallBoost;
     const ageDays = Math.max(0, (now - row.last_used_at) / SECONDS_PER_DAY);
     const recencyBoost = Math.max(0, 30 - ageDays);
     return base + typeBoost + recencyBoost;
@@ -440,7 +440,7 @@ export class MemoryService {
       LEFT JOIN edges e ON e.source = n.id OR e.target = n.id
       WHERE n.tenant = @tenant
         AND NOT (
-          n.type IN ('preference','decision')
+          n.type IN (${stickyMemoryTypes().map((type) => `'${type}'`).join(",")})
           AND EXISTS (SELECT 1 FROM edges sticky WHERE sticky.source = n.id OR sticky.target = n.id)
         )
       GROUP BY n.id
@@ -462,7 +462,7 @@ export class MemoryService {
 
 export function enforcePrivacy(content: string, type?: MemoryType): void {
   const guids = content.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu) ?? [];
-  const guidLimit = type === "decision" ? DECISION_GUID_PRIVACY_THRESHOLD : DEFAULT_GUID_PRIVACY_THRESHOLD;
+  const guidLimit = memoryTypePolicy(type).guidPrivacyThreshold;
   if (guids.length >= guidLimit) {
     throw new GreybeardMemoryError({
       code: "privacy-rejected",

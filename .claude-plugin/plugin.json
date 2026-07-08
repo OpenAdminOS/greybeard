@@ -5,5 +5,22 @@
   "author": {
     "name": "Ugur Koc"
   },
-  "skills": ".agents/skills"
+  "skills": [
+    "./.agents/skills/read/tenant-pulse",
+    "./.agents/skills/read/ask-my-tenant",
+    "./.agents/skills/read/intune-assignments",
+    "./.agents/skills/read/intune-compliance",
+    "./.agents/skills/read/entra-identity",
+    "./.agents/skills/read/conditional-access-review",
+    "./.agents/skills/read/license-optimizer",
+    "./.agents/skills/write/change-plan",
+    "./.agents/skills/craft/posture-script",
+    "./.agents/skills/craft/graph-patterns",
+    "./.agents/skills/craft/kql-authoring",
+    "./.agents/skills/craft/least-privilege-scopes",
+    "./.agents/skills/mentor/grill-my-change",
+    "./.agents/skills/mentor/tenant-decisions",
+    "./.agents/skills/mentor/diagnose",
+    "./.agents/skills/mentor/handoff"
+  ]
 }

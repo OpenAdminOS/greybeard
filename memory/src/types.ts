@@ -4,6 +4,44 @@ export const EDGE_RELATIONS = ["used", "depends_on", "needs", "prefers"] as cons
 export type MemoryType = typeof MEMORY_TYPES[number];
 export type EdgeRelation = typeof EDGE_RELATIONS[number];
 
+export type MemoryTypePolicy = {
+  guidPrivacyThreshold: number;
+  recallBoost: number;
+  evictionSticky: boolean;
+};
+
+const DEFAULT_TYPE_POLICY: MemoryTypePolicy = {
+  guidPrivacyThreshold: 2,
+  recallBoost: 0,
+  evictionSticky: false
+};
+
+export const MEMORY_TYPE_POLICY: Record<MemoryType, MemoryTypePolicy> = {
+  query: DEFAULT_TYPE_POLICY,
+  script: DEFAULT_TYPE_POLICY,
+  fact: DEFAULT_TYPE_POLICY,
+  scope: DEFAULT_TYPE_POLICY,
+  preference: {
+    guidPrivacyThreshold: 2,
+    recallBoost: 1000,
+    evictionSticky: true
+  },
+  decision: {
+    // A decision rationale legitimately names a policy and a group or app.
+    guidPrivacyThreshold: 4,
+    recallBoost: 500,
+    evictionSticky: true
+  }
+};
+
+export function memoryTypePolicy(type: MemoryType | string | undefined): MemoryTypePolicy {
+  return MEMORY_TYPE_POLICY[type as MemoryType] ?? DEFAULT_TYPE_POLICY;
+}
+
+export function stickyMemoryTypes(): MemoryType[] {
+  return MEMORY_TYPES.filter((type) => MEMORY_TYPE_POLICY[type].evictionSticky);
+}
+
 export type MemoryLinkInput = {
   target: number;
   relation: EdgeRelation;

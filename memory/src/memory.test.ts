@@ -5,6 +5,7 @@ import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { writeGreybeardConfig } from "@greybeard/graph";
 import {
+  MEMORY_TYPES,
   MemoryService,
   initializeMemoryDatabase,
   memoryDbPath
@@ -24,7 +25,9 @@ describe("greybeard memory", () => {
       expect(db.pragma("journal_mode", { simple: true })).toBe("wal");
       const nodesSql = schemaSql(db, "nodes");
       expect(nodesSql).toContain("CREATE TABLE nodes");
-      expect(nodesSql).toContain("type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope','decision'))");
+      // The CHECK constraint must stay in lockstep with MEMORY_TYPES; a type
+      // added to the constant without a schema version bump fails here.
+      expect(nodesSql).toContain(`type IN (${MEMORY_TYPES.map((type) => `'${type}'`).join(",")})`);
       expect(db.pragma("user_version", { simple: true })).toBe(1);
       expect(schemaSql(db, "nodes_fts")).toContain("tokenize='porter'");
       expect(schemaSql(db, "edges")).toContain("ON DELETE CASCADE");

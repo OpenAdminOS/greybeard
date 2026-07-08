@@ -1,6 +1,7 @@
 import {
   buildAdminConsentUrl,
   DEFAULT_TIER1_SCOPES,
+  DEFAULT_WRITE_SCOPES,
   GRAPH_CLI_CLIENT_ID,
   getGreybeardAppDataPath,
   graphAuthConfig,
@@ -23,6 +24,7 @@ import { initializeMemoryDatabase, memoryDbPath } from "@greybeard/memory";
 import { flagValue, flagValues, hasFlag, ParsedArgs } from "./args.js";
 import {
   detectAllClients,
+  summarizeSkillWiring,
   wireAllClientSkills,
   writeAllClientMcpConfigs,
   writeClaudeMemoryHook,
@@ -34,19 +36,29 @@ import {
 } from "./clients.js";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime, writeInfoLine, writeLine, writeNoteLine, writeSection, writeStatusLine } from "./runtime.js";
-import { findCatalogServer, isServerEnabled, optionalCatalogServers, SERVER_CATALOG } from "./serverCatalog.js";
+import {
+  findCatalogServer,
+  isServerEnabled,
+  optionalCatalogServers,
+  SERVER_CATALOG,
+  serverOptionsFromConfig
+} from "./serverCatalog.js";
 
 const GRAPH_RESOURCE_APP_ID = "00000003-0000-0000-c000-000000000000";
 const BOOTSTRAP_SCOPE = "Application.ReadWrite.All";
-export const DEFAULT_WRITE_SCOPES = [
-  "User.ReadWrite.All",
-  "Group.ReadWrite.All",
-  "Policy.ReadWrite.ConditionalAccess"
-] as const;
 
 export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
   const config = await readGreybeardConfig(appDataPath);
+  // Validate flag values that can fail before any interactive sign-in happens.
+  let mcpServerToggles: Record<string, boolean> | undefined;
+  try {
+    mcpServerToggles = serverTogglesFromArgs(args, config.mcpServers);
+  } catch (error) {
+    writeLine(runtime.stderr, error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+
   const tenantId = flagValue(args, "tenant") || runtime.env.GREYBEARD_TENANT_ID || config.activeTenantId;
   const auth = await runtime.authFactory({
     tenantId,
@@ -125,7 +137,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     skillUpdate: skillUpdateFromArgs(args, current.skillUpdate),
     serverUpdate: serverUpdateFromArgs(args, current.serverUpdate),
     serverPackageSource: serverPackageSourceFromArgs(args, current.serverPackageSource),
-    mcpServers: serverTogglesFromArgs(args, current.mcpServers),
+    mcpServers: mcpServerToggles,
     clients: clientsFromArgs(args, current.clients),
     gate: gateFromArgs(args, current.gate)
   }));
@@ -210,33 +222,32 @@ function printClientLedgerLine(params: {
 }): void {
   const configured: string[] = [];
   const problems: string[] = [];
+  const notes: string[] = [];
 
   if (params.mcp) {
     if (params.mcp.configured) {
       configured.push("MCP servers");
+      if (params.mcp.preservedServers && params.mcp.preservedServers.length > 0) {
+        notes.push(`kept existing user-defined entries: ${params.mcp.preservedServers.join(", ")}`);
+      }
     } else {
       problems.push(`MCP config failed: ${params.mcp.error ?? "unknown error"}`);
     }
   }
 
   if (params.skills) {
-    if (params.skills.empty) {
-      problems.push(`no skill folders found in ${params.skills.sourceDir}`);
+    const summary = summarizeSkillWiring(params.skills);
+    if (summary.ok) {
+      configured.push(`${params.skills.entries.length} skills`);
     } else {
-      const blocked = params.skills.entries.filter((entry) => entry.status === "blocked");
-      if (blocked.length === 0) {
-        configured.push(`${params.skills.entries.length} skills`);
-      } else {
-        problems.push(
-          `${params.skills.entries.length - blocked.length}/${params.skills.entries.length} skills linked, ${blocked.map((entry) => entry.name).join(", ")} blocked`
-        );
-      }
+      problems.push(summary.detail);
     }
   }
 
   const detail = [
     configured.length > 0 ? `${formatNameList(configured)} configured` : "",
-    ...problems
+    ...problems,
+    ...notes
   ].filter((part) => part.length > 0).join("; ");
   writeStatusLine(params.runtime.stdout, problems.length === 0 ? "OK" : "WARN", params.client, detail);
 
@@ -465,8 +476,9 @@ async function printSignInDisclosure(params: {
   writeLine(stdout, "Sign in to Microsoft");
   writeLine(stdout, "  Microsoft's own sign-in page (login.microsoftonline.com) with");
   writeLine(stdout, params.mode === "workspace"
-    ? "  the Greybeard workspace app registered in this tenant."
-    : "  the first-party Microsoft Graph Command Line Tools app.");
+    ? "  the Greybeard workspace app registered in this tenant"
+    : "  the first-party Microsoft Graph Command Line Tools app");
+  writeLine(stdout, `  (app ID ${params.clientId}).`);
 
   if (params.mode === "read-only") {
     writeLine(stdout, "  Greybeard never sees your password, registers no app of its own,");
@@ -751,18 +763,6 @@ function clientsFromArgs(
   }
 
   return current;
-}
-
-function serverOptionsFromConfig(config: GreybeardConfig): {
-  serverUpdate: ServerUpdateMode;
-  serverPackageSource: ServerPackageSource;
-  serverToggles: Record<string, boolean>;
-} {
-  return {
-    serverUpdate: config.serverUpdate ?? "latest",
-    serverPackageSource: config.serverPackageSource ?? "local",
-    serverToggles: config.mcpServers ?? {}
-  };
 }
 
 function serverTogglesFromArgs(

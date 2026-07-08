@@ -4,6 +4,7 @@ import {
   getGreybeardAppDataPath,
   graphAuthConfig,
   readGreybeardConfig,
+  TIER2_SCOPES,
   type AuthStatus,
   type CacheProtection,
   type GreybeardConfig
@@ -25,6 +26,7 @@ import {
   inspectGeminiMcpConfig,
   inspectGeminiSkillFallback,
   inspectGeminiSkillWiring,
+  summarizeSkillWiring,
   type ClientDetection,
   type ClientMcpConfigResult,
   type InspectServerOptions,
@@ -33,7 +35,7 @@ import {
   type SkillWireResult
 } from "./clients.js";
 import { CliRuntime, writeLine, writeStatusLine } from "./runtime.js";
-import { enabledCatalogServers } from "./serverCatalog.js";
+import { enabledCatalogServers, findCatalogServer } from "./serverCatalog.js";
 import { loadSkillManifests, ROLE_GROUPS, type SkillManifestLoadResult } from "./skillManifest.js";
 
 export type FindingLevel = "PASS" | "WARN" | "FAIL";
@@ -180,7 +182,7 @@ function rolesFinding(status: AuthStatus): DoctorFinding {
     return {
       level: "WARN",
       label: "Directory roles",
-      detail: "none detected. Reports Reader, Security Reader, Global Reader, or higher may be required."
+      detail: `none detected. One of ${ROLE_GROUPS.reporting?.join(", ")} may be required for reporting endpoints.`
     };
   }
 
@@ -263,11 +265,20 @@ export function skillRequirementFindings(
 
   const grantedScopes = new Set(status.grantedScopes.map((scope) => scope.toLowerCase()));
   const heldRoles = new Set(status.directoryRoles.map((role) => role.toLowerCase()));
-  const skillFindings: DoctorFinding[] = [];
+  const tier2Scopes = new Set(TIER2_SCOPES.map((scope) => scope.toLowerCase()));
+  const onDemand: string[] = [];
+  const warnCountBefore = findings.length;
 
   for (const manifest of declared) {
-    const requires = manifest.requires ?? {};
+    const requires = manifest.requires;
+    if (requires === undefined) {
+      continue;
+    }
+
     const unmet: string[] = [];
+    // Capabilities the product grants on demand by design are informational,
+    // not warnings; a default install must be able to come out clean.
+    const pending: string[] = [];
 
     for (const server of requires.servers ?? []) {
       if (!enabledServers.includes(server)) {
@@ -276,8 +287,14 @@ export function skillRequirementFindings(
     }
 
     const missingScopes = (requires.scopes ?? []).filter((scope) => !grantedScopes.has(scope.toLowerCase()));
-    if (missingScopes.length > 0) {
-      unmet.push(`missing scopes ${missingScopes.join(", ")}; ask the agent to call add-scope, or re-run greybeard setup`);
+    const missingTier2 = missingScopes.filter((scope) => tier2Scopes.has(scope.toLowerCase()));
+    const missingTier1 = missingScopes.filter((scope) => !tier2Scopes.has(scope.toLowerCase()));
+    if (missingTier1.length > 0) {
+      unmet.push(`missing scopes ${missingTier1.join(", ")}; ask the agent to call add-scope, or re-run greybeard setup`);
+    }
+
+    if (missingTier2.length > 0) {
+      pending.push(`Tier 2 scopes ${missingTier2.join(", ")} granted on first use`);
     }
 
     if (requires.license === "entra-p1" && status.entraP1 !== true) {
@@ -299,27 +316,38 @@ export function skillRequirementFindings(
     }
 
     if (requires.writes === true && !status.gate.writesConfigured) {
-      unmet.push("writes are not configured; run greybeard setup --writes");
+      pending.push("writes stay off until greybeard setup --writes");
     }
 
     if (unmet.length > 0) {
-      skillFindings.push({
+      findings.push({
         level: "WARN",
         label: `Skill: ${manifest.name}`,
-        detail: unmet.join("; ")
+        detail: [...unmet, ...pending].join("; ")
       });
+    } else if (pending.length > 0) {
+      onDemand.push(`${manifest.name} (${pending.join("; ")})`);
     }
   }
 
-  if (skillFindings.length === 0 && findings.length === 0) {
-    return [{
+  const allSatisfied = findings.length === warnCountBefore && result.errors.length === 0;
+  if (allSatisfied) {
+    findings.push({
       level: "PASS",
       label: "Skill requirements",
-      detail: `declared requirements satisfied for all ${declared.length} skills`
-    }];
+      detail: onDemand.length > 0
+        ? `satisfied; optional capabilities not yet enabled: ${onDemand.join(", ")}`
+        : `declared requirements satisfied for all ${declared.length} skills`
+    });
+  } else if (onDemand.length > 0) {
+    findings.push({
+      level: "PASS",
+      label: "Skill requirements",
+      detail: `optional capabilities not yet enabled: ${onDemand.join(", ")}`
+    });
   }
 
-  return [...findings, ...skillFindings];
+  return findings;
 }
 
 async function clientFindings(
@@ -425,10 +453,20 @@ function mcpFinding(
     };
   }
 
+  const missing = mcp.missingServers ?? [];
+  const missingCore = missing.filter((serverName) => findCatalogServer(serverName)?.required !== false);
+  if (missing.length > 0 && missingCore.length === 0) {
+    return {
+      level: "WARN",
+      label: `${name} MCP`,
+      detail: `optional servers not configured yet: ${missing.join(", ")}. Run greybeard update to add them, or greybeard setup --disable-server <name> to drop one.`
+    };
+  }
+
   return {
     level: "FAIL",
     label: `${name} MCP`,
-    detail: mcp.error || `one of ${expected} missing from ${mcp.path}`
+    detail: mcp.error || `${missing.length > 0 ? missing.join(", ") : `one of ${expected}`} missing from ${mcp.path}`
   };
 }
 
@@ -437,16 +475,8 @@ function skillFinding(
   skills: SkillWireResult,
   fallback: SkillFallbackResult | null
 ): DoctorFinding {
-  if (skills.empty) {
-    return {
-      level: "PASS",
-      label: `${name} skills`,
-      detail: `no skill folders found in ${skills.sourceDir}`
-    };
-  }
-
-  const blocked = skills.entries.filter((entry) => entry.status === "blocked");
-  if (blocked.length === 0) {
+  const summary = summarizeSkillWiring(skills);
+  if (summary.ok) {
     return {
       level: "PASS",
       label: `${name} skills`,
@@ -462,9 +492,12 @@ function skillFinding(
     };
   }
 
+  const blocked = skills.entries.filter((entry) => entry.status === "blocked");
   return {
     level: "FAIL",
     label: `${name} skills`,
-    detail: blocked.map((entry) => `${entry.name}: ${entry.message || "not wired"}`).join("; ")
+    detail: blocked.length > 0
+      ? blocked.map((entry) => `${entry.name}: ${entry.message || "not wired"}`).join("; ")
+      : summary.detail
   };
 }

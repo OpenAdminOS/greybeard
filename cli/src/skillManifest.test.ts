@@ -19,8 +19,8 @@ describe("parseSkillFrontmatter", () => {
       "  writes: false"
     ]));
 
-    expect(parsed.name).toBe("tenant-pulse");
-    expect(parsed.version).toBe("0.2.0");
+    expect(parsed.fields.name).toBe("tenant-pulse");
+    expect(parsed.fields.version).toBe("0.2.0");
     expect(parsed.requires).toEqual({
       servers: ["greybeard-graph"],
       scopes: ["User.Read.All", "AuditLog.Read.All"],
@@ -54,8 +54,16 @@ describe("parseSkillFrontmatter", () => {
       "version: 0.1.0"
     ]));
 
-    expect(parsed.version).toBe("0.1.0");
+    expect(parsed.fields.version).toBe("0.1.0");
     expect(parsed.requires).toEqual({ writes: true });
+  });
+
+  it("accepts an empty frontmatter block and treats dash-prefixed lines as content, not closers", () => {
+    expect(parseSkillFrontmatter("---\n---\n# Title\n")).toEqual({ fields: {} });
+    expect(() => parseSkillFrontmatter("---\nname: x\n----\n---\n"))
+      .toThrow(/Invalid frontmatter line: ----/);
+    expect(() => parseSkillFrontmatter("---\nname: x\n"))
+      .toThrow(/not closed/);
   });
 
   it("rejects tabs, deep indentation, unknown keys, and duplicates", () => {

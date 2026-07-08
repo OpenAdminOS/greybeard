@@ -1,20 +1,19 @@
-import { DEFAULT_TIER1_SCOPES, GRAPH_CLI_CLIENT_ID, scopeJustification } from "@greybeard/graph";
+import {
+  DEFAULT_TIER1_SCOPES,
+  DEFAULT_WRITE_SCOPES,
+  GRAPH_CLI_CLIENT_ID,
+  getGreybeardAppDataPath,
+  readGreybeardConfig,
+  scopeJustification,
+  TIER2_SCOPES
+} from "@greybeard/graph";
+import { flagValue, ParsedArgs } from "./args.js";
 import { CliRuntime, writeInfoLine, writeLine, writeSection } from "./runtime.js";
-import { DEFAULT_WRITE_SCOPES } from "./setup.js";
 
-export const TIER2_SCOPES = [
-  "Device.Read.All",
-  "DeviceManagementConfiguration.Read.All",
-  "DeviceManagementManagedDevices.Read.All",
-  "DeviceManagementApps.Read.All",
-  "DeviceManagementServiceConfig.Read.All",
-  "Application.Read.All",
-  "RoleManagement.Read.Directory",
-  "IdentityRiskyUser.Read.All",
-  "SecurityEvents.Read.All"
-] as const;
+export async function runScopes(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
+  const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+  const config = await readGreybeardConfig(appDataPath);
 
-export function runScopes(runtime: CliRuntime): number {
   writeLine(runtime.stdout, "Delegated Microsoft Graph scopes Greybeard can request");
   writeLine(runtime.stdout, "");
   writeLine(runtime.stdout, "Read-only sign-in uses the first-party Microsoft Graph Command Line Tools");
@@ -35,6 +34,15 @@ export function runScopes(runtime: CliRuntime): number {
   writeLine(runtime.stdout, "Writes use a tenant-owned workspace app and always require an approved plan.");
   for (const scope of DEFAULT_WRITE_SCOPES) {
     writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
+  }
+
+  const defaultWriteScopes = new Set<string>(DEFAULT_WRITE_SCOPES);
+  const customWriteScopes = (config.requestedWriteScopes ?? []).filter((scope) => !defaultWriteScopes.has(scope));
+  if (customWriteScopes.length > 0) {
+    writeSection(runtime.stdout, "Custom write scopes configured on this install");
+    for (const scope of customWriteScopes) {
+      writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
+    }
   }
 
   return 0;

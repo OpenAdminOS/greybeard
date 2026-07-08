@@ -15,7 +15,9 @@ export {
 export { MsalGraphAuthProvider } from "./msalAuth.js";
 export {
   DEFAULT_TIER1_SCOPES,
-  GRAPH_CLI_CLIENT_ID
+  DEFAULT_WRITE_SCOPES,
+  GRAPH_CLI_CLIENT_ID,
+  TIER2_SCOPES
 } from "./types.js";
 export type {
   AddScopeResult,
