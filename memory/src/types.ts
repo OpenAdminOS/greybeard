@@ -1,4 +1,4 @@
-export const MEMORY_TYPES = ["query", "preference", "script", "fact", "scope"] as const;
+export const MEMORY_TYPES = ["query", "preference", "script", "fact", "scope", "decision"] as const;
 export const EDGE_RELATIONS = ["used", "depends_on", "needs", "prefers"] as const;
 
 export type MemoryType = typeof MEMORY_TYPES[number];

@@ -1,5 +1,11 @@
 # Implementation Decisions
 
+## 2026-07-08 - Skill categories, requires frontmatter, and the decision memory type
+
+- Skills moved from a flat `.agents/skills/<skill>/` layout into one category level: `read/`, `write/`, `craft/`, and `mentor/`. Client wiring keeps flat symlink names, so skill folder names must stay unique across categories; the enumerator and the catalog test both enforce it. `greybeard update` now re-wires skill links after a pull because the restructure dangles old flat symlinks until they are relinked.
+- Skills declare hard capability needs in an optional `requires` frontmatter block (servers, scopes, license, roles, writes). The parser is hand-rolled in `cli/src/skillManifest.ts` rather than a YAML dependency because the CLI stays dependency-light and the grammar is one nested block. Doctor reports unmet requirements as WARN with the exact remedy; it never FAILs on them because skills degrade by design. Soft dependencies stay in prose per the hard and soft dependency rule in CONTRIBUTING.
+- greybeard-memory gained a `decision` node type for tenant decision records (`Decision: ... Because: ... Decided: ... Revisit: ...`). Decisions are eviction-sticky like preferences and get a recall boost below preferences. The privacy gate allows up to 3 GUIDs for `decision` content, versus 2 for everything else, because a rationale legitimately names a policy and a group or app; UPN and JSON limits stay uniform. Widening the `nodes.type` CHECK required a one-time table rebuild, gated by `PRAGMA user_version` (0 to 1) and run in a transaction so a crash mid-migration retries cleanly on the next open.
+
 ## 2026-07-05 - Microsoft Graph beta by default
 
 - Greybeard now uses Microsoft Graph beta by default for read calls, write-plan operations, and internal status probes. This gives full surface coverage for admin workflows, including richer sign-in and Intune data that may not be available or complete on v1.0.

@@ -144,7 +144,7 @@ Honest boundary: this protects the Greybeard MCP Graph path. A client or agent t
 
 ## Memory Privacy
 
-Greybeard memory stores intent and preferences, not raw tenant output. Examples that are acceptable: `use 90 days as the stale account threshold`, `prefer DeviceComplianceOrg for compliance reports`. Examples that are rejected: user lists, device lists, UPN dumps, GUID-heavy payloads, and Graph JSON responses.
+Greybeard memory stores intent, preferences, and decision records, not raw tenant output. Examples that are acceptable: `use 90 days as the stale account threshold`, `prefer DeviceComplianceOrg for compliance reports`, and a decision record like `Decision: the warehouse group stays excluded from the MFA policy. Because: scanners cannot do MFA. Decided: 2026-07-08.` Examples that are rejected: user lists, device lists, UPN dumps, GUID-heavy payloads, and Graph JSON responses. Decision records may name up to three tenant objects because the rationale needs them; every other entry type rejects at two GUIDs.
 
 The memory database stays local in the OS app-data path and is partitioned by tenant.
 

@@ -120,7 +120,7 @@ One SQLite DB (better-sqlite3, WAL mode) at `<appdata>/greybeard/memory.db`, sha
 ```sql
 CREATE TABLE nodes (
   id           INTEGER PRIMARY KEY,
-  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope')),
+  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope','decision')),
   content      TEXT NOT NULL,
   embedding    BLOB,              -- reserved for v1.1 vectors; NULL in v1
   tenant       TEXT NOT NULL,
@@ -143,6 +143,8 @@ CREATE TABLE edges (
 
 Sync triggers keep `nodes_fts` consistent with `nodes` on insert/update/delete.
 
+The schema version lives in `PRAGMA user_version` (currently 1). A database created before the `decision` type existed carries version 0 and is migrated in place on open: the `nodes` table is rebuilt with the widened CHECK inside one transaction, edges and the FTS index survive by name, and the version is stamped afterward. A crash mid-migration rolls back and retries on the next open.
+
 ### `recall`
 
 Input: `{ "query": "compliance report table choice", "limit": 5 }`
@@ -150,7 +152,7 @@ Input: `{ "query": "compliance report table choice", "limit": 5 }`
 Behavior:
 
 - FTS5 match ranked by bm25, filtered to the active tenant.
-- Rank adjustments: `preference` nodes boosted above other types; recency boost on `last_used_at`.
+- Rank adjustments: `preference` nodes boosted above other types, `decision` nodes boosted above the rest; recency boost on `last_used_at`.
 - Each hit expands one hop over `edges`, so a matched query node brings its linked preference or script along.
 - Matched nodes get `last_used_at` refreshed (this is what keeps useful nodes alive through eviction).
 - Empty result returns an explicit "no memory for this yet", so agents do not retry with paraphrases.
@@ -170,8 +172,9 @@ Input:
 Behavior:
 
 - Privacy rule enforced at the door: the server rejects content matching tenant-output shapes (GUID lists, UPN lists, JSON payloads over a size threshold) with a message telling the agent to store the intent, not the data.
+- The `decision` type records why the tenant is configured a certain way, using the shape `Decision: ... Because: ... Decided: <date> Revisit: ...` with display names over GUIDs. Because a decision legitimately names a few tenant objects, `decision` content may reference up to 3 GUIDs; every other type rejects at 2. The UPN and JSON limits apply to all types.
 - Supersede-not-duplicate: for `preference`, the server FTS-searches existing same-tenant preferences; on strong overlap it updates that node's content in place (same id, edges preserved) instead of inserting. The result says which happened.
-- Eviction on write (spec: Memory eviction): soft cap ~2000 nodes per tenant, usage-weighted LRU, `preference` sticky while referenced, `query` nodes 90-day soft TTL.
+- Eviction on write (spec: Memory eviction): soft cap ~2000 nodes per tenant, usage-weighted LRU, `preference` and `decision` sticky while referenced, `query` nodes 90-day soft TTL.
 
 ### `list` / `forget`
 

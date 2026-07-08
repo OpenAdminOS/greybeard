@@ -26,17 +26,26 @@ export function initializeMemoryDatabase(appDataPath: string, path = memoryDbPat
   db.close();
 }
 
-export function initializeMemorySchema(db: SqliteDatabase): void {
-  if (!objectExists(db, "nodes")) {
-    db.exec(`CREATE TABLE nodes (
+export const MEMORY_SCHEMA_VERSION = 1;
+
+const NODES_TABLE_DDL = (name: string) => `CREATE TABLE ${name} (
   id           INTEGER PRIMARY KEY,
-  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope')),
+  type         TEXT NOT NULL CHECK (type IN ('query','preference','script','fact','scope','decision')),
   content      TEXT NOT NULL,
   embedding    BLOB,
   tenant       TEXT NOT NULL,
   created_at   INTEGER NOT NULL,
   last_used_at INTEGER NOT NULL
-);`);
+);`;
+
+export function initializeMemorySchema(db: SqliteDatabase): void {
+  const version = db.pragma("user_version", { simple: true }) as number;
+  if (objectExists(db, "nodes") && version < 1) {
+    migrateNodesToV1(db);
+  }
+
+  if (!objectExists(db, "nodes")) {
+    db.exec(NODES_TABLE_DDL("nodes"));
   }
 
   if (!objectExists(db, "nodes_fts")) {
@@ -74,6 +83,29 @@ CREATE INDEX IF NOT EXISTS idx_nodes_tenant_type_created ON nodes(tenant, type, 
 CREATE INDEX IF NOT EXISTS idx_nodes_tenant_last_used ON nodes(tenant, last_used_at);
 CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target);
 `);
+
+  db.pragma(`user_version = ${MEMORY_SCHEMA_VERSION}`);
+}
+
+function migrateNodesToV1(db: SqliteDatabase): void {
+  db.pragma("foreign_keys = OFF");
+  try {
+    db.transaction(() => {
+      db.exec("DROP TRIGGER IF EXISTS nodes_ai;");
+      db.exec("DROP TRIGGER IF EXISTS nodes_au;");
+      db.exec("DROP TRIGGER IF EXISTS nodes_ad;");
+      db.exec(NODES_TABLE_DDL("nodes_new"));
+      db.exec(`INSERT INTO nodes_new (id, type, content, embedding, tenant, created_at, last_used_at)
+SELECT id, type, content, embedding, tenant, created_at, last_used_at FROM nodes;`);
+      db.exec("DROP TABLE nodes;");
+      db.exec("ALTER TABLE nodes_new RENAME TO nodes;");
+      if (objectExists(db, "nodes_fts")) {
+        db.exec("INSERT INTO nodes_fts(nodes_fts) VALUES('rebuild');");
+      }
+    })();
+  } finally {
+    db.pragma("foreign_keys = ON");
+  }
 }
 
 function objectExists(db: SqliteDatabase, name: string): boolean {
