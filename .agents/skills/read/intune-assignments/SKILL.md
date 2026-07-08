@@ -1,12 +1,15 @@
 ---
 name: intune-assignments
 description: Use when the user asks what Intune apps, policies, configuration profiles, devices, or groups are assigned, targeted, excluded, conflicting, or missing.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [DeviceManagementConfiguration.Read.All, DeviceManagementApps.Read.All]
 ---
 
 # Intune Assignments
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -125,6 +128,7 @@ Return a table with assignment source, intent, include or exclude target, resolv
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial Intune assignment reporting skill.
 

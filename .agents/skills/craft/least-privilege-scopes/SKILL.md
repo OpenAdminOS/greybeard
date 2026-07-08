@@ -1,12 +1,12 @@
 ---
 name: least-privilege-scopes
 description: Use when the user needs minimum Microsoft Graph permissions, scope choices, admin-consent notes, over-permissioning review, or least-privilege access planning.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Least Privilege Scopes
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -29,6 +29,7 @@ Return:
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the craft category.
 - 0.1.0: Initial least-privilege scope reference skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

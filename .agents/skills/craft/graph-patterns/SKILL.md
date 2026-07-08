@@ -1,12 +1,12 @@
 ---
 name: graph-patterns
 description: Use when the user needs Microsoft Graph mechanics, beta default behavior, explicit v1.0 pinning, pagination, batching, throttling, OData query design, or token-efficient call patterns.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Graph Patterns
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -23,6 +23,7 @@ Return the recommended request shape, the reason for each query option, expected
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the craft category.
 - 0.1.1: Updated Graph guidance to use beta by default with explicit v1.0 pinning when stability matters.
 - 0.1.0: Initial Graph mechanics reference skill.
 

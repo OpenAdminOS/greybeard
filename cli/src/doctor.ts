@@ -34,6 +34,7 @@ import {
 } from "./clients.js";
 import { CliRuntime, writeLine, writeStatusLine } from "./runtime.js";
 import { enabledCatalogServers } from "./serverCatalog.js";
+import { loadSkillManifests, ROLE_GROUPS, type SkillManifestLoadResult } from "./skillManifest.js";
 
 export type FindingLevel = "PASS" | "WARN" | "FAIL";
 
@@ -84,6 +85,10 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
     gateFinding(config),
     updateFinding(config)
   ];
+
+  const manifests = await loadSkillManifests(runtime.repoRoot);
+  const enabledServers = enabledCatalogServers(config.mcpServers ?? {}).map((server) => server.name);
+  findings.push(...skillRequirementFindings(manifests, status, enabledServers));
 
   const clients = await detectAllClients(runtime, {
     githubCopilot: config.clients?.githubCopilot === true
@@ -229,6 +234,92 @@ function updateFinding(config: GreybeardConfig): DoctorFinding {
     label: "Auto-update",
     detail: `skills ${config.skillUpdate ?? "weekly"}, servers ${config.serverUpdate ?? "latest"}, source ${config.serverPackageSource ?? "local"}`
   };
+}
+
+export function skillRequirementFindings(
+  result: SkillManifestLoadResult,
+  status: AuthStatus,
+  enabledServers: string[]
+): DoctorFinding[] {
+  const findings: DoctorFinding[] = result.errors.map((error) => ({
+    level: "WARN" as const,
+    label: `Skill: ${error.name}`,
+    detail: `SKILL.md manifest unreadable: ${error.message}`
+  }));
+
+  const declared = result.manifests.filter((manifest) => manifest.requires !== undefined);
+  if (declared.length === 0) {
+    return findings;
+  }
+
+  if (!status.signedIn) {
+    findings.push({
+      level: "WARN",
+      label: "Skill requirements",
+      detail: "unknown until sign-in succeeds"
+    });
+    return findings;
+  }
+
+  const grantedScopes = new Set(status.grantedScopes.map((scope) => scope.toLowerCase()));
+  const heldRoles = new Set(status.directoryRoles.map((role) => role.toLowerCase()));
+  const skillFindings: DoctorFinding[] = [];
+
+  for (const manifest of declared) {
+    const requires = manifest.requires ?? {};
+    const unmet: string[] = [];
+
+    for (const server of requires.servers ?? []) {
+      if (!enabledServers.includes(server)) {
+        unmet.push(`MCP server ${server} is not enabled; run greybeard setup --enable-server ${server}`);
+      }
+    }
+
+    const missingScopes = (requires.scopes ?? []).filter((scope) => !grantedScopes.has(scope.toLowerCase()));
+    if (missingScopes.length > 0) {
+      unmet.push(`missing scopes ${missingScopes.join(", ")}; ask the agent to call add-scope, or re-run greybeard setup`);
+    }
+
+    if (requires.license === "entra-p1" && status.entraP1 !== true) {
+      unmet.push(status.entraP1 === false
+        ? "requires Entra ID P1; gated pillars will degrade"
+        : "requires Entra ID P1; license status unknown");
+    }
+
+    for (const group of requires.roles ?? []) {
+      const roles = ROLE_GROUPS[group];
+      if (!roles) {
+        unmet.push(`unknown role group ${group}`);
+        continue;
+      }
+
+      if (!roles.some((role) => heldRoles.has(role.toLowerCase()))) {
+        unmet.push(`requires one of these directory roles: ${roles.join(", ")}`);
+      }
+    }
+
+    if (requires.writes === true && !status.gate.writesConfigured) {
+      unmet.push("writes are not configured; run greybeard setup --writes");
+    }
+
+    if (unmet.length > 0) {
+      skillFindings.push({
+        level: "WARN",
+        label: `Skill: ${manifest.name}`,
+        detail: unmet.join("; ")
+      });
+    }
+  }
+
+  if (skillFindings.length === 0 && findings.length === 0) {
+    return [{
+      level: "PASS",
+      label: "Skill requirements",
+      detail: `declared requirements satisfied for all ${declared.length} skills`
+    }];
+  }
+
+  return [...findings, ...skillFindings];
 }
 
 async function clientFindings(

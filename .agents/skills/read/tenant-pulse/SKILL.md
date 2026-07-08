@@ -1,12 +1,16 @@
 ---
 name: tenant-pulse
 description: Use when the user asks how healthy or secure the tenant is, says posture, risk, score, "how are we doing", or wants a scored Microsoft 365 tenant snapshot.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [User.Read.All, Policy.Read.All, Organization.Read.All, AuditLog.Read.All, Reports.Read.All]
+  roles: [reporting]
 ---
 
 # Tenant Pulse
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -189,6 +193,7 @@ Requests made: <n>. Scopes used: <granted scopes relevant to these calls>. Scopi
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.2: Fixed roleAssignments $select; the service rejects appScopeId and createdDateTime. Verified live via Lokka.
 - 0.1.1: Updated Graph examples and tenant-pulse guidance to use beta by default.
 - 0.1.0: Initial v1 tenant snapshot workflow.

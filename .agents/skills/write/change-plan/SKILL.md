@@ -1,12 +1,15 @@
 ---
 name: change-plan
 description: Use when the user proposes tenant writes or asks to create, update, delete, assign, disable, remediate, grant, revoke, or execute Microsoft Graph changes.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  writes: true
 ---
 
 # Change Plan
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -85,6 +88,7 @@ Reply with the reason and stop. If the user asks to try again, build a materiall
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the write category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph operation examples to use beta by default.
 - 0.1.0: Initial write-gate front end workflow.
 

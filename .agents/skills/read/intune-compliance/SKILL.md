@@ -1,12 +1,15 @@
 ---
 name: intune-compliance
 description: Use when the user asks why Intune devices are noncompliant, failing compliance, blocked, in grace period, or need compliance policy triage.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [DeviceManagementManagedDevices.Read.All, DeviceManagementConfiguration.Read.All]
 ---
 
 # Intune Compliance
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -96,6 +99,7 @@ Do not propose changing compliance policies directly. If the user asks for chang
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.2: Removed $select from deviceStatuses; the Intune service returns a 500 for any $select on that endpoint. Verified live via Lokka.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial Intune compliance triage skill.

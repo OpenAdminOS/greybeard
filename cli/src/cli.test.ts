@@ -49,7 +49,7 @@ import {
   writeGeminiMcpConfig,
   writeGeminiSkillFallback
 } from "./clients.js";
-import { assembleDoctorFindings } from "./doctor.js";
+import { assembleDoctorFindings, skillRequirementFindings } from "./doctor.js";
 import { runCli } from "./index.js";
 import { CliRuntime, OutputStream } from "./runtime.js";
 import { installAutoUpdateSchedule } from "./setup.js";
@@ -292,6 +292,82 @@ describe("greybeard CLI", () => {
       level: "WARN",
       label: "CLI approval gate"
     }));
+  });
+
+  it("reports skill requirements against granted scopes, servers, writes, and roles", () => {
+    const manifest = (name: string, requires: Record<string, unknown>) => ({
+      name,
+      category: "read",
+      dir: `/repo/.agents/skills/read/${name}`,
+      description: `Use when testing ${name}.`,
+      version: "0.2.0",
+      requires
+    });
+    const status = signedInStatus({
+      grantedScopes: ["User.Read.All", "Group.Read.All"],
+      directoryRoles: ["Global Reader"],
+      entraP1: true
+    });
+
+    const satisfied = skillRequirementFindings({
+      manifests: [manifest("ask-my-tenant", { servers: ["greybeard-graph"], scopes: ["User.Read.All"] })],
+      errors: []
+    }, status, ["greybeard-graph", "greybeard-memory"]);
+    expect(satisfied).toEqual([expect.objectContaining({
+      level: "PASS",
+      label: "Skill requirements"
+    })]);
+
+    const unmet = skillRequirementFindings({
+      manifests: [
+        manifest("tenant-pulse", { scopes: ["Reports.Read.All"], roles: ["reporting"] }),
+        manifest("change-plan", { writes: true }),
+        manifest("intune-assignments", { servers: ["intuneautomation"] })
+      ],
+      errors: [{ name: "broken-skill", message: "Unknown requires key: gpus" }]
+    }, status, ["greybeard-graph"]);
+
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: broken-skill",
+      detail: expect.stringContaining("Unknown requires key")
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: tenant-pulse",
+      detail: expect.stringContaining("missing scopes Reports.Read.All; ask the agent to call add-scope")
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: change-plan",
+      detail: expect.stringContaining("greybeard setup --writes")
+    }));
+    expect(unmet).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Skill: intune-assignments",
+      detail: expect.stringContaining("greybeard setup --enable-server intuneautomation")
+    }));
+    expect(unmet).not.toContainEqual(expect.objectContaining({
+      detail: expect.stringContaining("directory roles")
+    }));
+
+    const signedOut = skillRequirementFindings({
+      manifests: [manifest("tenant-pulse", { scopes: ["Reports.Read.All"] })],
+      errors: []
+    }, {
+      signedIn: false,
+      instruction: "run greybeard setup",
+      account: null,
+      tenantId: null,
+      tenantDomain: null,
+      activeTenantAlias: "organizations",
+      cacheProtection: "keyring"
+    } as AuthStatus, ["greybeard-graph"]);
+    expect(signedOut).toEqual([expect.objectContaining({
+      level: "WARN",
+      label: "Skill requirements",
+      detail: "unknown until sign-in succeeds"
+    })]);
   });
 
   it("refuses greybeard approve without an interactive TTY", async () => {

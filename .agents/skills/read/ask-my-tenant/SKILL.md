@@ -1,12 +1,15 @@
 ---
 name: ask-my-tenant
 description: Use when the user poses a live tenant state question when no more specific Greybeard skill matches, including guest accounts, disabled accounts, or simple user and group counts.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [User.Read.All, Group.Read.All, Organization.Read.All]
 ---
 
 # Ask My Tenant
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -105,6 +108,7 @@ Requests made: <n>. Scopes used: <relevant granted scopes>. Scoping decisions: b
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples and guidance to use beta by default.
 - 0.1.0: Initial catch-all live tenant question workflow.
 

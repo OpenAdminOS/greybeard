@@ -55,6 +55,39 @@ Rules:
 - Add `test.md` with at least one trigger prompt and expected behavior.
 - Do not store secrets, tenant data, or live customer output in a skill file.
 
+## Declaring Requirements
+
+A skill that cannot do its job without a specific capability declares it in an optional `requires` frontmatter block:
+
+```yaml
+---
+name: skill-name
+description: Use when the user asks for a specific task.
+version: 0.1.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [User.Read.All, AuditLog.Read.All]
+  license: entra-p1
+  roles: [reporting]
+  writes: true
+---
+```
+
+All keys are optional. The grammar is one nested block with two-space indentation, flow-style lists like `[a, b]`, and `true`/`false` for `writes`. The allowed values live in code and are enforced by the skill catalog test:
+
+- `servers`: MCP server names from `SERVER_CATALOG` in `cli/src/serverCatalog.ts`.
+- `scopes`: delegated Graph scopes from the Tier 1, Tier 2, or write scope catalogs (`greybeard scopes` prints them).
+- `license`: `entra-p1` is the only known value, in `KNOWN_LICENSES` in `cli/src/skillManifest.ts`.
+- `roles`: semantic role groups from `ROLE_GROUPS` in `cli/src/skillManifest.ts`, not raw directory role names.
+- `writes`: `true` when the skill stages tenant writes through the write gate.
+
+`greybeard doctor` compares every declared block against the signed-in account and reports unmet requirements with the remedy. Skills must still degrade gracefully at runtime; a declared requirement is a doctor signal, not a runtime guard.
+
+Apply the hard and soft dependency rule:
+
+- Hard dependency: the skill produces wrong or no output without it. Declare it in `requires` and state the remedy in the skill body (for example `run greybeard setup --writes`).
+- Soft dependency: the skill only gets sharper with it (for example `greybeard-memory` recall, an optional Tier 2 scope fetched via `add-scope` on a 403). Keep it in prose, do not declare it, and make sure the skill still works without it.
+
 ## Keep Triggers Distinct
 
 Trigger overlap makes clients pick the wrong skill. Before adding or changing a skill, compare the first words and verbs in every `description`.

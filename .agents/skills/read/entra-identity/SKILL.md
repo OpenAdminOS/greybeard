@@ -1,12 +1,15 @@
 ---
 name: entra-identity
 description: Use when the user asks about Entra users, groups, memberships, dynamic rules, orphaned groups, naming hygiene, cleanup candidates, or identity inventory.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [User.Read.All, Group.Read.All]
 ---
 
 # Entra Identity
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -102,6 +105,7 @@ Return a table with object ID, display name, type, why it is flagged, evidence, 
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial Entra identity hygiene skill.
 

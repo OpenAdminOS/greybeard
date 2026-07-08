@@ -1,12 +1,12 @@
 ---
 name: posture-script
 description: Use when the user wants a complete script to check, audit, report, harden, export, or remediate Microsoft 365, Intune, Entra, or Graph posture offline.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Posture Script
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -96,6 +96,7 @@ Return the complete script in one fenced `powershell` block, followed by:
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the craft category.
 - 0.1.1: Updated Graph script guidance to use beta by default.
 - 0.1.0: Initial offline Microsoft Graph PowerShell script authoring workflow.
 

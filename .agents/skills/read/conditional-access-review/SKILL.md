@@ -1,12 +1,15 @@
 ---
 name: conditional-access-review
 description: Use when the user asks to review existing Conditional Access, audit CA policies, find report-only policies, find enabled policies that lack MFA enforcement, or verify emergency-account exclusions.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [Policy.Read.All]
 ---
 
 # Conditional Access Review
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -91,6 +94,7 @@ Return:
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial Conditional Access live review skill.
 

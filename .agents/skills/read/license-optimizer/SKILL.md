@@ -1,12 +1,15 @@
 ---
 name: license-optimizer
 description: Use when the user asks about license waste, unused seats, duplicate licenses, downgrade candidates, SKU utilization, or Microsoft 365 cost optimization.
-version: 0.1.0
+version: 0.2.0
+requires:
+  servers: [greybeard-graph]
+  scopes: [Organization.Read.All, User.Read.All]
 ---
 
 # License Optimizer
 
-Version: 0.1.0
+Version: 0.2.0
 
 ## Workflow
 
@@ -93,6 +96,7 @@ Return:
 
 ## CHANGELOG
 
+- 0.2.0: Moved into the read category and declared requirements in frontmatter.
 - 0.1.1: Updated Graph examples to use beta by default.
 - 0.1.0: Initial license utilization and waste review skill.
 
