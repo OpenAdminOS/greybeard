@@ -23,6 +23,12 @@ jobs:
           node-version: 20
           registry-url: https://registry.npmjs.org
 
+      - name: Use npm 11 to match the committed lockfile
+        run: npm install -g npm@11
+
+      - name: Install libsecret (Linux keyring for MSAL cache)
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
+
       - name: Install
         run: npm ci
 
