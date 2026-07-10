@@ -135,6 +135,8 @@ Tier 2 is requested only when a skill needs it: `Device.Read.All`, Intune read s
 
 Writes are separate. `greybeard setup --writes` creates or idempotently repairs a tenant-owned public-client workspace app with the `http://localhost` redirect, and requests only the explicit Tier 1 plus selected write scopes. Extra scopes present in a cached token are never copied into the app registration.
 
+What you will see at consent: the browser prompt names the app `Greybeard Workspace <your tenant domain>` and warns that the application is not published by Microsoft. That is expected. The app is a registration setup created inside your own tenant, so there is no verified publisher and no vendor-owned client id behind it. There is no multi-tenant Greybeard app anywhere: each tenant that opts into writes gets its own registration, owned by that tenant's admins, and nobody outside the tenant can mint tokens against it. Every scope added later through `add-scope` triggers the same prompt once, listing exactly the scopes requested. Deleting the app registration in Entra instantly revokes every Greybeard credential in that tenant.
+
 License and role gates are separate from consent. Some reporting endpoints require Microsoft Entra ID P1, and delegated reporting also requires Reports Reader, Security Reader, Global Reader, or higher. Greybeard reports missing license or role as that problem, not as another consent prompt.
 
 ## Write Safety
@@ -181,6 +183,10 @@ This table describes what the current adapters write.
 Greybeard never treats the mere existence of a shared config directory, or files Greybeard itself wrote, as proof a client is installed. Undetected clients are skipped by setup and doctor.
 
 Native skills support was rechecked against current client documentation for Cursor, Codex CLI, Gemini CLI, and GitHub Copilot during M7. The smoke tests that require real client installs remain manual.
+
+## Headless And Scheduled Use
+
+The read skills work in non-interactive client sessions, for example `claude -p "how is our MFA coverage?"` on a schedule. Two client-side details matter. First, a headless session inherits the client's default permission mode: a Claude Code install that defaults to plan mode will block every MCP call, so pass `--permission-mode default` together with an explicit `--allowedTools` list naming the Greybeard tools. Second, interactive consent cannot happen headlessly, so grant any Tier 2 scopes from an interactive session once before scheduling. The write gate still requires a human either way: plans staged from a headless session are rejected or expire unapproved by design.
 
 ## Updates
 

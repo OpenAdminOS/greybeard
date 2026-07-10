@@ -19,6 +19,7 @@
 
 ### Fixes
 
+- The generic Graph tool now parses string-encoded `$batch` bodies before the read gate. Agents that serialize the batch body as a JSON string no longer have valid all-GET batches rejected with `E_WRITE_BLOCKED`, while inner writes and unparseable bodies remain blocked and the wire payload is encoded exactly once.
 - Microsoft Graph delegated permission discovery now prefers `publishedPermissionScopes` and supports `oauth2PermissionScopes` as a compatibility fallback.
 - Failed directory-role detection now returns `directoryRoles: null` plus diagnostic state. It no longer falsely reports that the signed-in admin has no roles.
 - Microsoft Graph app-registration, service-principal, and OAuth grant setup calls now use explicit stable `v1.0` endpoints.
