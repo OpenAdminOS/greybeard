@@ -296,6 +296,102 @@ describe("GraphService", () => {
     );
   });
 
+  it("accepts a string-encoded all-GET batch body", async () => {
+    const fetcher = vi.fn<FetchLike>().mockResolvedValue(jsonResponse({
+      responses: [
+        {
+          id: "1",
+          status: 200,
+          body: {
+            value: []
+          }
+        }
+      ]
+    }));
+    const service = new GraphService({ auth: new MockAuth(), fetcher });
+
+    const batch = {
+      requests: [
+        {
+          id: "1",
+          method: "GET",
+          url: "/users?$select=id"
+        }
+      ]
+    };
+    const result = await service.graph({
+      method: "POST",
+      path: "/$batch",
+      body: JSON.stringify(batch)
+    });
+
+    expect(result.data).toEqual({
+      responses: [
+        {
+          id: "1",
+          status: 200,
+          body: {
+            value: []
+          }
+        }
+      ]
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://graph.microsoft.com/beta/$batch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(batch)
+      })
+    );
+  });
+
+  it("rejects string-encoded batch inner writes", async () => {
+    const service = new GraphService({
+      auth: new MockAuth(),
+      fetcher: vi.fn<FetchLike>()
+    });
+
+    await expect(service.graph({
+      method: "POST",
+      path: "/$batch",
+      body: JSON.stringify({
+        requests: [
+          {
+            id: "write",
+            method: "PATCH",
+            url: "/users/1",
+            body: {
+              accountEnabled: false
+            }
+          }
+        ]
+      })
+    })).rejects.toMatchObject({
+      payload: {
+        code: "E_WRITE_BLOCKED",
+        details: {
+          offendingRequestIds: ["write"]
+        }
+      }
+    });
+  });
+
+  it("rejects a batch body that is not valid JSON", async () => {
+    const fetcher = vi.fn<FetchLike>();
+    const service = new GraphService({ auth: new MockAuth(), fetcher });
+
+    await expect(service.graph({
+      method: "POST",
+      path: "/$batch",
+      body: "{not valid json"
+    })).rejects.toMatchObject({
+      payload: {
+        code: "E_WRITE_BLOCKED"
+      }
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("rejects batch inner writes", async () => {
     const service = new GraphService({
       auth: new MockAuth(),

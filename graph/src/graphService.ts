@@ -324,17 +324,34 @@ type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVer
 };
 
 function normalizeInput(input: GraphToolInput): NormalizedGraphToolInput {
+  const method = (input.method ?? "GET").toUpperCase();
+  const path = normalizePath(input.path);
   return {
-    method: (input.method ?? "GET").toUpperCase(),
+    method,
     apiVersion: input.apiVersion ?? "beta",
-    path: normalizePath(input.path),
+    path,
     query: input.query ?? {},
     headers: input.headers ?? {},
-    body: input.body,
+    body: method === "POST" && path === "/$batch" ? parseBatchBody(input.body) : input.body,
     fetchAll: input.fetchAll ?? false,
     maxItems: input.maxItems ?? DEFAULT_MAX_ITEMS,
     apiVersionExplicitlySet: input.apiVersion !== undefined
   };
+}
+
+// Agents routinely pass the batch body as a JSON string because the tool schema
+// leaves body untyped; parse it so the read gate and the wire payload both see
+// the object instead of rejecting or double-encoding it.
+function parseBatchBody(body: unknown): unknown {
+  if (typeof body !== "string") {
+    return body;
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
 }
 
 function normalizePath(path: string): string {
