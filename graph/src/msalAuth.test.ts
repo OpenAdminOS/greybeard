@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FetchLike, GRAPH_CLI_CLIENT_ID, ResponseLike } from "./types.js";
+import { readGreybeardConfig } from "./config.js";
 
 const fakeMsalApp = {
   getAllAccounts: vi.fn(),
@@ -125,6 +126,7 @@ describe("MsalGraphAuthProvider", () => {
       grantedScopes: ["User.Read.All", "Reports.Read.All"],
       entraP1: true,
       directoryRoles: ["Global Reader"],
+      directoryRolesStatus: { state: "available" },
       gate: {
         pendingPlan: null,
         writesConfigured: false
@@ -229,7 +231,33 @@ describe("MsalGraphAuthProvider", () => {
     expect(status).toMatchObject({
       signedIn: true,
       entraP1: null,
-      directoryRoles: []
+      directoryRoles: [],
+      directoryRolesStatus: { state: "available" }
+    });
+  });
+
+  it("reports directory roles as unknown with diagnostics when the probe fails", async () => {
+    const { MsalGraphAuthProvider } = await import("./msalAuth.js");
+    const fetcher = vi.fn<FetchLike>()
+      .mockResolvedValueOnce(jsonResponse({ value: [] }))
+      .mockResolvedValueOnce(jsonResponse({
+        error: { code: "Authorization_RequestDenied", message: "role probe denied" }
+      }, 403));
+    const provider = await MsalGraphAuthProvider.create({
+      tenantId: "tenant-id",
+      appDataPath: await tempAppData(),
+      fetcher
+    });
+
+    const status = await provider.getStatus();
+
+    expect(status).toMatchObject({
+      signedIn: true,
+      directoryRoles: null,
+      directoryRolesStatus: {
+        state: "unavailable",
+        diagnostic: "Graph status probe failed with HTTP 403."
+      }
     });
   });
 
@@ -274,6 +302,41 @@ describe("MsalGraphAuthProvider", () => {
     });
     expect(result.consentUrl).toContain("/tenant-id/");
     expect(result.consentUrl).toContain("Device.Read.All");
+  });
+
+  it("audits temporary scope leases and supports guarded release", async () => {
+    const { MsalGraphAuthProvider } = await import("./msalAuth.js");
+    const appDataPath = await tempAppData();
+    const provider = await MsalGraphAuthProvider.create({ tenantId: "tenant-id", appDataPath });
+
+    const added = await provider.addScopes({
+      scopes: ["Device.Read.All"],
+      reason: "temporary device inventory",
+      leaseMinutes: 15
+    });
+    expect(added).toMatchObject({ granted: true, requestedScopes: ["Device.Read.All"] });
+    expect(added.leaseExpiresAt).toBeDefined();
+    expect((await readGreybeardConfig(appDataPath)).scopeLeases).toMatchObject([{
+      scope: "Device.Read.All",
+      reason: "temporary device inventory"
+    }]);
+
+    const removed = await provider.removeScopes({
+      scopes: ["Device.Read.All"],
+      reason: "inventory complete",
+      confirm: true
+    });
+    expect(removed).toMatchObject({
+      removedScopes: ["Device.Read.All"],
+      requiresTenantConsentRevocation: true
+    });
+    expect((await readGreybeardConfig(appDataPath)).scopeLeases).toBeUndefined();
+
+    const auditFiles = await readdir(join(appDataPath, "audit"));
+    const auditText = await readFile(join(appDataPath, "audit", auditFiles[0] as string), "utf8");
+    expect(auditText).toContain('"event":"requested"');
+    expect(auditText).toContain('"reason":"temporary device inventory"');
+    expect(auditText).toContain('"event":"released"');
   });
 });
 

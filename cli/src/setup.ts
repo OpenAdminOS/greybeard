@@ -1,5 +1,6 @@
 import {
   buildAdminConsentUrl,
+  activeScopeLeases,
   DEFAULT_TIER1_SCOPES,
   DEFAULT_WRITE_SCOPES,
   GRAPH_CLI_CLIENT_ID,
@@ -48,6 +49,8 @@ import {
 
 const GRAPH_RESOURCE_APP_ID = "00000003-0000-0000-c000-000000000000";
 const BOOTSTRAP_SCOPE = "Application.ReadWrite.All";
+const BOOTSTRAP_CLEANUP_SCOPE = "DelegatedPermissionGrant.ReadWrite.All";
+const PUBLIC_CLIENT_REDIRECT_URI = "http://localhost";
 
 export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
@@ -135,7 +138,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
     ...current,
     activeTenantId: token.tenantId,
     credentialMode: current.credentialMode === "writes" && current.workspaceAppId ? "writes" : "read-only",
-    grantedReadScopes: token.grantedScopes.length > 0 ? token.grantedScopes : [...DEFAULT_TIER1_SCOPES],
+    grantedReadScopes: [...DEFAULT_TIER1_SCOPES],
     skillUpdate: skillUpdateFromArgs(args, current.skillUpdate),
     serverUpdate: serverUpdateFromArgs(args, current.serverUpdate),
     serverPackageSource: serverPackageSourceFromArgs(args, current.serverPackageSource),
@@ -353,7 +356,8 @@ async function refreshWorkspaceCredential(params: {
 
   const scopes = unique([
     ...(params.config.grantedReadScopes ?? [...DEFAULT_TIER1_SCOPES]),
-    ...(params.config.requestedWriteScopes ?? [])
+    ...(params.config.requestedWriteScopes ?? []),
+    ...activeScopeLeases(params.config).map((lease) => lease.scope)
   ]);
   const workspaceAuth = await params.runtime.authFactory({
     tenantId: params.tenantId,
@@ -399,17 +403,8 @@ async function setupWrites(params: {
 }): Promise<number> {
   const existing = graphAuthConfig(await readGreybeardConfig(params.appDataPath));
   const writeScopes = requestedWriteScopes(params.args, params.runtime.env);
-  const readScopes = unique(params.readToken.grantedScopes.length > 0
-    ? params.readToken.grantedScopes
-    : [...DEFAULT_TIER1_SCOPES]);
+  const readScopes = [...DEFAULT_TIER1_SCOPES];
   const consentScopes = unique([...readScopes, ...writeScopes]);
-
-  if (existing.credentialMode === "writes" && existing.clientIdKind === "workspace") {
-    writeLine(params.runtime.stdout, "");
-    writeLine(params.runtime.stdout, `Writes already configured with workspace app ${existing.clientId}.`);
-    printWorkspaceConsent(params.runtime, params.tenantId, existing.clientId, consentScopes);
-    return 0;
-  }
 
   const bootstrapAuth = await params.runtime.authFactory({
     tenantId: params.tenantId,
@@ -426,7 +421,7 @@ async function setupWrites(params: {
     const consent = await printSignInDisclosure({
       args: params.args,
       runtime: params.runtime,
-      scopes: [...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE],
+      scopes: [...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE, BOOTSTRAP_CLEANUP_SCOPE],
       mode: "bootstrap",
       clientId: GRAPH_CLI_CLIENT_ID
     });
@@ -434,14 +429,14 @@ async function setupWrites(params: {
       return 0;
     }
 
-    bootstrapToken = await bootstrapAuth.getToken([...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE]);
+    bootstrapToken = await bootstrapAuth.getToken([...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE, BOOTSTRAP_CLEANUP_SCOPE]);
   } catch (error) {
     if (isAdminConsentError(error)) {
       printConsentHandoff({
         runtime: params.runtime,
         tenantId: params.tenantId,
         clientId: GRAPH_CLI_CLIENT_ID,
-        scopes: [...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE],
+        scopes: [...DEFAULT_TIER1_SCOPES, BOOTSTRAP_SCOPE, BOOTSTRAP_CLEANUP_SCOPE],
         resumeCommand: "greybeard setup --writes"
       });
       return 0;
@@ -450,11 +445,12 @@ async function setupWrites(params: {
     throw error;
   }
 
-  const workspace = await createWorkspaceApplication({
+  const workspace = await ensureWorkspaceApplication({
     fetcher: params.runtime.fetcher,
     accessToken: bootstrapToken.accessToken,
     tenantDomain: params.readToken.tenantDomain,
-    scopes: consentScopes
+    scopes: consentScopes,
+    existingAppId: existing.clientIdKind === "workspace" ? existing.clientId : undefined
   });
 
   await updateGreybeardConfig(params.appDataPath, (current) => ({
@@ -462,6 +458,7 @@ async function setupWrites(params: {
     activeTenantId: params.tenantId,
     credentialMode: "writes",
     workspaceAppId: workspace.appId,
+    bootstrapCleanupPending: true,
     grantedReadScopes: readScopes,
     requestedWriteScopes: writeScopes,
     gate: gateFromArgs(params.args, current.gate)
@@ -470,7 +467,25 @@ async function setupWrites(params: {
   writeSection(params.runtime.stdout, "Writes");
   writeStatusLine(params.runtime.stdout, "OK", "Workspace app", workspace.displayName);
   writeStatusLine(params.runtime.stdout, "OK", "Workspace app id", workspace.appId);
-  writeNoteLine(params.runtime.stdout, "Application.ReadWrite.All can be revoked from the first-party app after bootstrap if not needed.");
+  try {
+    await removeBootstrapConsent({
+      fetcher: params.runtime.fetcher,
+      accessToken: bootstrapToken.accessToken
+    });
+    await updateGreybeardConfig(params.appDataPath, (current) => ({
+      ...current,
+      bootstrapCleanupPending: false
+    }));
+    writeStatusLine(params.runtime.stdout, "OK", "Bootstrap scopes", "temporary app and consent-management grants removed");
+  } catch (error) {
+    writeStatusLine(
+      params.runtime.stdout,
+      "WARN",
+      "Bootstrap scopes",
+      `cleanup incomplete: ${error instanceof Error ? error.message : String(error)}`
+    );
+    writeNoteLine(params.runtime.stdout, "Re-run greybeard setup --writes to retry mandatory bootstrap permission cleanup.");
+  }
   printWorkspaceConsent(params.runtime, params.tenantId, workspace.appId, consentScopes);
   writeLine(params.runtime.stdout, "After admin consent completes, run greybeard setup to refresh the workspace app token cache.");
   return 0;
@@ -512,7 +527,7 @@ async function printSignInDisclosure(params: {
     }
 
     if (params.mode === "bootstrap") {
-      writeNoteLine(stdout, "Application.ReadWrite.All is used only to create the workspace app");
+      writeNoteLine(stdout, "Application.ReadWrite.All and DelegatedPermissionGrant.ReadWrite.All are temporary bootstrap scopes removed after setup");
     }
 
     writeNoteLine(stdout, "tenant writes still require an approved plan");
@@ -546,9 +561,19 @@ export async function createWorkspaceApplication(params: {
   tenantDomain: string;
   scopes: string[];
 }): Promise<{ id: string; appId: string; displayName: string }> {
+  return ensureWorkspaceApplication(params);
+}
+
+export async function ensureWorkspaceApplication(params: {
+  fetcher: FetchLike;
+  accessToken: string;
+  tenantDomain: string;
+  scopes: string[];
+  existingAppId?: string;
+}): Promise<{ id: string; appId: string; displayName: string }> {
   const graphSp = await getGraphServicePrincipal(params.fetcher, params.accessToken);
   const permissionIds = new Map<string, string>();
-  for (const scope of graphSp.oauth2PermissionScopes) {
+  for (const scope of graphSp.permissionScopes) {
     if (typeof scope.value === "string" && typeof scope.id === "string") {
       permissionIds.set(scope.value.toLowerCase(), scope.id);
     }
@@ -566,24 +591,69 @@ export async function createWorkspaceApplication(params: {
     };
   });
 
-  const app = await graphJson(params.fetcher, params.accessToken, "POST", "/beta/applications", {
+  const applicationPatch = {
     displayName: `Greybeard Workspace ${params.tenantDomain}`,
     signInAudience: "AzureADMyOrg",
+    isFallbackPublicClient: true,
+    publicClient: {
+      redirectUris: [PUBLIC_CLIENT_REDIRECT_URI]
+    },
     requiredResourceAccess: [
       {
         resourceAppId: GRAPH_RESOURCE_APP_ID,
         resourceAccess
       }
     ]
-  });
+  };
+
+  let app: unknown;
+  let created = false;
+  if (params.existingAppId) {
+    const url = new URL("https://graph.microsoft.com/v1.0/applications");
+    url.searchParams.set("$filter", `appId eq '${params.existingAppId}'`);
+    url.searchParams.set("$select", "id,appId,displayName");
+    const existing = await graphJson(params.fetcher, params.accessToken, "GET", url);
+    const existingApp = isObject(existing) && Array.isArray(existing.value) && isObject(existing.value[0])
+      ? existing.value[0]
+      : undefined;
+    if (existingApp && typeof existingApp.id === "string") {
+      await graphJson(params.fetcher, params.accessToken, "PATCH", `/v1.0/applications/${existingApp.id}`, applicationPatch);
+      app = existingApp;
+    }
+  }
+
+  if (!app) {
+    app = await graphJson(params.fetcher, params.accessToken, "POST", "/v1.0/applications", applicationPatch);
+    created = true;
+  }
 
   if (!isObject(app) || typeof app.appId !== "string" || typeof app.id !== "string") {
     throw new Error("Graph did not return a workspace application id.");
   }
 
-  await graphJson(params.fetcher, params.accessToken, "POST", "/beta/servicePrincipals", {
-    appId: app.appId
-  });
+  try {
+    const spUrl = new URL("https://graph.microsoft.com/v1.0/servicePrincipals");
+    spUrl.searchParams.set("$filter", `appId eq '${app.appId}'`);
+    spUrl.searchParams.set("$select", "id,appId");
+    const servicePrincipals = await graphJson(params.fetcher, params.accessToken, "GET", spUrl);
+    const servicePrincipalExists = isObject(servicePrincipals)
+      && Array.isArray(servicePrincipals.value)
+      && servicePrincipals.value.some(isObject);
+    if (!servicePrincipalExists) {
+      await graphJson(params.fetcher, params.accessToken, "POST", "/v1.0/servicePrincipals", {
+        appId: app.appId
+      });
+    }
+  } catch (error) {
+    if (created) {
+      try {
+        await graphJson(params.fetcher, params.accessToken, "DELETE", `/v1.0/applications/${app.id}`);
+      } catch {
+        // The original provisioning failure remains primary; a re-run can repair an orphan.
+      }
+    }
+    throw error;
+  }
 
   return {
     id: app.id,
@@ -598,7 +668,8 @@ function printWorkspaceConsent(runtime: CliRuntime, tenantId: string, clientId: 
     tenantId,
     clientId,
     scopes,
-    resumeCommand: "greybeard setup"
+    resumeCommand: "greybeard setup",
+    redirectUri: PUBLIC_CLIENT_REDIRECT_URI
   });
 }
 
@@ -608,13 +679,15 @@ function printConsentHandoff(params: {
   clientId: string;
   scopes: string[];
   resumeCommand: string;
+  redirectUri?: string;
 }): void {
   writeLine(params.runtime.stdout, "");
   writeLine(params.runtime.stdout, "Admin consent required.");
   writeLine(params.runtime.stdout, buildAdminConsentUrl({
     tenantId: params.tenantId,
     clientId: params.clientId,
-    scopes: params.scopes
+    scopes: params.scopes,
+    redirectUri: params.redirectUri ?? PUBLIC_CLIENT_REDIRECT_URI
   }));
   writeLine(params.runtime.stdout, "");
   writeLine(params.runtime.stdout, "Scope justifications:");
@@ -626,30 +699,102 @@ function printConsentHandoff(params: {
 }
 
 async function getGraphServicePrincipal(fetcher: FetchLike, accessToken: string): Promise<{
-  oauth2PermissionScopes: Array<{ id?: unknown; value?: unknown }>;
+  id: string;
+  permissionScopes: Array<{ id?: unknown; value?: unknown }>;
 }> {
-  const url = new URL("https://graph.microsoft.com/beta/servicePrincipals");
-  url.searchParams.set("$filter", `appId eq '${GRAPH_RESOURCE_APP_ID}'`);
-  url.searchParams.set("$select", "id,oauth2PermissionScopes");
-  const data = await graphJson(fetcher, accessToken, "GET", url);
+  let data: unknown;
+  try {
+    data = await getGraphServicePrincipalShape(fetcher, accessToken, "publishedPermissionScopes");
+  } catch {
+    data = await getGraphServicePrincipalShape(fetcher, accessToken, "oauth2PermissionScopes");
+  }
   if (!isObject(data) || !Array.isArray(data.value) || !isObject(data.value[0])) {
     throw new Error("Microsoft Graph service principal was not found.");
   }
 
-  const scopes = data.value[0].oauth2PermissionScopes;
+  const servicePrincipal = data.value[0];
+  let scopes = servicePrincipal.publishedPermissionScopes;
+  if (!Array.isArray(scopes)) {
+    scopes = servicePrincipal.oauth2PermissionScopes;
+  }
+  if (!Array.isArray(scopes)) {
+    const legacyData = await getGraphServicePrincipalShape(fetcher, accessToken, "oauth2PermissionScopes");
+    const legacySp = isObject(legacyData) && Array.isArray(legacyData.value) && isObject(legacyData.value[0])
+      ? legacyData.value[0]
+      : undefined;
+    scopes = legacySp?.oauth2PermissionScopes;
+  }
   if (!Array.isArray(scopes)) {
     throw new Error("Microsoft Graph service principal did not include delegated scopes.");
   }
+  if (typeof servicePrincipal.id !== "string") {
+    throw new Error("Microsoft Graph service principal did not include its object id.");
+  }
 
   return {
-    oauth2PermissionScopes: scopes
+    id: servicePrincipal.id,
+    permissionScopes: scopes
   };
+}
+
+async function getGraphServicePrincipalShape(
+  fetcher: FetchLike,
+  accessToken: string,
+  scopeProperty: "publishedPermissionScopes" | "oauth2PermissionScopes"
+): Promise<unknown> {
+  const url = new URL("https://graph.microsoft.com/v1.0/servicePrincipals");
+  url.searchParams.set("$filter", `appId eq '${GRAPH_RESOURCE_APP_ID}'`);
+  url.searchParams.set("$select", `id,${scopeProperty}`);
+  return graphJson(fetcher, accessToken, "GET", url);
+}
+
+export async function removeBootstrapConsent(params: {
+  fetcher: FetchLike;
+  accessToken: string;
+}): Promise<void> {
+  const graphSp = await getGraphServicePrincipal(params.fetcher, params.accessToken);
+  const clientUrl = new URL("https://graph.microsoft.com/v1.0/servicePrincipals");
+  clientUrl.searchParams.set("$filter", `appId eq '${GRAPH_CLI_CLIENT_ID}'`);
+  clientUrl.searchParams.set("$select", "id");
+  const clientData = await graphJson(params.fetcher, params.accessToken, "GET", clientUrl);
+  const clientSp = isObject(clientData) && Array.isArray(clientData.value) && isObject(clientData.value[0])
+    ? clientData.value[0]
+    : undefined;
+  if (!clientSp || typeof clientSp.id !== "string") {
+    throw new Error("Microsoft Graph CLI service principal was not found for bootstrap cleanup.");
+  }
+
+  const grantsUrl = new URL("https://graph.microsoft.com/v1.0/oauth2PermissionGrants");
+  grantsUrl.searchParams.set("$filter", `clientId eq '${clientSp.id}' and resourceId eq '${graphSp.id}'`);
+  grantsUrl.searchParams.set("$select", "id,scope");
+  const grantData = await graphJson(params.fetcher, params.accessToken, "GET", grantsUrl);
+  if (!isObject(grantData) || !Array.isArray(grantData.value)) {
+    throw new Error("Microsoft Graph did not return bootstrap consent grants.");
+  }
+
+  const temporary = new Set([BOOTSTRAP_SCOPE.toLowerCase(), BOOTSTRAP_CLEANUP_SCOPE.toLowerCase()]);
+  for (const rawGrant of grantData.value) {
+    if (!isObject(rawGrant) || typeof rawGrant.id !== "string" || typeof rawGrant.scope !== "string") {
+      continue;
+    }
+    const remaining = rawGrant.scope.split(/\s+/u).filter((scope) => scope && !temporary.has(scope.toLowerCase()));
+    if (remaining.length === rawGrant.scope.split(/\s+/u).filter(Boolean).length) {
+      continue;
+    }
+    if (remaining.length === 0) {
+      await graphJson(params.fetcher, params.accessToken, "DELETE", `/v1.0/oauth2PermissionGrants/${rawGrant.id}`);
+    } else {
+      await graphJson(params.fetcher, params.accessToken, "PATCH", `/v1.0/oauth2PermissionGrants/${rawGrant.id}`, {
+        scope: remaining.join(" ")
+      });
+    }
+  }
 }
 
 async function graphJson(
   fetcher: FetchLike,
   accessToken: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   pathOrUrl: string | URL,
   body?: unknown
 ): Promise<unknown> {

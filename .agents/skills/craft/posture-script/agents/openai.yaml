@@ -1,0 +1,4 @@
+interface:
+  display_name: "Posture Script"
+  short_description: "Create complete M365 posture scripts"
+  default_prompt: "Use $posture-script to create a complete Microsoft 365 posture script."

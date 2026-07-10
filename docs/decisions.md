@@ -46,10 +46,10 @@
 ## 2026-07-04 - M3 wizard CLI and install
 
 - The CLI stays dependency-light for M3: plain terminal output plus `node:readline` for `greybeard approve`. Ink is deferred because setup has no complex branching UI yet, and avoiding a renderer keeps non-interactive tests simple.
-- Greybeard config now stores `activeTenantId`, `credentialMode`, `workspaceAppId`, `grantedReadScopes`, `requestedWriteScopes`, and `gate.cliApprove` in `<appdata>/greybeard/config.json`. The graph server reads that config at startup and uses the workspace app only when `credentialMode` is `writes` and `workspaceAppId` is present.
+- Greybeard config stores a revision, active credential identity, explicit baseline/write scopes, incremental scope leases, bootstrap cleanup state, and gate settings. The graph MCP transport stays connected while a reloadable auth provider rebuilds itself after config revisions.
 - Claude Code user-scope MCP config is written directly to `~/.claude.json` under top-level `mcpServers.greybeard-graph`, matching the documented user scope location. Direct JSON editing keeps setup idempotent and testable without requiring a live `claude` command.
 - Claude Code skills are wired by symlinking folders from the repo `.agents/skills/` directory into `~/.claude/skills/`. Setup replaces stale symlinks but never overwrites a real user file or directory at the target path.
-- `greybeard setup --writes` uses the first-party app only for the one-time bootstrap delegated permission `Application.ReadWrite.All`, then creates a tenant-owned workspace app with delegated Microsoft Graph permissions. `Application.ReadWrite.OwnedBy` is application-only in Microsoft Graph, so it cannot be used for the delegated interactive bootstrap. After the workspace app exists and has admin consent, an admin can revoke `Application.ReadWrite.All` from the first-party app unless they need to recreate the workspace app. The default requested write scopes are `User.ReadWrite.All`, `Group.ReadWrite.All`, and `Policy.ReadWrite.ConditionalAccess`; admins can override them with repeated `--write-scope` flags or `GREYBEARD_WRITE_SCOPES`.
+- `greybeard setup --writes` temporarily requests `Application.ReadWrite.All` plus `DelegatedPermissionGrant.ReadWrite.All`, creates or repairs a localhost public-client workspace app through stable v1.0 APIs, and removes both bootstrap grants after provisioning. Permission discovery prefers `publishedPermissionScopes` with `oauth2PermissionScopes` fallback. Only explicit Tier 1 and selected write scopes are configured.
 - The install scripts default to `https://github.com/ugurkocde/greybeard.git` (the public repository), with `GREYBEARD_REPO_URL` as an override for forks or local checkouts.
 
 ## 2026-07-04 - M5 greybeard memory
@@ -73,7 +73,7 @@
 
 ## 2026-07-04 - M8 update and release model
 
-- `greybeard update` runs `git pull --ff-only` in the repo root, compares the previous and current HEAD, reports changed folders under `.agents/skills`, reads each current skill version, and rewrites client MCP configs. The git runner is injected through `CliRuntime.runCommand` so tests do not shell out.
+- `greybeard update` verifies a clean tracked tree, pulls fast-forward, installs dependencies, builds, and tests before activating MCP config. Failure resets and rebuilds the previous revision. Skill versions come from `.agents/skills/manifest.json`.
 - Setup stores `skillUpdate`, `serverUpdate`, and `serverPackageSource` in the Greybeard config. The scheduler writer is injected through `CliRuntime.runCommand`; tests cover command generation without registering real OS schedules.
 - Server `latest` and `pinned` modes are implemented. When `serverPackageSource` is `npm`, MCP writers emit `npx -y @greybeard/graph@latest` or `@greybeard/graph@<current version>` and the same for memory. The default remains `serverPackageSource: local`, which writes local `node .../dist/index.js` paths, because `@greybeard/graph` and `@greybeard/memory` have not been published to npm yet.
 - The release workflow is present and ready to publish `@greybeard/graph` and `@greybeard/memory` with npm provenance on version tags once the npm organization, access token, and first package publish are in place. The M8 publish execution checkbox remains open until that happens.

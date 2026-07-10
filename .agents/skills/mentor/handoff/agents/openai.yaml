@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Create paste-ready session handoffs"
+  default_prompt: "Use $handoff to create a concise handover from this session."

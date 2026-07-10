@@ -244,7 +244,7 @@ If the model can call whatever issues the token, then prompt injection can too, 
 
 ### Flow
 
-1. The agent (steered by the `change-plan` skill, but the server does not rely on the skill) calls `plan-write` with the intended operations: verb, path, body, and reason per operation, plus summary and rollback notes. The call is non-blocking: it validates, **stores** the operations, opens the approval channel, and returns a plan ID. The agent polls `check-plan` for the outcome (long-blocking tool calls are not survivable on all clients).
+1. The agent calls `plan-write` with the intended operations, exact delegated `requiredScopes`, summary, and rollback notes. The server verifies those scopes before approval, stores them with the operations, and reacquires the same set during execution.
 2. The server renders a human-readable plan - server-derived facts first (verbs, paths, current-vs-new diffs via its own prefetch reads), the model's stated intent labeled as such - and presents it for approval out-of-band:
    - **MCP elicitation, allowlisted clients only** (clients smoke-tested to render elicitation as user-facing UI). Decline is a rejection; cancel falls through to the browser page.
    - **Localhost approval page** for everyone else: the server opens the default browser to a loopback page (nonce-protected) showing the full plan, and waits for an explicit Approve/Reject click. Works headless-stdio on all platforms and all clients.
@@ -416,9 +416,9 @@ First-class. The `tenant` column scopes every memory node, and auth is per-tenan
 
 ## Skill versioning
 
-- Each `SKILL.md` carries a `version` field and a short `CHANGELOG` section.
-- `greybeard update` reports which skills changed since the local copy.
-- Breaking changes bump major; wording/reference tweaks bump minor.
+- `SKILL.md` frontmatter contains only `name` and `description`.
+- `.agents/skills/manifest.json` carries skill versions; `greybeard update` reports changed skills from that manifest.
+- Each skill includes `agents/openai.yaml` UI metadata and a trigger test artifact.
 
 ---
 

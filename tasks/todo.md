@@ -1,5 +1,19 @@
 # Greybeard Build Plan
 
+## v0.1.1 incident backlog
+
+- [x] Atomic dependency install, build, test, activation, and rollback in `greybeard update`
+- [x] `publishedPermissionScopes` discovery with legacy fallback
+- [x] Localhost public-client workspace registration and matching consent redirects
+- [x] Explicit-scope persistence without copying cached token scopes
+- [x] Plan-specific scope preflight and execution binding
+- [x] Audited temporary scope leases and guarded scope release
+- [x] Config-revision auth reload without replacing the MCP transport
+- [x] Unknown directory-role detection with diagnostics
+- [x] Structured MCP output with text compatibility
+- [x] Entra app credential and OIDC skill plus catalog metadata/manifest cleanup
+- [x] Incident regression suite for setup, provisioning, cleanup, update, reload, and role detection
+
 Milestones are ordered by dependency and by "time to first wow": the read path, one client, and the hero skill come before breadth. Each milestone has acceptance criteria; a milestone is done when its criteria pass, not before.
 
 ## M0 - Repo scaffold
@@ -75,7 +89,7 @@ Acceptance: teach a preference in one session ("use DeviceComplianceOrg"), get i
 - [x] entra-identity, conditional-access-review, license-optimizer
 - [x] Each with test question + expected behavior; static trigger-distinctness pass across all 12
 
-Note: model-driven trigger tests remain manual until M7; the M6 automated coverage validates catalog shape, frontmatter, distinct description prefixes, version lines, and `test.md` presence.
+Note: model-driven trigger tests remain manual until M7; automated coverage validates catalog shape, two-field frontmatter, distinct description prefixes, manifest versions, `agents/openai.yaml`, and `test.md` presence.
 
 Acceptance: all 12 v1 skills pass their trigger tests in one suite run; [L] skills degrade correctly when signed out (point to `greybeard setup`, no silent failure); the distinctness matrix passes, where ask-my-tenant is tested for precedence (specialist questions trigger the specialist, not the catch-all) and all other pairs for non-overlap.
 
@@ -95,7 +109,7 @@ Acceptance: on each client, the smoke test passes or the README matrix honestly 
 - [ ] npm publish executed for @greybeard/graph and @greybeard/memory
 - [x] Latest/pinned server modes in wizard; default remains local dist paths until first npm publish
 - [x] Scheduled skill pull (cron/launchd/Task Scheduler) per wizard choice; `greybeard update` with changed-skill report
-- [x] Skill `version` fields + CHANGELOG sections
+- [x] Skill version manifest plus `agents/openai.yaml` metadata; `SKILL.md` frontmatter limited to name and description
 - [x] README: positioning, consent requirements (honest version), setup matrix, first-run walkthrough, first-party app ID risks, security notes (token cache, gate, audit log)
 - [x] CONTRIBUTING.md per spec
 

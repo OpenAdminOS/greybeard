@@ -18,6 +18,7 @@ export type PlanWriteOperationInput = {
 export type PlanWriteInput = {
   summary: string;
   rollback: string;
+  requiredScopes: string[];
   stopOnError?: boolean;
   prefetch?: boolean;
   operations: PlanWriteOperationInput[];
@@ -63,6 +64,7 @@ export type RenderPlanInput = {
   planId: string;
   summary: string;
   rollback: string;
+  requiredScopes: string[];
   stopOnError: boolean;
   operations: NormalizedWriteOperation[];
   authToken: AuthToken;
@@ -84,11 +86,14 @@ export type OperationExecutionResult = {
 export type TerminalPlanStatus = "completed" | "partial" | "failed";
 
 export type GreybeardConfig = {
+  configRevision?: number;
   activeTenantId?: string;
   credentialMode?: CredentialMode;
   workspaceAppId?: string;
+  bootstrapCleanupPending?: boolean;
   grantedReadScopes?: string[];
   requestedWriteScopes?: string[];
+  scopeLeases?: ScopeLease[];
   skillUpdate?: SkillUpdateMode;
   serverUpdate?: ServerUpdateMode;
   serverPackageSource?: ServerPackageSource;
@@ -100,4 +105,11 @@ export type GreybeardConfig = {
   gate?: {
     cliApprove?: boolean;
   };
+};
+
+export type ScopeLease = {
+  scope: string;
+  reason: string;
+  requestedAt: string;
+  expiresAt?: string;
 };

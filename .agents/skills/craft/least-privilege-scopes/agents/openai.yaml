@@ -1,0 +1,4 @@
+interface:
+  display_name: "Least Privilege Scopes"
+  short_description: "Choose minimum Microsoft Graph access"
+  default_prompt: "Use $least-privilege-scopes to identify the minimum Graph permissions for this task."

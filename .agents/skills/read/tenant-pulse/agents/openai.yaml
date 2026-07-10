@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenant Pulse"
+  short_description: "Score Microsoft 365 tenant posture"
+  default_prompt: "Use $tenant-pulse to produce a scored health and security snapshot of my tenant."

@@ -1,12 +1,9 @@
 ---
 name: handoff
 description: Use when the user wants a handover summary, shift-change notes, or a paste-ready recap of what this session investigated and decided.
-version: 0.2.0
 ---
 
 # Handoff
-
-Version: 0.2.0
 
 Ends a working session the way a careful admin ends a shift: the next person can pick up without re-deriving anything. Works from the current conversation alone; memory tools sharpen it when available.
 
@@ -41,8 +38,3 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 ## Suggested First Step
 <the single next action for whoever picks this up>
 ```
-
-## CHANGELOG
-
-- 0.2.0: Added the capture preamble for confirmed learnings.
-- 0.1.0: Initial session handover skill.

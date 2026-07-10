@@ -34,7 +34,8 @@ const writesToken: AuthToken = {
     "Policy.Read.All",
     "Organization.Read.All",
     "AuditLog.Read.All",
-    "Reports.Read.All"
+    "Reports.Read.All",
+    "Group.ReadWrite.All"
   ],
   cacheProtection: "keychain",
   writesConfigured: true
@@ -531,6 +532,47 @@ describe.sequential("write gate acceptance cases", () => {
     expect(headerValue(replayInit?.headers, "Content-Type")).toBeUndefined();
   });
 
+  it("preflights and reacquires the exact approved scope set", async () => {
+    const auth = new CapturingAuth(writesToken);
+    const harness = await createHarness({ auth });
+    harness.fetcher.mockResolvedValueOnce(emptyResponse(204));
+    const approved = await createApprovedPlan(harness, basePlan({
+      requiredScopes: ["Group.ReadWrite.All"]
+    }));
+    await harness.call(() => harness.service.executePlan(approved));
+
+    expect(auth.requestedScopes).toEqual([
+      ["Group.ReadWrite.All"],
+      ["Group.ReadWrite.All"]
+    ]);
+  });
+
+  it("rejects missing plan scopes before opening approval", async () => {
+    const token = {
+      ...writesToken,
+      grantedScopes: writesToken.grantedScopes.filter((scope) => scope !== "Group.ReadWrite.All")
+    };
+    const harness = await createHarness({ auth: new MockAuth(token) });
+
+    const result = await harness.call(() => harness.service.planWrite(basePlan()));
+
+    expect(result.payload.error).toMatchObject({
+      code: "E_PLAN_SCOPE_MISSING",
+      details: { missingScopes: ["Group.ReadWrite.All"] }
+    });
+    expect(harness.browserUrls).toHaveLength(0);
+  });
+
+  it("returns structured MCP content while retaining text compatibility", async () => {
+    const result = await withMcpErrors(async () => ({ status: "ok", count: 2 }));
+
+    expect(result.structuredContent).toEqual({ status: "ok", count: 2 });
+    expect(result.content[0]).toEqual({
+      type: "text",
+      text: JSON.stringify({ status: "ok", count: 2 }, null, 2)
+    });
+  });
+
   it("19. leaks no approval URL or nonce through model-visible records or appdata files", async () => {
     expect(approvalSecrets.length).toBeGreaterThan(0);
 
@@ -572,6 +614,7 @@ class MockAuth implements GraphAuthProvider {
       grantedScopes: token.grantedScopes,
       entraP1: true,
       directoryRoles: ["Global Reader"],
+      directoryRolesStatus: { state: "available" },
       cacheProtection: token.cacheProtection,
       gate: {
         pendingPlan: null,
@@ -580,7 +623,7 @@ class MockAuth implements GraphAuthProvider {
     };
   }
 
-  async getToken(): Promise<AuthToken> {
+  async getToken(_scopes: string[]): Promise<AuthToken> {
     return this.token;
   }
 
@@ -607,6 +650,15 @@ class ThrowOnExecuteAuth extends MockAuth {
       throw new Error("execute auth unavailable");
     }
 
+    return super.getToken();
+  }
+}
+
+class CapturingAuth extends MockAuth {
+  readonly requestedScopes: string[][] = [];
+
+  override async getToken(scopes: string[]): Promise<AuthToken> {
+    this.requestedScopes.push([...scopes]);
     return super.getToken();
   }
 }
@@ -679,17 +731,18 @@ async function createHarness(options: {
 } = {}): Promise<Harness> {
   const appDataPath = options.appDataPath ?? await tempAppData();
   appDataRoots.push(appDataPath);
-  if (options.cliApprove) {
-    await mkdir(appDataPath, { recursive: true });
-    await writeFile(join(appDataPath, "config.json"), JSON.stringify({
+  await mkdir(appDataPath, { recursive: true });
+  await writeFile(join(appDataPath, "config.json"), JSON.stringify({
+    requestedWriteScopes: ["Group.ReadWrite.All"],
+    ...(options.cliApprove ? {
       gate: {
         cliApprove: true
       }
-    }), {
-      encoding: "utf8",
-      mode: 0o600
-    });
-  }
+    } : {})
+  }), {
+    encoding: "utf8",
+    mode: 0o600
+  });
 
   const harness = new Harness(appDataPath, {
     token: options.writesConfigured === false ? readOnlyToken : writesToken,
@@ -717,6 +770,7 @@ function basePlan(overrides: Partial<PlanWriteInput> = {}): PlanWriteInput {
   return {
     summary: "Apply approved test change",
     rollback: "Reverse the test change",
+    requiredScopes: ["Group.ReadWrite.All"],
     stopOnError: true,
     prefetch: false,
     operations: [

@@ -1,16 +1,9 @@
 ---
 name: tenant-pulse
 description: Use when the user asks how healthy or secure the tenant is, says posture, risk, score, "how are we doing", or wants a scored Microsoft 365 tenant snapshot.
-version: 0.3.0
-requires:
-  servers: [greybeard-graph]
-  scopes: [User.Read.All, Policy.Read.All, Organization.Read.All, AuditLog.Read.All, Reports.Read.All]
-  roles: [reporting]
 ---
 
 # Tenant Pulse
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -20,7 +13,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop. Do not continue with guesses.
-3. Read `entraP1`, `directoryRoles`, `grantedScopes`, `tenantDomain`, and `account`.
+3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, `grantedScopes`, `tenantDomain`, and `account`. Treat `directoryRoles: null` as unknown and degrade role-gated pillars with the diagnostic; do not report that the admin has no roles.
 4. Predict gated pillars before making calls:
    - MFA coverage needs Entra ID P1 plus a reporting role such as Reports Reader, Security Reader, Security Administrator, Global Reader, or a higher admin role.
    - Stale accounts with `signInActivity` needs Entra ID P1, `AuditLog.Read.All`, and a reporting role.
@@ -191,13 +184,5 @@ Score: <score>/100
 ## Token Discipline
 Requests made: <n>. Scopes used: <granted scopes relevant to these calls>. Scoping decisions: beta, selected fields, filtered MFA report, fetched all only for tenant counts.
 ```
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble for confirmed learnings.
-- 0.2.0: Moved into the read category and declared requirements in frontmatter.
-- 0.1.2: Fixed roleAssignments $select; the service rejects appScopeId and createdDateTime. Verified live via Lokka.
-- 0.1.1: Updated Graph examples and tenant-pulse guidance to use beta by default.
-- 0.1.0: Initial v1 tenant snapshot workflow.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

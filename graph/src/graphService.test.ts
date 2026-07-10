@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { GreybeardGraphError } from "./errors.js";
 import { GraphService } from "./graphService.js";
+import { readGreybeardConfig, writeGreybeardConfig } from "./config.js";
 import {
   AuthStatus,
   AuthToken,
@@ -42,6 +46,7 @@ const signedInStatus: AuthStatus = {
   grantedScopes: token.grantedScopes,
   entraP1: true,
   directoryRoles: ["Global Reader"],
+  directoryRolesStatus: { state: "available" },
   cacheProtection: "keychain",
   gate: {
     pendingPlan: null,
@@ -52,7 +57,7 @@ const signedInStatus: AuthStatus = {
 class MockAuth implements GraphAuthProvider {
   constructor(private readonly authToken: AuthToken = token) {}
 
-  async getToken(): Promise<AuthToken> {
+  async getToken(_scopes: string[]): Promise<AuthToken> {
     return this.authToken;
   }
 
@@ -70,7 +75,47 @@ class MockAuth implements GraphAuthProvider {
   }
 }
 
+class CapturingAuth extends MockAuth {
+  readonly requestedScopes: string[][] = [];
+
+  override async getToken(scopes: string[]): Promise<AuthToken> {
+    this.requestedScopes.push([...scopes]);
+    return super.getToken(scopes);
+  }
+}
+
 describe("GraphService", () => {
+  it("requests active scope leases and expires stale leases before a read", async () => {
+    const appDataPath = await mkdtemp(join(tmpdir(), "greybeard-scope-read-"));
+    await writeGreybeardConfig(appDataPath, {
+      scopeLeases: [
+        {
+          scope: "Device.Read.All",
+          reason: "active inventory",
+          requestedAt: "2026-07-10T10:00:00.000Z",
+          expiresAt: "2099-01-01T00:00:00.000Z"
+        },
+        {
+          scope: "Application.Read.All",
+          reason: "old inventory",
+          requestedAt: "2026-07-09T10:00:00.000Z",
+          expiresAt: "2000-01-01T00:00:00.000Z"
+        }
+      ]
+    });
+    const auth = new CapturingAuth();
+    const fetcher = vi.fn<FetchLike>().mockResolvedValue(jsonResponse({ value: [] }));
+    const service = new GraphService({ auth, fetcher, appDataPath });
+
+    await service.graph({ path: "/devices", query: { "$select": "id" } });
+
+    expect(auth.requestedScopes[0]).toContain("Device.Read.All");
+    expect(auth.requestedScopes[0]).not.toContain("Application.Read.All");
+    expect((await readGreybeardConfig(appDataPath)).scopeLeases?.map((lease) => lease.scope)).toEqual(["Device.Read.All"]);
+    const auditFile = (await readdir(join(appDataPath, "audit")))[0] as string;
+    expect(await readFile(join(appDataPath, "audit", auditFile), "utf8")).toContain('"event":"expired"');
+  });
+
   it("performs a select-scoped read", async () => {
     const fetcher = vi.fn<FetchLike>().mockResolvedValue(jsonResponse({ value: [{ id: "1" }] }));
     const service = new GraphService({ auth: new MockAuth(), fetcher });

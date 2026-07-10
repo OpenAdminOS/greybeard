@@ -15,6 +15,7 @@ import {
   PersistenceCreator
 } from "@azure/msal-node-extensions";
 import { getGreybeardAppDataPath, safePathPart } from "./appData.js";
+import { activeScopeLeases, readGreybeardConfig, updateGreybeardConfig } from "./config.js";
 import { buildAdminConsentUrl, isAdminConsentError, isWriteScope, scopeJustification } from "./consent.js";
 import { GreybeardGraphError } from "./errors.js";
 import {
@@ -28,8 +29,11 @@ import {
   DEFAULT_TIER1_SCOPES,
   FetchLike,
   GRAPH_CLI_CLIENT_ID,
-  GraphAuthProvider
+  GraphAuthProvider,
+  RemoveScopeInput,
+  RemoveScopeResult
 } from "./types.js";
+import { ScopeAuditLog } from "./scopeAudit.js";
 
 type MsalAuthProviderOptions = {
   tenantId?: string;
@@ -55,6 +59,8 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
   private readonly writesConfigured: boolean;
   private readonly cacheProtection: CacheProtection;
   private readonly fetcher: FetchLike;
+  private readonly appDataPath: string;
+  private readonly scopeAudit: ScopeAuditLog;
 
   private constructor(params: {
     app: PublicClientApplication;
@@ -65,6 +71,7 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
     writesConfigured: boolean;
     cacheProtection: CacheProtection;
     fetcher: FetchLike;
+    appDataPath: string;
   }) {
     this.app = params.app;
     this.tenantId = params.tenantId;
@@ -74,13 +81,16 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
     this.writesConfigured = params.writesConfigured;
     this.cacheProtection = params.cacheProtection;
     this.fetcher = params.fetcher;
+    this.appDataPath = params.appDataPath;
+    this.scopeAudit = new ScopeAuditLog(params.appDataPath);
   }
 
   static async create(options: MsalAuthProviderOptions = {}): Promise<MsalGraphAuthProvider> {
     const tenantId = options.tenantId ?? process.env.GREYBEARD_TENANT_ID ?? "organizations";
     const clientId = options.clientId ?? GRAPH_CLI_CLIENT_ID;
+    const appDataPath = options.appDataPath ?? getGreybeardAppDataPath();
     const cache = await createCachePlugin({
-      appDataPath: options.appDataPath ?? getGreybeardAppDataPath(),
+      appDataPath,
       clientId
     });
 
@@ -102,7 +112,8 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
       credentialMode: options.credentialMode ?? "read-only",
       writesConfigured: options.writesConfigured ?? false,
       cacheProtection: cache.protection,
-      fetcher: options.fetcher ?? (globalThis.fetch as unknown as FetchLike)
+      fetcher: options.fetcher ?? (globalThis.fetch as unknown as FetchLike),
+      appDataPath
     });
   }
 
@@ -151,7 +162,7 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
     }
 
     const token = this.toAuthToken(result);
-    const [entraP1, directoryRoles] = await Promise.all([
+    const [entraP1, directoryRoleProbe] = await Promise.all([
       this.detectEntraP1(token.accessToken),
       this.detectDirectoryRoles(token.accessToken)
     ]);
@@ -167,7 +178,8 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
       clientIdKind: token.clientIdKind,
       grantedScopes: token.grantedScopes,
       entraP1,
-      directoryRoles,
+      directoryRoles: directoryRoleProbe.roles,
+      directoryRolesStatus: directoryRoleProbe.status,
       cacheProtection: token.cacheProtection,
       gate: {
         pendingPlan: null,
@@ -178,6 +190,29 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
 
   async addScopes(input: AddScopeInput): Promise<AddScopeResult> {
     const requestedScopes = unique(input.scopes);
+    if (requestedScopes.length === 0 || !input.reason.trim()) {
+      throw new GreybeardGraphError({
+        code: "E_SCOPE_REQUEST_INVALID",
+        message: "Scope requests require at least one scope and a reason.",
+        guidance: "Provide the exact delegated scopes and a concise business reason."
+      });
+    }
+    if (input.leaseMinutes !== undefined && (!Number.isInteger(input.leaseMinutes) || input.leaseMinutes < 1 || input.leaseMinutes > 43_200)) {
+      throw new GreybeardGraphError({
+        code: "E_SCOPE_REQUEST_INVALID",
+        message: "leaseMinutes must be an integer from 1 to 43200.",
+        guidance: "Use a temporary lease of at most 30 days, or omit leaseMinutes for a persistent request."
+      });
+    }
+    const leaseExpiresAt = input.leaseMinutes === undefined
+      ? undefined
+      : new Date(Date.now() + input.leaseMinutes * 60_000).toISOString();
+    await this.scopeAudit.append({
+      event: "requested",
+      scopes: requestedScopes,
+      reason: input.reason,
+      leaseExpiresAt
+    });
     const writeScopes = requestedScopes.filter(isWriteScope);
     if (this.credentialMode === "read-only" && writeScopes.length > 0) {
       throw new GreybeardGraphError({
@@ -196,11 +231,20 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
     const missing = requestedScopes.filter((scope) => !grantedSet.has(scope.toLowerCase()));
 
     if (missing.length === 0) {
+      await this.persistScopeLeases(requestedScopes, input.reason, leaseExpiresAt);
+      await this.scopeAudit.append({
+        event: "granted",
+        scopes: requestedScopes,
+        reason: input.reason,
+        leaseExpiresAt,
+        details: { alreadyGranted: true }
+      });
       return {
         granted: true,
         alreadyGranted,
         requestedScopes,
-        grantedScopes: currentToken.grantedScopes
+        grantedScopes: currentToken.grantedScopes,
+        leaseExpiresAt
       };
     }
 
@@ -209,14 +253,28 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
         scopes: missing,
         openBrowser
       });
+      await this.persistScopeLeases(requestedScopes, input.reason, leaseExpiresAt);
+      await this.scopeAudit.append({
+        event: "granted",
+        scopes: requestedScopes,
+        reason: input.reason,
+        leaseExpiresAt
+      });
       return {
         granted: true,
         alreadyGranted,
         requestedScopes,
-        grantedScopes: unique([...(result.scopes ?? []), ...currentToken.grantedScopes])
+        grantedScopes: unique([...(result.scopes ?? []), ...currentToken.grantedScopes]),
+        leaseExpiresAt
       };
     } catch (error) {
       if (isAdminConsentError(error)) {
+        await this.scopeAudit.append({
+          event: "consent_required",
+          scopes: missing,
+          reason: input.reason,
+          leaseExpiresAt
+        });
         return {
           granted: false,
           alreadyGranted,
@@ -225,7 +283,8 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
           consentUrl: buildAdminConsentUrl({
             tenantId: currentToken.tenantId,
             clientId: currentToken.clientId,
-            scopes: missing
+            scopes: missing,
+            ...(currentToken.clientIdKind === "workspace" ? { redirectUri: "http://localhost" } : {})
           }),
           justifications: Object.fromEntries(missing.map((scope) => [scope, scopeJustification(scope)])),
           guidance: "Give this admin-consent URL and scope justification list to an admin who can grant tenant-wide consent."
@@ -234,6 +293,73 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
 
       throw error;
     }
+  }
+
+  async removeScopes(input: RemoveScopeInput): Promise<RemoveScopeResult> {
+    const requested = unique(input.scopes);
+    if (!input.confirm || requested.length === 0 || !input.reason.trim()) {
+      throw new GreybeardGraphError({
+        code: "E_SCOPE_RELEASE_CONFIRMATION_REQUIRED",
+        message: "Removing configured scopes requires confirm=true, at least one scope, and a reason.",
+        guidance: "Review the affected workflows, then repeat with explicit confirmation."
+      });
+    }
+
+    const tier1 = new Set(DEFAULT_TIER1_SCOPES.map((scope) => scope.toLowerCase()));
+    const protectedScopes = requested.filter((scope) => tier1.has(scope.toLowerCase()));
+    if (protectedScopes.length > 0) {
+      throw new GreybeardGraphError({
+        code: "E_SCOPE_RELEASE_BLOCKED",
+        message: `Tier 1 scopes cannot be removed through remove-scope: ${protectedScopes.join(", ")}.`,
+        guidance: "Re-run setup with a different base-scope policy instead of weakening the active credential implicitly."
+      });
+    }
+
+    const config = await readGreybeardConfig(this.appDataPath);
+    const configured = new Set([
+      ...(config.scopeLeases ?? []).map((lease) => lease.scope),
+      ...(config.requestedWriteScopes ?? [])
+    ].map((scope) => scope.toLowerCase()));
+    const removedScopes = requested.filter((scope) => configured.has(scope.toLowerCase()));
+    const notConfigured = requested.filter((scope) => !configured.has(scope.toLowerCase()));
+    const removedSet = new Set(removedScopes.map((scope) => scope.toLowerCase()));
+    await updateGreybeardConfig(this.appDataPath, (current) => ({
+      ...current,
+      scopeLeases: (current.scopeLeases ?? []).filter((lease) => !removedSet.has(lease.scope.toLowerCase())),
+      requestedWriteScopes: (current.requestedWriteScopes ?? []).filter((scope) => !removedSet.has(scope.toLowerCase()))
+    }));
+    await this.scopeAudit.append({
+      event: "released",
+      scopes: removedScopes,
+      reason: input.reason,
+      details: { notConfigured }
+    });
+
+    return {
+      removedScopes,
+      notConfigured,
+      requiresTenantConsentRevocation: removedScopes.length > 0,
+      guidance: removedScopes.length > 0
+        ? "Greybeard stopped requesting these scopes. An Entra administrator must also revoke the delegated consent grant to remove tenant-side consent immediately."
+        : "No matching configured scopes were found."
+    };
+  }
+
+  private async persistScopeLeases(scopes: string[], reason: string, expiresAt?: string): Promise<void> {
+    const requestedAt = new Date().toISOString();
+    const incoming = new Set(scopes.map((scope) => scope.toLowerCase()));
+    await updateGreybeardConfig(this.appDataPath, (current) => ({
+      ...current,
+      scopeLeases: [
+        ...activeScopeLeases(current).filter((lease) => !incoming.has(lease.scope.toLowerCase())),
+        ...scopes.map((scope) => ({
+          scope,
+          reason,
+          requestedAt,
+          ...(expiresAt ? { expiresAt } : {})
+        }))
+      ]
+    }));
   }
 
   private async findAccount(): Promise<AccountInfo | null> {
@@ -275,7 +401,10 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
       clientIdKind: this.clientIdKind,
       grantedScopes: [],
       entraP1: null,
-      directoryRoles: [],
+      directoryRoles: null,
+      directoryRolesStatus: {
+        state: "not-signed-in"
+      },
       cacheProtection: this.cacheProtection,
       gate: {
         pendingPlan: null,
@@ -307,18 +436,36 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
     }
   }
 
-  private async detectDirectoryRoles(accessToken: string): Promise<string[]> {
+  private async detectDirectoryRoles(accessToken: string): Promise<{
+    roles: string[] | null;
+    status: { state: "available" | "unavailable"; diagnostic?: string };
+  }> {
     try {
       const data = await this.graphStatusGet("/beta/me/memberOf/microsoft.graph.directoryRole?$select=displayName", accessToken);
       if (!isObject(data) || !Array.isArray(data.value)) {
-        return [];
+        return {
+          roles: null,
+          status: {
+            state: "unavailable",
+            diagnostic: "Graph returned an unexpected directory-role response."
+          }
+        };
       }
 
-      return data.value
-        .map((role) => (isObject(role) ? role.displayName : undefined))
-        .filter((role): role is string => typeof role === "string");
-    } catch {
-      return [];
+      return {
+        roles: data.value
+          .map((role) => (isObject(role) ? role.displayName : undefined))
+          .filter((role): role is string => typeof role === "string"),
+        status: { state: "available" }
+      };
+    } catch (error) {
+      return {
+        roles: null,
+        status: {
+          state: "unavailable",
+          diagnostic: error instanceof Error ? error.message : String(error)
+        }
+      };
     }
   }
 

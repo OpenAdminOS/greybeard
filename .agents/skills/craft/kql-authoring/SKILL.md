@@ -1,12 +1,9 @@
 ---
 name: kql-authoring
 description: Use when the user asks to write, tune, explain, debug, optimize, or convert KQL for Intune device query, Log Analytics, Sentinel, sign-in, audit, or compliance data.
-version: 0.3.0
 ---
 
 # KQL Authoring
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -39,11 +36,5 @@ Return:
 - Parameters to change, such as lookback window or threshold.
 - Assumptions about tables.
 - Tuning notes.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble and a step that records confirmed query patterns as query memories.
-- 0.2.0: Moved into the craft category.
-- 0.1.0: Initial KQL authoring skill with Intune and Log Analytics guidance.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

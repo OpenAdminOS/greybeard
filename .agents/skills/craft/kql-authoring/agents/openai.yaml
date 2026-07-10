@@ -1,0 +1,4 @@
+interface:
+  display_name: "KQL Authoring"
+  short_description: "Write and tune operational KQL"
+  default_prompt: "Use $kql-authoring to write or optimize this KQL query."

@@ -18,6 +18,7 @@ export function renderPlan(input: RenderPlanInput): RenderedPlan {
     `Session started: ${input.sessionStartedAt}`,
     `Approval deadline: ${input.approvalDeadline}`,
     `Operation count: ${input.operations.length}`,
+    `Required scopes: ${input.requiredScopes.join(", ")}`,
     `Destructive count: ${destructiveCount}`,
     `Patch count: ${patchCount}`,
     "",
@@ -81,6 +82,7 @@ export function renderPlan(input: RenderPlanInput): RenderedPlan {
     `<dt>Session started</dt><dd>${escapeHtml(input.sessionStartedAt)}</dd>`,
     `<dt>Deadline</dt><dd>${escapeHtml(input.approvalDeadline)}</dd>`,
     `<dt>Counts</dt><dd>${input.operations.length} operations, ${destructiveCount} deletes, ${patchCount} patches</dd>`,
+    `<dt>Required scopes</dt><dd>${escapeHtml(input.requiredScopes.join(", "))}</dd>`,
     "</dl>",
     "<section>",
     "<h2>Operations</h2>",
@@ -126,6 +128,7 @@ export function renderPlan(input: RenderPlanInput): RenderedPlan {
       summary: input.summary,
       rollback: input.rollback,
       stopOnError: input.stopOnError,
+      requiredScopes: input.requiredScopes,
       operations: input.operations.map((operation, index) => ({
         index,
         method: operation.method,

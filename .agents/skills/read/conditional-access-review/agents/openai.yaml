@@ -1,0 +1,4 @@
+interface:
+  display_name: "Conditional Access Review"
+  short_description: "Review Conditional Access policy posture"
+  default_prompt: "Use $conditional-access-review to review my tenant Conditional Access policies."

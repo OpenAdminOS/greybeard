@@ -1,12 +1,9 @@
 ---
 name: least-privilege-scopes
 description: Use when the user needs minimum Microsoft Graph permissions, scope choices, admin-consent notes, over-permissioning review, or least-privilege access planning.
-version: 0.3.0
 ---
 
 # Least Privilege Scopes
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -15,6 +12,15 @@ When the admin confirms a correction or preference, call `remember` with intent 
 When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 Read `references/scope-tables.md` before answering. Use it to choose the smallest delegated Microsoft Graph scope set, identify admin-consent requirements, and call out license or role gates that scopes do not solve.
+
+Distinguish these values explicitly:
+
+- Delegated scopes requested by a public client for a signed-in user.
+- Application roles used by app-only credentials; never present them as delegated scopes.
+- Configured permissions in an app registration's `requiredResourceAccess`.
+- Scopes embedded in the current access token.
+- Tenant consent grants stored on the service principal.
+- Greybeard scope leases, which control future requests but do not by themselves revoke tenant consent.
 
 Do not recommend `Directory.Read.All` for Greybeard v1 read paths unless the user explicitly accepts the tradeoff after seeing the narrower alternative. Writes must route through `change-plan` and require `greybeard setup --writes`.
 
@@ -29,11 +35,6 @@ Return:
 - Admin consent required: yes or no.
 - Extra non-scope gates: Entra ID P1, Intune license, reporting role, or directory role.
 - What to do on 403: use `add-scope` for the exact missing scope and relay the consent URL when `granted` is false.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble and a step that records confirmed scope choices as preference memories.
-- 0.2.0: Moved into the craft category.
-- 0.1.0: Initial least-privilege scope reference skill.
+- Cleanup: use a temporary lease for bootstrap access, then `remove-scope`; state whether an admin must also revoke tenant consent.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

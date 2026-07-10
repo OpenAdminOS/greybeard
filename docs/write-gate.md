@@ -46,6 +46,7 @@ Input:
 {
   "summary": "Disable sign-in for 3 offboarded users",
   "rollback": "PATCH accountEnabled=true for the same three users",
+  "requiredScopes": ["User.ReadWrite.All"],
   "stopOnError": true,
   "operations": [
     {
@@ -62,6 +63,7 @@ Input:
 Validation at intake (before any approval channel opens):
 
 - Writes app configured for the active tenant (section 3.1).
+- `requiredScopes` contains the exact delegated write scope set for the operations. The server acquires and verifies that set before opening approval; missing scopes return `E_PLAN_SCOPE_MISSING`.
 - `method` in POST, PATCH, PUT, DELETE. GET operations are rejected: reads need no plan.
 - `apiVersion` defaults to `beta`; callers may set `v1.0` for a specific operation when stability matters.
 - 1 to 50 operations per plan. Body size max 256 KB per operation.
@@ -98,7 +100,7 @@ Results by state:
 
 Input: `{ "planId": "gbp_7f3a91c2", "token": "gbt_..." }`
 
-The server verifies: token hash match (constant-time compare against the stored SHA-256), plan state APPROVED, TTL not lapsed. Then it replays the stored operations in order, resolving response references as it goes. Replay is sequential individual requests; the server does not use `$batch` internally in v1 (Graph batches cap at 20 inner requests, run parallel unless `dependsOn` chains them, and cannot resolve response references between inner requests).
+The server verifies: token hash match (constant-time compare against the stored SHA-256), plan state APPROVED, TTL not lapsed. It reacquires and verifies the exact `requiredScopes` stored with the approved plan, then replays the stored operations in order. Replay is sequential individual requests; the server does not use `$batch` internally in v1.
 
 Result:
 
@@ -191,6 +193,7 @@ Rejection, timeout, and expiry are `check-plan` result statuses, not errors (sec
 | E_WRITE_BLOCKED | Write verb on `graph`, or batch with inner write | Call `plan-write` with the intended operations |
 | E_WRITES_NOT_CONFIGURED | No writes app registration for the active tenant | Tell the admin to run `greybeard setup --writes` |
 | E_PLAN_INVALID | Intake validation failed (detail in message) | Fix the plan structure and resubmit |
+| E_PLAN_SCOPE_MISSING | The workspace token lacks one or more plan scopes | Use `add-scope` for the exact missing scopes before approval |
 | E_PLAN_PENDING | Another plan is awaiting approval in this session | Poll `check-plan`; tell the admin a plan is pending |
 | E_PLAN_NOT_FOUND | Unknown planId (includes plans voided by restart) | Nothing to retry; a new plan is required |
 | E_CHANNEL_UNAVAILABLE | No approval channel could be established | Tell the admin to run `greybeard doctor` |
@@ -206,7 +209,7 @@ Graph API errors during replay are reported per operation with status, Graph err
 The approval surface (elicitation text, browser page, CLI render) shows, in order:
 
 1. Tenant domain and signed-in account, the credential the writes will run under (writes app name), client name, and session start time. The human must see whose tenant this touches and as what.
-2. Operation list: verb badge, full path, API version. DELETE operations visually flagged as destructive and counted separately ("2 deletes, 3 patches").
+2. Exact delegated scope set, then the operation list: verb badge, full path, API version. DELETE operations are visually flagged and counted separately.
 3. Per-operation body. For PATCH with prefetch: current value vs new value per field. Response references verbatim.
 4. The model's `summary`, `reason` per operation, and `rollback`, labeled "stated intent (model-provided)".
 5. Approve and Reject controls, Reject with optional reason.

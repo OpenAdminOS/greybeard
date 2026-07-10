@@ -1,11 +1,12 @@
 import { createHmac, randomBytes as nodeRandomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { GreybeardGraphError } from "./errors.js";
 import { classifyGraphFailure, GraphErrorBody } from "./classify.js";
-import { DEFAULT_TIER1_SCOPES, FetchLike, GraphAuthProvider, ResponseLike, AuthToken } from "./types.js";
+import { FetchLike, GraphAuthProvider, ResponseLike, AuthToken } from "./types.js";
+import { isWriteScope } from "./consent.js";
 import { AuditLog } from "./auditLog.js";
 import { ApprovalChannelCoordinator, ApprovalChannelHandle, ApprovalClientContext, BrowserOpen } from "./approvalChannels.js";
 import { canonicalJson, sha256Buffer, sha256Hex } from "./canonicalJson.js";
-import { readGreybeardConfig } from "./config.js";
+import { activeScopeLeases, readGreybeardConfig } from "./config.js";
 import { renderPlan } from "./planRendering.js";
 import {
   ApprovalDecision,
@@ -114,12 +115,16 @@ export class WriteGate {
       });
     }
 
-    const authToken = await this.auth.getToken([...DEFAULT_TIER1_SCOPES]);
+    const operations = normalizePlanInput(input);
+    const requiredScopes = normalizeRequiredScopes(input.requiredScopes);
+    const scopeConfig = await readGreybeardConfig(this.appDataPath);
+    assertConfiguredPlanScopes(scopeConfig, requiredScopes);
+    const authToken = await this.auth.getToken(requiredScopes);
     if (authToken.credentialMode !== "writes" || !authToken.writesConfigured) {
       throw writesNotConfigured();
     }
+    assertTokenScopes(authToken, requiredScopes);
 
-    const operations = normalizePlanInput(input);
     if (input.prefetch !== false) {
       await this.prefetchPatchDiffs(operations, authToken);
     }
@@ -127,12 +132,14 @@ export class WriteGate {
     const plan = this.createPlan({
       input,
       operations,
+      requiredScopes,
       authToken
     });
     const rendered = renderPlan({
       planId: plan.id,
       summary: plan.summary,
       rollback: plan.rollback,
+      requiredScopes: plan.requiredScopes,
       stopOnError: plan.stopOnError,
       operations: plan.operations,
       authToken,
@@ -232,10 +239,11 @@ export class WriteGate {
     const results: OperationExecutionResult[] = [];
     let status: TerminalPlanStatus;
     try {
-      const authToken = await this.auth.getToken([...DEFAULT_TIER1_SCOPES]);
+      const authToken = await this.auth.getToken(plan.requiredScopes);
       if (authToken.credentialMode !== "writes" || !authToken.writesConfigured) {
         throw writesNotConfigured();
       }
+      assertTokenScopes(authToken, plan.requiredScopes);
 
       await this.replayOperations(plan, authToken, results);
       status = summarizeExecution(results);
@@ -263,6 +271,7 @@ export class WriteGate {
   private createPlan(params: {
     input: PlanWriteInput;
     operations: NormalizedWriteOperation[];
+    requiredScopes: string[];
     authToken: AuthToken;
   }): PlanRecord {
     const id = this.nextPlanId();
@@ -273,6 +282,7 @@ export class WriteGate {
       rollback: params.input.rollback,
       stopOnError: params.input.stopOnError ?? true,
       operations: params.operations,
+      requiredScopes: params.requiredScopes,
       authToken: params.authToken,
       clientName: clientName(this.clientContext()),
       createdAtMs,
@@ -342,6 +352,7 @@ export class WriteGate {
       plan.id,
       this.sessionId,
       String(expiresAt),
+      ...plan.requiredScopes,
       ...plan.operations.map((operation) => operation.hash)
     ].join("\n");
     const tokenBytes = createHmac("sha256", this.tokenSecret).update(material).digest();
@@ -606,6 +617,7 @@ export class WriteGate {
       tenantDomain: plan.authToken.tenantDomain,
       account: plan.authToken.account,
       clientName: plan.clientName,
+      requiredScopes: plan.requiredScopes,
       operations: plan.operations
     };
   }
@@ -632,6 +644,7 @@ type PlanRecord = {
   rollback: string;
   stopOnError: boolean;
   operations: NormalizedWriteOperation[];
+  requiredScopes: string[];
   authToken: AuthToken;
   clientName: string;
   createdAtMs: number;
@@ -664,6 +677,72 @@ function normalizePlanInput(input: PlanWriteInput): NormalizedWriteOperation[] {
   const operations = input.operations.map((operation, index) => normalizeOperation(operation, index));
   validateResponseReferences(operations);
   return operations;
+}
+
+function normalizeRequiredScopes(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw invalidPlan("requiredScopes must contain at least one delegated write scope.");
+  }
+
+  const scopes: string[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isNonEmptyString(item)) {
+      throw invalidPlan("requiredScopes must contain only non-empty scope names.");
+    }
+    if (!isWriteScope(item)) {
+      throw invalidPlan(`requiredScopes contains a non-write scope: ${item}.`);
+    }
+    const key = item.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      scopes.push(item);
+    }
+  }
+  return scopes.sort((a, b) => a.localeCompare(b));
+}
+
+function assertTokenScopes(token: AuthToken, requiredScopes: string[]): void {
+  const granted = new Set(token.grantedScopes.map((scope) => scope.toLowerCase()));
+  const missingScopes = requiredScopes.filter((scope) => !granted.has(scope.toLowerCase()));
+  if (missingScopes.length === 0) {
+    return;
+  }
+
+  throw new GreybeardGraphError({
+    code: "E_PLAN_SCOPE_MISSING",
+    message: `The workspace credential is missing required delegated scopes: ${missingScopes.join(", ")}.`,
+    guidance: "Request the exact missing scopes with add-scope before asking for plan approval.",
+    details: {
+      requiredScopes,
+      missingScopes
+    }
+  });
+}
+
+function assertConfiguredPlanScopes(
+  config: Awaited<ReturnType<typeof readGreybeardConfig>>,
+  requiredScopes: string[]
+): void {
+  const configured = new Set([
+    ...(config.requestedWriteScopes ?? []),
+    ...activeScopeLeases(config).map((lease) => lease.scope)
+  ].map((scope) => scope.toLowerCase()));
+  const missingScopes = requiredScopes.filter((scope) => !configured.has(scope.toLowerCase()));
+  if (missingScopes.length === 0) {
+    return;
+  }
+
+  throw new GreybeardGraphError({
+    code: "E_PLAN_SCOPE_MISSING",
+    message: `The plan requests delegated scopes that Greybeard has not configured: ${missingScopes.join(", ")}.`,
+    guidance: "Request and record the exact missing scopes with add-scope before asking for approval.",
+    details: {
+      requiredScopes,
+      missingScopes,
+      configuredScopes: [...configured]
+    }
+  });
 }
 
 function normalizeOperation(operation: PlanWriteOperationInput, index: number): NormalizedWriteOperation {

@@ -24,7 +24,14 @@ const graphInputSchema = {
 
 const addScopeInputSchema = {
   scopes: z.array(z.string().min(1)).min(1),
-  reason: z.string().min(1)
+  reason: z.string().min(1),
+  leaseMinutes: z.number().int().min(1).max(43_200).optional()
+};
+
+const removeScopeInputSchema = {
+  scopes: z.array(z.string().min(1)).min(1),
+  reason: z.string().min(1),
+  confirm: z.literal(true)
 };
 
 const writeOperationSchema = z.object({
@@ -38,10 +45,13 @@ const writeOperationSchema = z.object({
 const planWriteInputSchema = {
   summary: z.string().min(1),
   rollback: z.string().min(1),
+  requiredScopes: z.array(z.string().min(1)).min(1),
   stopOnError: z.boolean().optional().default(true),
   prefetch: z.boolean().optional().default(true),
   operations: z.array(writeOperationSchema).min(1).max(50)
 };
+
+const structuredOutputSchema = z.object({}).catchall(z.unknown());
 
 const checkPlanInputSchema = {
   planId: z.string().regex(/^gbp_[0-9a-f]{8}$/)
@@ -55,7 +65,7 @@ const executePlanInputSchema = {
 export function createGreybeardGraphMcpServer(service: GraphService): McpServer {
   const server = new McpServer({
     name: "greybeard-graph",
-    version: "0.1.0"
+    version: "0.1.1"
   });
 
   service.setClientContextProvider(() => ({
@@ -75,7 +85,8 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     {
       title: "Microsoft Graph read tool",
       description: "Read Microsoft Graph with GET requests, beta by default, scoped query parameters, fetchAll pagination, and all-GET batch passthrough.",
-      inputSchema: graphInputSchema
+      inputSchema: graphInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMcpErrors(() => service.graph(input))
   );
@@ -85,7 +96,8 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     {
       title: "Plan Microsoft Graph write",
       description: "Validate and store a Microsoft Graph write plan, then open a human approval channel without returning any approval URL or secret.",
-      inputSchema: planWriteInputSchema
+      inputSchema: planWriteInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMcpErrors(() => service.planWrite(input))
   );
@@ -95,7 +107,8 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     {
       title: "Check write plan",
       description: "Long-poll a write plan for approval, rejection, timeout, expiry, or execution results. Delivers an approval token exactly once.",
-      inputSchema: checkPlanInputSchema
+      inputSchema: checkPlanInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMcpErrors(() => service.checkPlan(input))
   );
@@ -105,7 +118,8 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     {
       title: "Execute approved write plan",
       description: "Replay the server-stored approved Microsoft Graph write operations with a single-use token.",
-      inputSchema: executePlanInputSchema
+      inputSchema: executePlanInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMcpErrors(() => service.executePlan(input))
   );
@@ -114,7 +128,8 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     "get-auth-status",
     {
       title: "Get auth status",
-      description: "Report Greybeard Microsoft Graph sign-in, credential mode, granted scopes, Entra P1, directory roles, cache protection, and write gate state."
+      description: "Report Greybeard Microsoft Graph sign-in, credential mode, granted scopes, Entra P1, directory roles, role-probe diagnostics, cache protection, and write gate state.",
+      outputSchema: structuredOutputSchema
     },
     async () => withMcpErrors(() => service.getAuthStatus())
   );
@@ -124,9 +139,21 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     {
       title: "Add Graph scope",
       description: "Request incremental Microsoft Graph delegated scopes on the active credential, with admin-consent handoff when needed.",
-      inputSchema: addScopeInputSchema
+      inputSchema: addScopeInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMcpErrors(() => service.addScope(input))
+  );
+
+  server.registerTool(
+    "remove-scope",
+    {
+      title: "Release configured Graph scope",
+      description: "Stop Greybeard from requesting delegated scopes, record the reason, and report any remaining tenant-side consent cleanup.",
+      inputSchema: removeScopeInputSchema,
+      outputSchema: structuredOutputSchema
+    },
+    async (input) => withMcpErrors(() => service.removeScope(input))
   );
 
   return server;
@@ -150,8 +177,10 @@ export async function withMcpErrors<T>(operation: () => Promise<T>) {
 }
 
 function toMcpJsonResult(value: unknown, isError = false) {
+  const structuredContent = isObject(value) ? value : { value };
   return {
     isError,
+    structuredContent,
     content: [
       {
         type: "text" as const,
@@ -159,4 +188,8 @@ function toMcpJsonResult(value: unknown, isError = false) {
       }
     ]
   };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

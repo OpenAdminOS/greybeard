@@ -30,7 +30,7 @@ Greybeard installs as a single overlay on the AI client you already use, and it 
 
 | Layer | What it is | Why it exists |
 |---|---|---|
-| Skills, the judgment | Seventeen Agent Skills that encode how a senior admin thinks: which question to ask first, which approach fits which task, when to stop | An AI client with Graph access but no judgment over-fetches, guesses at endpoints, and writes without a plan |
+| Skills, the judgment | Eighteen Agent Skills that encode how a senior admin thinks: which question to ask first, which approach fits which task, when to stop | An AI client with Graph access but no judgment over-fetches, guesses at endpoints, and writes without a plan |
 | MCP servers, the hands | `greybeard-graph` for scoped Graph reads and gated writes, `greybeard-memory` for recall, plus optional servers like the IntuneAutomation script library | Judgment without hands is a lecture; the servers make the narrow reads and route every write through human approval |
 | Memory, the experience | A local second brain that accumulates your naming conventions, decision records, and confirmed working queries and scripts | Experience is what makes the tenth session better than the first; without it every session starts from zero |
 
@@ -43,20 +43,26 @@ Each layer degrades independently. The craft skills work with no signed-in tenan
 - `greybeard-graph` (the hands): Microsoft Graph MCP server with MSAL interactive auth, read-safe Graph access, incremental consent guidance, and the write gate.
 - `greybeard-memory` (the experience): local SQLite and FTS5 memory shared across clients.
 - `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, `scopes`, and `update`. Optional MCP servers such as `intuneautomation` toggle with `greybeard setup --enable-server <name>` and `--disable-server <name>`. Setup never overwrites an MCP server entry you wrote yourself, and pinned mode pins third-party servers to the version vetted in the server catalog.
-- Seventeen Agent Skills (the judgment) under `.agents/skills/`, organized into `read/`, `write/`, `craft/`, and `mentor/` categories (see the skill catalog below).
+- Eighteen Agent Skills (the judgment) under `.agents/skills/`, including app credentials and OIDC migration, organized into `read/`, `write/`, `craft/`, and `mentor/` categories.
 
 ## Install
+
+This repository is private. Authenticate GitHub CLI before installing.
 
 macOS and Linux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ugurkocde/greybeard/main/install.sh | sh
+gh auth login
+gh repo clone ugurkocde/greybeard ~/.greybeard
+~/.greybeard/install.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/ugurkocde/greybeard/main/install.ps1 | iex
+gh auth login
+gh repo clone ugurkocde/greybeard (Join-Path $HOME ".greybeard")
+& (Join-Path $HOME ".greybeard\install.ps1")
 ```
 
 Both scripts clone the repo to `~/.greybeard`, run `npm ci`, build the workspaces, install the `greybeard` command, and launch `greybeard setup`. To install from a fork or local checkout instead, set `GREYBEARD_REPO_URL` to that URL.
@@ -81,8 +87,8 @@ Sign in to Microsoft
 Press Enter to open your browser and sign in (Ctrl+C to cancel)
 OK    Signed in                admin@contoso.com (contoso.com)
       MCP servers              greybeard-graph, greybeard-memory, intuneautomation
-OK    Claude Code              MCP servers and 17 skills configured
-OK    Cursor                   MCP servers, 17 skills, and context block configured
+OK    Claude Code              MCP servers and 18 skills configured
+OK    Cursor                   MCP servers, 18 skills, and context block configured
 OK    Memory                   ready; weekly auto-update scheduled
 OK    Memory hook              installed in ~/.claude/settings.json
 
@@ -101,7 +107,7 @@ Skills live under `.agents/skills/<category>/<skill>/` and are linked into each 
 |---|---|---|
 | `read/` | tenant-pulse, ask-my-tenant, intune-assignments, intune-compliance, entra-identity, conditional-access-review, license-optimizer | Live-tenant analysis and reporting |
 | `write/` | change-plan | Stages tenant writes through the server-side approval gate |
-| `craft/` | posture-script, graph-patterns, kql-authoring, least-privilege-scopes | Scripts, Graph mechanics, KQL, and scope planning without a signed-in tenant |
+| `craft/` | posture-script, graph-patterns, kql-authoring, least-privilege-scopes, entra-app-credentials | Scripts, Graph mechanics, KQL, scope planning, and credential migration design |
 | `mentor/` | grill-my-change, diagnose, tenant-decisions, handoff, learn-my-tenant | Pre-change interviews, incident triage, decision records, session handovers, tenant onboarding |
 
 A skill that cannot work without a specific capability declares it in its frontmatter: MCP servers, delegated Graph scopes, an Entra ID P1 license, a directory role group, or write configuration. `greybeard doctor` compares those declarations against the signed-in account and prints one warning per skill with the exact remedy, for example `run greybeard setup --writes` or `ask the agent to call add-scope`. Unmet requirements never fail doctor, because skills degrade by design.
@@ -127,7 +133,7 @@ Tier 1, requested at first sign-in:
 
 Tier 2 is requested only when a skill needs it: `Device.Read.All`, Intune read scopes, `Application.Read.All`, `RoleManagement.Read.Directory`, `IdentityRiskyUser.Read.All`, and `SecurityEvents.Read.All`.
 
-Writes are separate. `greybeard setup --writes` creates a tenant-owned workspace app and requests write scopes such as `User.ReadWrite.All`, `Group.ReadWrite.All`, and `Policy.ReadWrite.ConditionalAccess`. Write scopes are never added to the first-party read path.
+Writes are separate. `greybeard setup --writes` creates or idempotently repairs a tenant-owned public-client workspace app with the `http://localhost` redirect, and requests only the explicit Tier 1 plus selected write scopes. Extra scopes present in a cached token are never copied into the app registration.
 
 License and role gates are separate from consent. Some reporting endpoints require Microsoft Entra ID P1, and delegated reporting also requires Reports Reader, Security Reader, Global Reader, or higher. Greybeard reports missing license or role as that problem, not as another consent prompt.
 
@@ -135,7 +141,7 @@ License and role gates are separate from consent. Some reporting endpoints requi
 
 The generic Graph tool refuses non-GET requests and refuses `$batch` payloads that contain inner writes. Tenant writes can only run through `plan-write`, human approval, `check-plan`, and `execute-plan`.
 
-The approval secret never appears in model-visible tool output or files. The server stores the approved operations and executes only that stored copy. A different change needs a different plan and a new human approval.
+The approval secret never appears in model-visible tool output or files. Each plan declares exact `requiredScopes`; Greybeard verifies them before approval and reacquires the same set for execution. A different change needs a different plan and a new human approval.
 
 Honest boundary: this protects the Greybeard MCP Graph path. A client or agent that can run arbitrary shell commands as the same OS user is outside the local gate's control. Keep that capability restricted in clients where you rely on local approval boundaries.
 
@@ -158,7 +164,7 @@ Known risks:
 - Some tenants block or restrict that service principal because the same client ID is abused by attack tooling.
 - Microsoft can change first-party token issuance behavior.
 
-Fallback: run `greybeard setup --writes` to create a tenant-owned workspace app. After bootstrap, an admin can revoke the broad `Application.ReadWrite.All` grant from the first-party app unless they need to recreate the workspace app.
+Fallback: run `greybeard setup --writes` to create a tenant-owned workspace app. Setup temporarily requests `Application.ReadWrite.All` and `DelegatedPermissionGrant.ReadWrite.All`, then removes both bootstrap grants automatically. `greybeard doctor` fails while cleanup remains pending.
 
 ## Client Support Matrix
 
@@ -184,7 +190,7 @@ Native skills support was rechecked against current client documentation for Cur
 - `--skill-update login`: run on login where the OS scheduler supports it.
 - `--skill-update off`: manual update only.
 
-`greybeard update` runs `git pull --ff-only` in the installed repo, reports changed skills since the previous HEAD, refreshes client MCP config, re-links skills, and rewrites each detected client's context block and the Claude Code recall hook, so layout and guidance changes in the repo heal without a full setup re-run.
+`greybeard update` requires a clean tracked tree, pulls with fast-forward only, runs `npm ci`, builds, and tests before activation. It then refreshes MCP config, re-links skills, rewrites detected-client context blocks and the Claude Code recall hook, and asks clients to reconnect. A failed verification restores and rebuilds the previous revision.
 
 Server update modes are implemented but npm publishing has not run yet. The default config writes local `node .../graph/dist/index.js` and `node .../memory/dist/index.js` paths. After first npm publish, `--server-source npm --server-update latest` writes `npx -y @greybeard/graph@latest` and `@greybeard/memory@latest`; pinned mode writes the current package versions.
 
@@ -194,4 +200,4 @@ None. Greybeard has no usage collection, analytics, or remote logging. Network c
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). New skills need portable frontmatter, a distinct `Use when...` trigger, `test.md`, a `version` field, and a `CHANGELOG` section.
+See [CONTRIBUTING.md](CONTRIBUTING.md). New skills need portable `name` and `description` frontmatter, a distinct `Use when...` trigger, `test.md`, `agents/openai.yaml`, and an entry in `.agents/skills/manifest.json`.

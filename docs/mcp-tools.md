@@ -9,7 +9,9 @@ Design rule for both servers: few tools, tight schemas. Every tool a server expo
 
 ## greybeard-graph
 
-Six tools: `graph`, `plan-write`, `check-plan`, `execute-plan`, `get-auth-status`, `add-scope`.
+Seven tools: `graph`, `plan-write`, `check-plan`, `execute-plan`, `get-auth-status`, `add-scope`, `remove-scope`.
+
+All tools declare MCP output schemas and return `structuredContent`. A JSON text block is retained for compatibility with clients that do not yet consume structured tool results.
 
 ### Credentials
 
@@ -86,18 +88,19 @@ No input. Result:
   "grantedScopes": ["User.Read.All", "Group.Read.All", "Policy.Read.All", "Organization.Read.All", "AuditLog.Read.All", "Reports.Read.All"],
   "entraP1": true,
   "directoryRoles": ["Global Reader"],
+  "directoryRolesStatus": { "state": "available" },
   "cacheProtection": "keychain",
   "gate": { "pendingPlan": null, "writesConfigured": false }
 }
 ```
 
-In writes mode, `credentialMode` is `"writes"`, `clientId`/`clientIdKind` describe the workspace app, and `gate.writesConfigured` is true. `entraP1` is `true`, `false`, or `null`; `null` means the probe could not determine license state, while `false` means the probe succeeded and found no Entra P1 license. `entraP1` and `directoryRoles` exist so skills can predict license/role-gated failures (tenant-pulse pillar degradation) instead of discovering them per call.
+In writes mode, `credentialMode` is `"writes"`, `clientId`/`clientIdKind` describe the workspace app, and `gate.writesConfigured` is true. `entraP1` is `true`, `false`, or `null`; `null` means the probe could not determine license state, while `false` means the probe succeeded and found no Entra P1 license. `directoryRoles` is an array only when the probe succeeded. It is `null` when unavailable, with the reason in `directoryRolesStatus`; this must not be interpreted as an empty role assignment.
 
 When not signed in, the result says so and includes the literal instruction to run `greybeard setup`; [L] skills relay it instead of failing silently.
 
 ### `add-scope`
 
-Input: `{ "scopes": ["Device.Read.All"], "reason": "stale device report" }`
+Input: `{ "scopes": ["Device.Read.All"], "reason": "stale device report", "leaseMinutes": 60 }`
 
 Behavior:
 
@@ -106,8 +109,20 @@ Behavior:
 - Attempts interactive incremental consent (browser) on the active credential.
 - If admin consent is required and the signed-in user cannot grant it, returns `consentUrl` (tenant admin-consent URL for the exact scope set) plus one-line justifications per scope for handoff, and `granted: false`.
 - Result always echoes the post-attempt `grantedScopes`.
+- Records the request, reason, result, and optional lease expiry in the local scope audit log. Granted leases are persisted in config so later reads request the same scope set; expired leases are ignored automatically.
 
-Tenant switching is not a tool. The active tenant is set by `greybeard tenant use <domain>` in the CLI and read by the server from config at call time; `get-auth-status` reports it. Keeping tenant switching out of the model's reach means a prompt can never silently retarget an MSP's other customer.
+### `remove-scope`
+
+Input: `{ "scopes": ["Device.Read.All"], "reason": "inventory complete", "confirm": true }`
+
+Behavior:
+
+- Requires explicit confirmation and a cleanup reason.
+- Refuses removal of the Tier 1 baseline through this incremental lifecycle.
+- Stops Greybeard from requesting the released scopes and audits the release.
+- Reports that an Entra administrator must revoke the tenant-side delegated consent grant when immediate consent removal is required. Local release never pretends tenant consent was revoked.
+
+Tenant switching is not a tool. The active tenant is read by the server from config at call time; `get-auth-status` reports it. Config revisions rebuild the auth provider on the next tool call without replacing the MCP transport.
 
 ## greybeard-memory
 

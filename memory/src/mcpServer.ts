@@ -32,10 +32,12 @@ const forgetInputSchema = {
   type: memoryTypeSchema.optional()
 };
 
+const structuredOutputSchema = z.object({}).catchall(z.unknown());
+
 export function createGreybeardMemoryMcpServer(service: MemoryService): McpServer {
   const server = new McpServer({
     name: "greybeard-memory",
-    version: "0.1.0"
+    version: "0.1.1"
   });
 
   server.registerTool(
@@ -43,7 +45,8 @@ export function createGreybeardMemoryMcpServer(service: MemoryService): McpServe
     {
       title: "Recall Greybeard memory",
       description: "Search local Greybeard memory for the active tenant using a short task summary.",
-      inputSchema: recallInputSchema
+      inputSchema: recallInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMemoryMcpErrors(() => service.recall(input))
   );
@@ -53,7 +56,8 @@ export function createGreybeardMemoryMcpServer(service: MemoryService): McpServe
     {
       title: "Remember Greybeard preference",
       description: "Store a local tenant-scoped intent, preference, script reference, fact, scope note, or configuration decision record. Never store raw tenant output.",
-      inputSchema: rememberInputSchema
+      inputSchema: rememberInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMemoryMcpErrors(() => service.remember(input))
   );
@@ -63,7 +67,8 @@ export function createGreybeardMemoryMcpServer(service: MemoryService): McpServe
     {
       title: "List Greybeard memory",
       description: "List local memory nodes for the active tenant, newest first.",
-      inputSchema: listInputSchema
+      inputSchema: listInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMemoryMcpErrors(() => service.list(input))
   );
@@ -73,7 +78,8 @@ export function createGreybeardMemoryMcpServer(service: MemoryService): McpServe
     {
       title: "Forget Greybeard memory",
       description: "Delete a local memory node by id, or prune old nodes of one type for the active tenant.",
-      inputSchema: forgetInputSchema
+      inputSchema: forgetInputSchema,
+      outputSchema: structuredOutputSchema
     },
     async (input) => withMemoryMcpErrors(() => service.forget(input))
   );
@@ -100,8 +106,10 @@ export async function withMemoryMcpErrors<T>(operation: () => Promise<T>) {
 }
 
 function toMcpJsonResult(value: unknown, isError = false) {
+  const structuredContent = isObject(value) ? value : { value };
   return {
     isError,
+    structuredContent,
     content: [
       {
         type: "text" as const,
@@ -109,4 +117,8 @@ function toMcpJsonResult(value: unknown, isError = false) {
       }
     ]
   };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

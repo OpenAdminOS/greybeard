@@ -85,6 +85,7 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
     entraFinding(status),
     rolesFinding(status),
     firstPartyFinding(firstPartyStatus),
+    bootstrapCleanupFinding(config),
     gateFinding(config),
     updateFinding(config)
   ];
@@ -104,6 +105,21 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
   }
 
   return findings;
+}
+
+function bootstrapCleanupFinding(config: GreybeardConfig): DoctorFinding {
+  if (config.bootstrapCleanupPending) {
+    return {
+      level: "FAIL",
+      label: "Bootstrap cleanup",
+      detail: "temporary permissions may remain. Run greybeard setup --writes to retry cleanup."
+    };
+  }
+  return {
+    level: "PASS",
+    label: "Bootstrap cleanup",
+    detail: "no pending cleanup recorded"
+  };
 }
 
 function authFinding(status: AuthStatus): DoctorFinding {
@@ -176,6 +192,14 @@ function rolesFinding(status: AuthStatus): DoctorFinding {
       level: "WARN",
       label: "Directory roles",
       detail: "unknown until sign-in succeeds"
+    };
+  }
+
+  if (status.directoryRoles === null) {
+    return {
+      level: "WARN",
+      label: "Directory roles",
+      detail: `unknown. ${status.directoryRolesStatus.diagnostic ?? "Role detection was unavailable."}`
     };
   }
 
@@ -265,7 +289,9 @@ export function skillRequirementFindings(
   }
 
   const grantedScopes = new Set(status.grantedScopes.map((scope) => scope.toLowerCase()));
-  const heldRoles = new Set(status.directoryRoles.map((role) => role.toLowerCase()));
+  const heldRoles = status.directoryRoles === null
+    ? null
+    : new Set(status.directoryRoles.map((role) => role.toLowerCase()));
   const tier2Scopes = new Set(TIER2_SCOPES.map((scope) => scope.toLowerCase()));
   const onDemand: string[] = [];
   const warnCountBefore = findings.length;
@@ -311,7 +337,9 @@ export function skillRequirementFindings(
         continue;
       }
 
-      if (!roles.some((role) => heldRoles.has(role.toLowerCase()))) {
+      if (heldRoles === null) {
+        unmet.push(`directory role status unknown: ${status.directoryRolesStatus.diagnostic ?? "role detection unavailable"}`);
+      } else if (!roles.some((role) => heldRoles.has(role.toLowerCase()))) {
         unmet.push(`requires one of these directory roles: ${roles.join(", ")}`);
       }
     }

@@ -12,12 +12,16 @@ export function buildAdminConsentUrl(params: {
   tenantId: string;
   clientId?: string;
   scopes: string[];
+  redirectUri?: string;
 }): string {
   const clientId = params.clientId ?? GRAPH_CLI_CLIENT_ID;
   const scope = params.scopes.map(normalizeGraphScope).join(" ");
   const url = new URL(`https://login.microsoftonline.com/${encodeURIComponent(params.tenantId)}/v2.0/adminconsent`);
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("scope", scope);
+  if (params.redirectUri) {
+    url.searchParams.set("redirect_uri", params.redirectUri);
+  }
   return url.toString();
 }
 
@@ -36,6 +40,7 @@ export function scopeJustification(scope: string): string {
     "DeviceManagementServiceConfig.Read.All": "Read Intune service configuration and Autopilot data.",
     "Application.Read.All": "Read app registrations and service principals.",
     "Application.ReadWrite.All": "Create the Greybeard workspace app registration and service principal during setup. This broadly manages app registrations and should be revoked from the first-party app after bootstrap if not needed.",
+    "DelegatedPermissionGrant.ReadWrite.All": "Remove Greybeard's temporary bootstrap consent grants immediately after workspace app provisioning.",
     "RoleManagement.Read.Directory": "Read directory roles and role assignments.",
     "IdentityRiskyUser.Read.All": "Read Identity Protection risky users.",
     "SecurityEvents.Read.All": "Read secure score and security event data.",

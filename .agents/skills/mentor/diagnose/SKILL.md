@@ -1,14 +1,9 @@
 ---
 name: diagnose
 description: Use when the user reports something broken, failing, or misbehaving in the tenant and needs structured incident triage.
-version: 0.2.0
-requires:
-  servers: [greybeard-graph]
 ---
 
 # Diagnose
-
-Version: 0.2.0
 
 Hypothesis-driven triage for "users cannot sign in", "the device will not comply", "the app stopped working". The discipline: one hypothesis at a time, tested with the narrowest read that can falsify it, instead of dragging the tenant into context and hoping.
 
@@ -44,10 +39,5 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 ## Fix
 <the change to make; if it writes, run it through change-plan>
 ```
-
-## CHANGELOG
-
-- 0.2.0: Added the capture preamble and a step that records confirmed root-cause patterns as fact memories.
-- 0.1.0: Initial incident triage skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

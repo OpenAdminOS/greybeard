@@ -53,7 +53,7 @@ import {
 import { assembleDoctorFindings, skillRequirementFindings } from "./doctor.js";
 import { runCli } from "./index.js";
 import { CliRuntime, OutputStream } from "./runtime.js";
-import { installAutoUpdateSchedule } from "./setup.js";
+import { ensureWorkspaceApplication, installAutoUpdateSchedule } from "./setup.js";
 
 describe("greybeard CLI", () => {
   it("runs help when the built CLI is invoked through a symlink", async () => {
@@ -558,7 +558,8 @@ describe("greybeard CLI", () => {
       .mockResolvedValueOnce(jsonResponse({
         value: [
           {
-            oauth2PermissionScopes: [
+            id: "graph-service-principal-id",
+            publishedPermissionScopes: [
               ...[
                 "User.Read.All",
                 "Group.Read.All",
@@ -582,15 +583,32 @@ describe("greybeard CLI", () => {
         appId: "workspace-client-id",
         displayName: "Greybeard Workspace contoso.com"
       }, 201))
+      .mockResolvedValueOnce(jsonResponse({ value: [] }))
       .mockResolvedValueOnce(jsonResponse({
         id: "service-principal-id"
-      }, 201));
+      }, 201))
+      .mockResolvedValueOnce(jsonResponse({
+        value: [{
+          id: "graph-service-principal-id",
+          publishedPermissionScopes: []
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse({ value: [{ id: "graph-cli-service-principal-id" }] }))
+      .mockResolvedValueOnce(jsonResponse({
+        value: [{
+          id: "bootstrap-grant-id",
+          scope: "User.Read.All Application.ReadWrite.All DelegatedPermissionGrant.ReadWrite.All"
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse(null, 204));
     const runtime = createMockRuntime(paths, {
       fetcher,
       authFactory: async () => ({
         async getToken(scopes) {
           requestedScopes.push(scopes);
-          return signedInToken();
+          return signedInToken({
+            grantedScopes: [...DEFAULT_TIER1_SCOPES, "Directory.Read.All"]
+          });
         },
         async getStatus() {
           return signedInStatus();
@@ -611,9 +629,91 @@ describe("greybeard CLI", () => {
     expect(code).toBe(0);
     expect(requestedScopes.flat()).toContain("Application.ReadWrite.All");
     expect(requestedScopes.flat()).not.toContain("Application.ReadWrite.OwnedBy");
-    expect(runtime.stdout.toString()).toContain("      note: Application.ReadWrite.All is used only to create the workspace app");
-    expect(runtime.stdout.toString()).toContain("      note: Application.ReadWrite.All can be revoked from the first-party app after bootstrap");
+    expect(runtime.stdout.toString()).toContain("      note: Application.ReadWrite.All and DelegatedPermissionGrant.ReadWrite.All are temporary bootstrap scopes");
+    expect(runtime.stdout.toString()).toContain("OK    Bootstrap scopes");
     expect(runtime.stdout.toString()).not.toContain("WARN  Bootstrap");
+    expect(runtime.stdout.toString()).toContain("redirect_uri=http%3A%2F%2Flocalhost");
+
+    const applicationCall = fetcher.mock.calls.find(([url, init]) => {
+      return new URL(url).pathname === "/v1.0/applications" && init.method === "POST";
+    });
+    const applicationBody = JSON.parse(String(applicationCall?.[1].body)) as {
+      isFallbackPublicClient: boolean;
+      publicClient: { redirectUris: string[] };
+      requiredResourceAccess: Array<{ resourceAccess: Array<{ id: string }> }>;
+    };
+    expect(applicationBody).toMatchObject({
+      isFallbackPublicClient: true,
+      publicClient: { redirectUris: ["http://localhost"] }
+    });
+    expect(JSON.stringify(applicationBody)).not.toContain("Directory.Read.All");
+    expect((await readGreybeardConfig(paths.appData)).grantedReadScopes).toEqual([...DEFAULT_TIER1_SCOPES]);
+    expect((await readGreybeardConfig(paths.appData)).bootstrapCleanupPending).toBe(false);
+  });
+
+  it("accepts the legacy delegated-scope property and repairs an existing workspace app idempotently", async () => {
+    const fetcher = vi.fn<FetchLike>()
+      .mockResolvedValueOnce(jsonResponse({ error: { message: "unknown property publishedPermissionScopes" } }, 400))
+      .mockResolvedValueOnce(jsonResponse({
+        value: [{
+          id: "graph-sp-id",
+          oauth2PermissionScopes: [{ id: "scope-id", value: "Group.ReadWrite.All" }]
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        value: [{ id: "app-object-id", appId: "workspace-id", displayName: "Old name" }]
+      }))
+      .mockResolvedValueOnce(jsonResponse(null, 204))
+      .mockResolvedValueOnce(jsonResponse({ value: [{ id: "workspace-sp-id", appId: "workspace-id" }] }));
+
+    const workspace = await ensureWorkspaceApplication({
+      fetcher,
+      accessToken: "token",
+      tenantDomain: "contoso.com",
+      scopes: ["Group.ReadWrite.All"],
+      existingAppId: "workspace-id"
+    });
+
+    expect(workspace.appId).toBe("workspace-id");
+    expect(fetcher.mock.calls[0]?.[0]).toContain("publishedPermissionScopes");
+    expect(fetcher.mock.calls[1]?.[0]).toContain("oauth2PermissionScopes");
+    const patchCall = fetcher.mock.calls.find(([_url, init]) => init.method === "PATCH");
+    expect(patchCall?.[0]).toContain("/v1.0/applications/app-object-id");
+    expect(JSON.parse(String(patchCall?.[1].body))).toMatchObject({
+      isFallbackPublicClient: true,
+      publicClient: { redirectUris: ["http://localhost"] }
+    });
+    expect(fetcher.mock.calls.filter(([_url, init]) => init.method === "POST")).toHaveLength(0);
+  });
+
+  it("rolls back a newly created application when service-principal creation fails", async () => {
+    const fetcher = vi.fn<FetchLike>()
+      .mockResolvedValueOnce(jsonResponse({
+        value: [{
+          id: "graph-sp-id",
+          publishedPermissionScopes: [{ id: "scope-id", value: "Group.ReadWrite.All" }]
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        id: "app-object-id",
+        appId: "workspace-id",
+        displayName: "Greybeard Workspace contoso.com"
+      }, 201))
+      .mockResolvedValueOnce(jsonResponse({ value: [] }))
+      .mockResolvedValueOnce(jsonResponse({ error: { message: "creation failed" } }, 500))
+      .mockResolvedValueOnce(jsonResponse(null, 204));
+
+    await expect(ensureWorkspaceApplication({
+      fetcher,
+      accessToken: "token",
+      tenantDomain: "contoso.com",
+      scopes: ["Group.ReadWrite.All"]
+    })).rejects.toThrow("servicePrincipals");
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://graph.microsoft.com/v1.0/applications/app-object-id",
+      expect.objectContaining({ method: "DELETE" })
+    );
   });
 
   it("writes Claude memory MCP config and installs the recall hook by default during setup", async () => {
@@ -1415,6 +1515,42 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("version 0.3.0");
     expect(runtime.stdout.toString()).not.toContain("      craft");
   });
+
+  it("rolls an update back when the rebuilt runtime fails verification", async () => {
+    const paths = await tempPaths();
+    let revParseCount = 0;
+    let buildCount = 0;
+    const runCommand = vi.fn<CliRuntime["runCommand"]>(async (command, args) => {
+      if (command === "git" && args.includes("status")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (command === "git" && args.includes("rev-parse")) {
+        revParseCount += 1;
+        return { code: 0, stdout: revParseCount === 1 ? "old-head\n" : "new-head\n", stderr: "" };
+      }
+      if (command === "git" && args.includes("pull")) {
+        return { code: 0, stdout: "Fast-forward\n", stderr: "" };
+      }
+      if (command === "npm" && args.join(" ") === "run build") {
+        buildCount += 1;
+        return buildCount === 1
+          ? { code: 1, stdout: "", stderr: "compile failed" }
+          : { code: 0, stdout: "rebuilt old runtime", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    });
+    const runtime = createMockRuntime(paths, { runCommand });
+
+    const code = await runCli(["update", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(1);
+    expect(runtime.stderr.toString()).toContain("Rolled back source, dependencies, and runtime artifacts to old-head");
+    expect(runCommand).toHaveBeenCalledWith(
+      "git",
+      ["-C", paths.repoRoot, "reset", "--hard", "old-head"],
+      { cwd: paths.repoRoot }
+    );
+  });
 });
 
 type TempPaths = {
@@ -1468,10 +1604,21 @@ async function createSkillFixture(repoRoot: string, category: string, name: stri
     "---",
     `name: ${name}`,
     `description: Use when testing ${name}.`,
-    `version: ${version}`,
     "---",
     ""
   ].join("\n"), "utf8");
+  const manifestPath = join(repoRoot, ".agents", "skills", "manifest.json");
+  let manifest: { schemaVersion: number; skills: Record<string, { version: string; category: string }> } = {
+    schemaVersion: 1,
+    skills: {}
+  };
+  try {
+    manifest = JSON.parse(await readFile(manifestPath, "utf8")) as typeof manifest;
+  } catch {
+    // The first fixture creates the manifest.
+  }
+  manifest.skills[name] = { version, category };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   return dir;
 }
 
@@ -1508,9 +1655,6 @@ function createMockRuntime(paths: TempPaths, overrides: Partial<CliRuntime> & {
     platform: "linux",
     nodePath: process.execPath,
     repoRoot: paths.repoRoot,
-    stdin,
-    stdout,
-    stderr,
     fetcher: vi.fn<FetchLike>(),
     authFactory: async () => ({
       async getToken() {
@@ -1595,6 +1739,7 @@ function signedInStatus(overrides: Partial<Extract<AuthStatus, { signedIn: true 
     grantedScopes: token.grantedScopes,
     entraP1: true,
     directoryRoles: ["Global Reader"],
+    directoryRolesStatus: { state: "available" },
     cacheProtection: token.cacheProtection,
     gate: {
       pendingPlan: null,
@@ -1621,7 +1766,8 @@ function unsignedStatus(): AuthStatus {
     clientIdKind: "first-party",
     grantedScopes: [],
     entraP1: null,
-    directoryRoles: [],
+    directoryRoles: null,
+    directoryRolesStatus: { state: "not-signed-in" },
     cacheProtection: "keychain",
     gate: {
       pendingPlan: null,

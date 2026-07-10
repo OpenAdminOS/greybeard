@@ -16,10 +16,12 @@ export class AuditLog {
 
   async created(record: CommonAuditFields & {
     operations: NormalizedWriteOperation[];
+    requiredScopes?: string[];
   }): Promise<void> {
     await this.append({
       event: "created",
       ...this.commonRecord(record),
+      requiredScopes: record.requiredScopes ?? [],
       operations: record.operations.map((operation, index) => ({
         index,
         method: operation.method,
@@ -35,6 +37,7 @@ export class AuditLog {
     decision: "approved" | "rejected";
     reason: string;
     operations: NormalizedWriteOperation[];
+    requiredScopes?: string[];
   }): Promise<void> {
     await this.append({
       event: "decided",
@@ -42,6 +45,7 @@ export class AuditLog {
       channel: record.channel,
       decision: record.decision,
       reason: record.reason,
+      requiredScopes: record.requiredScopes ?? [],
       operations: record.operations.map((operation, index) => ({
         index,
         method: operation.method,
@@ -56,12 +60,14 @@ export class AuditLog {
     status: "completed" | "partial" | "failed";
     operations: NormalizedWriteOperation[];
     results: OperationExecutionResult[];
+    requiredScopes?: string[];
   }): Promise<void> {
     const hashesByIndex = new Map(record.operations.map((operation, index) => [index, operation.hash]));
     await this.append({
       event: "executed",
       ...this.commonRecord(record),
       status: record.status,
+      requiredScopes: record.requiredScopes ?? [],
       results: record.results.map((result) => ({
         index: result.index,
         hash: hashesByIndex.get(result.index),

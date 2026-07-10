@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Patterns"
+  short_description: "Design precise Microsoft Graph requests"
+  default_prompt: "Use $graph-patterns to design an efficient Microsoft Graph request."

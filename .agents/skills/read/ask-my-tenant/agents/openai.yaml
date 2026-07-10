@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ask My Tenant"
+  short_description: "Answer focused live tenant questions"
+  default_prompt: "Use $ask-my-tenant to answer a focused question about my live tenant."

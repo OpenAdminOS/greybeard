@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tenant Decisions"
+  short_description: "Record and retrieve tenant rationale"
+  default_prompt: "Use $tenant-decisions to record or explain this tenant configuration decision."

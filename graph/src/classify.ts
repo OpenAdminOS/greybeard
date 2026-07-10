@@ -89,7 +89,8 @@ export function classifyGraphFailure(params: {
       consentUrl: buildAdminConsentUrl({
         tenantId: params.token.tenantId,
         clientId: params.token.clientId,
-        scopes: [missingScope]
+        scopes: [missingScope],
+        ...(params.token.clientIdKind === "workspace" ? { redirectUri: "http://localhost" } : {})
       }),
       details: {
         graphCode: codeText,

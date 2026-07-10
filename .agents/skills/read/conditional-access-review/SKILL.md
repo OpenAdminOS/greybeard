@@ -1,15 +1,9 @@
 ---
 name: conditional-access-review
 description: Use when the user asks to review existing Conditional Access, audit CA policies, find report-only policies, find enabled policies that lack MFA enforcement, or verify emergency-account exclusions.
-version: 0.3.0
-requires:
-  servers: [greybeard-graph]
-  scopes: [Policy.Read.All]
 ---
 
 # Conditional Access Review
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -19,7 +13,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
-3. Read `entraP1`, `directoryRoles`, and `grantedScopes`. Existing CA policy review is not Entra P1 gated through Graph, but the tenant licensing terms for CA still apply outside the API.
+3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. Existing CA policy review is not Entra P1 gated through Graph, but tenant licensing terms still apply.
 4. Use live state only. Do not design new CA policies here; route design and writes through `change-plan`.
 5. Tier 2 scope for this skill is `Application.Read.All` when application IDs in policies need display-name resolution. `Policy.Read.All` is the core read scope.
 6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
@@ -92,12 +86,5 @@ Return:
 - Gap table with policy name, state, finding, evidence, and recommended review.
 - "No writes performed" line.
 - If the admin asks to fix a policy, hand off to `change-plan` with a proposed operation list.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble for confirmed learnings.
-- 0.2.0: Moved into the read category and declared requirements in frontmatter.
-- 0.1.1: Updated Graph examples to use beta by default.
-- 0.1.0: Initial Conditional Access live review skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

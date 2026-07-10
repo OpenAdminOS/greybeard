@@ -1,15 +1,9 @@
 ---
 name: license-optimizer
 description: Use when the user asks about license waste, unused seats, duplicate licenses, downgrade candidates, SKU utilization, or Microsoft 365 cost optimization.
-version: 0.3.0
-requires:
-  servers: [greybeard-graph]
-  scopes: [Organization.Read.All, User.Read.All]
 ---
 
 # License Optimizer
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -19,7 +13,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
-3. Read `entraP1`, `directoryRoles`, and `grantedScopes`. SKU utilization is not Entra P1 gated. Downgrade or stale-license candidates based on `signInActivity` require Entra ID P1, `AuditLog.Read.All`, and a reporting role.
+3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. SKU utilization is not Entra P1 gated; stale-license candidates require P1, `AuditLog.Read.All`, and a reporting role.
 4. Use SKU utilization first. Only inspect user license assignments when the user asks for candidates or waste detail.
 5. Tier 2 scope for this skill is `LicenseAssignment.Read.All` when the server asks for it. `User.Read.All` and `Group.Read.All` support user and group assignment context.
 6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
@@ -94,12 +88,5 @@ Return:
 - License gates or role gates that prevented deeper analysis.
 - Savings estimate only as seat counts unless the user provides price data.
 - No direct removals. License changes route through `change-plan`.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble for confirmed learnings.
-- 0.2.0: Moved into the read category and declared requirements in frontmatter.
-- 0.1.1: Updated Graph examples to use beta by default.
-- 0.1.0: Initial license utilization and waste review skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

@@ -1,15 +1,9 @@
 ---
 name: learn-my-tenant
 description: Use when the user wants Greybeard to learn the tenant, onboard a new environment, or seed memory with naming conventions, rings, break-glass accounts, and change windows.
-version: 0.1.0
-requires:
-  servers: [greybeard-graph, greybeard-memory]
-  scopes: [Organization.Read.All, Policy.Read.All, Group.Read.All, User.Read.All]
 ---
 
 # Learn My Tenant
-
-Version: 0.1.0
 
 One-time onboarding that turns a fresh install into an experienced one: interview the admin, take a narrow read-only look at the tenant, and seed memory with the durable facts, preferences, and decisions a veteran of this environment would already know. If `greybeard-memory` tools are not available, tell the user to run `greybeard setup` and stop.
 
@@ -42,9 +36,5 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 ## Suggested second pass
 <areas the admin may want to teach next, or "none">
 ```
-
-## CHANGELOG
-
-- 0.1.0: Initial tenant onboarding and memory seeding skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

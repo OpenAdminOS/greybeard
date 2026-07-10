@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intune Compliance"
+  short_description: "Triage Intune compliance failures"
+  default_prompt: "Use $intune-compliance to investigate noncompliant Intune devices."

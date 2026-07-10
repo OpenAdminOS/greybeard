@@ -1,15 +1,9 @@
 ---
 name: intune-compliance
 description: Use when the user asks why Intune devices are noncompliant, failing compliance, blocked, in grace period, or need compliance policy triage.
-version: 0.3.0
-requires:
-  servers: [greybeard-graph]
-  scopes: [DeviceManagementManagedDevices.Read.All, DeviceManagementConfiguration.Read.All]
 ---
 
 # Intune Compliance
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -19,7 +13,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
-3. Read `entraP1`, `directoryRoles`, and `grantedScopes`. Intune compliance reports are not Entra P1 gated, but the tenant needs an active Intune license and delegated Intune roles may still limit data.
+3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. Intune compliance reports are not Entra P1 gated, but Intune licensing and roles may still limit data.
 4. Use Graph for policy and managed-device state. If the user wants Log Analytics or historical trend KQL, hand off to `kql-authoring`.
 5. Tier 2 scopes for this skill are `DeviceManagementConfiguration.Read.All` and `DeviceManagementManagedDevices.Read.All`.
 6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
@@ -97,13 +91,5 @@ Return:
 - A note when Graph state is current-state only and KQL is needed for history.
 
 Do not propose changing compliance policies directly. If the user asks for changes, route to `change-plan`.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble for confirmed learnings.
-- 0.2.0: Moved into the read category and declared requirements in frontmatter.
-- 0.1.2: Removed $select from deviceStatuses; the Intune service returns a 500 for any $select on that endpoint. Verified live via Lokka.
-- 0.1.1: Updated Graph examples to use beta by default.
-- 0.1.0: Initial Intune compliance triage skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

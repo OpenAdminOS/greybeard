@@ -1,0 +1,4 @@
+interface:
+  display_name: "Entra App Credentials"
+  short_description: "Secure Entra app credentials and OIDC"
+  default_prompt: "Use $entra-app-credentials to review or migrate an Entra application credential safely."

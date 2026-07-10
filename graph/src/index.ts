@@ -2,17 +2,16 @@
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { getGreybeardAppDataPath } from "./appData.js";
-import { graphAuthConfig, readGreybeardConfig } from "./config.js";
 import { GraphService } from "./graphService.js";
 import { createGreybeardGraphMcpServer } from "./mcpServer.js";
 import { MsalGraphAuthProvider } from "./msalAuth.js";
+import { ConfigReloadingAuthProvider } from "./reloadingAuth.js";
 
 async function main(): Promise<void> {
   const appDataPath = getGreybeardAppDataPath();
-  const config = await readGreybeardConfig(appDataPath);
-  const auth = await MsalGraphAuthProvider.create({
-    ...graphAuthConfig(config),
-    appDataPath
+  const auth = new ConfigReloadingAuthProvider({
+    appDataPath,
+    authFactory: (options) => MsalGraphAuthProvider.create(options)
   });
   const service = new GraphService({ auth, appDataPath });
   const server = createGreybeardGraphMcpServer(service);

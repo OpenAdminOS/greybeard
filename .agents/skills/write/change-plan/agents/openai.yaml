@@ -1,0 +1,4 @@
+interface:
+  display_name: "Change Plan"
+  short_description: "Plan and approve guarded tenant writes"
+  default_prompt: "Use $change-plan to prepare and execute this tenant change safely."

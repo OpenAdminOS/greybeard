@@ -1,15 +1,9 @@
 ---
 name: entra-identity
 description: Use when the user asks about Entra users, groups, memberships, dynamic rules, orphaned groups, naming hygiene, cleanup candidates, or identity inventory.
-version: 0.3.0
-requires:
-  servers: [greybeard-graph]
-  scopes: [User.Read.All, Group.Read.All]
 ---
 
 # Entra Identity
-
-Version: 0.3.0
 
 ## Workflow
 
@@ -19,7 +13,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 
 1. Call `get-auth-status` before any `graph` call.
 2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
-3. Read `entraP1`, `directoryRoles`, and `grantedScopes`. Warn up front when the request needs P1 data such as `signInActivity` or a role-gated report.
+3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. Warn up front when the request needs P1 data or a role-gated report.
 4. Use the narrowest report shape below. Do not review Conditional Access, licensing, or Intune compliance here.
 5. Tier 2 scopes for this skill are `Application.Read.All` for app or service principal resolution and `RoleManagement.Read.Directory` for directory role assignments. Core user and group work uses Tier 1 `User.Read.All` and `Group.Read.All`.
 6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
@@ -103,12 +97,5 @@ Groups with zero returned owners are candidates, not automatic deletion targets.
 ## Output
 
 Return a table with object ID, display name, type, why it is flagged, evidence, and suggested next review step. For cleanup candidates, say what to verify before a change plan.
-
-## CHANGELOG
-
-- 0.3.0: Added the capture preamble for confirmed learnings.
-- 0.2.0: Moved into the read category and declared requirements in frontmatter.
-- 0.1.1: Updated Graph examples to use beta by default.
-- 0.1.0: Initial Entra identity hygiene skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnose"
+  short_description: "Triage tenant incidents methodically"
+  default_prompt: "Use $diagnose to investigate this tenant incident one hypothesis at a time."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill My Change"
+  short_description: "Pressure-test a planned tenant change"
+  default_prompt: "Use $grill-my-change to pressure-test this tenant change before execution."

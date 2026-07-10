@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learn My Tenant"
+  short_description: "Onboard and learn a tenant safely"
+  default_prompt: "Use $learn-my-tenant to learn this environment and seed durable tenant context."

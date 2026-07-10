@@ -1,0 +1,4 @@
+interface:
+  display_name: "Entra Identity"
+  short_description: "Analyze Entra users and groups"
+  default_prompt: "Use $entra-identity to analyze users, groups, or memberships in my tenant."

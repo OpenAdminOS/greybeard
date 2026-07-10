@@ -29,6 +29,12 @@ export interface SkillManifestLoadResult {
   errors: Array<{ name: string; message: string }>;
 }
 
+export interface SkillCatalogEntry {
+  version: string;
+  category: string;
+  requires?: SkillRequires;
+}
+
 export const KNOWN_LICENSES = ["entra-p1"] as const;
 
 export const ROLE_GROUPS: Record<string, string[]> = {
@@ -182,6 +188,15 @@ export async function loadSkillManifests(repoRoot: string): Promise<SkillManifes
   const tree = await listSkillSourceDirs(repoSkillsDir(repoRoot));
   const manifests: SkillManifest[] = [];
   const errors: Array<{ name: string; message: string }> = [];
+  let catalog: Record<string, SkillCatalogEntry> = {};
+  try {
+    catalog = await readSkillCatalog(repoRoot);
+  } catch (error) {
+    errors.push({
+      name: "manifest.json",
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
 
   for (const skipped of tree.missingManifest) {
     errors.push({
@@ -201,13 +216,20 @@ export async function loadSkillManifests(repoRoot: string): Promise<SkillManifes
     try {
       const content = await readFile(join(source.path, "SKILL.md"), "utf8");
       const frontmatter = parseSkillFrontmatter(content);
+      const catalogEntry = catalog[source.name];
+      if (!catalogEntry) {
+        throw new Error(`Skill is not listed in .agents/skills/manifest.json: ${source.name}.`);
+      }
+      if (catalogEntry.category !== source.category) {
+        throw new Error(`Skill category mismatch for ${source.name}: manifest=${catalogEntry.category}, folder=${source.category}.`);
+      }
       manifests.push({
         name: source.name,
         category: source.category,
         dir: source.path,
         description: frontmatter.fields.description ?? "",
-        version: frontmatter.fields.version ?? "",
-        ...(frontmatter.requires !== undefined ? { requires: frontmatter.requires } : {})
+        version: catalogEntry.version,
+        ...(catalogEntry.requires !== undefined ? { requires: catalogEntry.requires } : {})
       });
     } catch (error) {
       errors.push({
@@ -218,4 +240,48 @@ export async function loadSkillManifests(repoRoot: string): Promise<SkillManifes
   }
 
   return { manifests, errors };
+}
+
+export async function readSkillCatalog(repoRoot: string): Promise<Record<string, SkillCatalogEntry>> {
+  const raw = await readFile(join(repoSkillsDir(repoRoot), "manifest.json"), "utf8");
+  const parsed: unknown = JSON.parse(raw);
+  if (!isObject(parsed) || parsed.schemaVersion !== 1 || !isObject(parsed.skills)) {
+    throw new Error("Skill manifest must contain schemaVersion 1 and a skills object.");
+  }
+
+  return Object.fromEntries(Object.entries(parsed.skills).map(([name, value]) => {
+    if (!isObject(value) || typeof value.version !== "string" || typeof value.category !== "string") {
+      throw new Error(`Invalid skill manifest entry: ${name}.`);
+    }
+    const requires = isObject(value.requires) ? parseCatalogRequires(name, value.requires) : undefined;
+    return [name, {
+      version: value.version,
+      category: value.category,
+      ...(requires ? { requires } : {})
+    }];
+  }));
+}
+
+function parseCatalogRequires(name: string, value: Record<string, unknown>): SkillRequires {
+  const allowed = new Set(["servers", "scopes", "license", "roles", "writes"]);
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      throw new Error(`Unknown requires key for ${name}: ${key}.`);
+    }
+  }
+  return {
+    ...(stringList(value.servers) ? { servers: stringList(value.servers) } : {}),
+    ...(stringList(value.scopes) ? { scopes: stringList(value.scopes) } : {}),
+    ...(typeof value.license === "string" ? { license: value.license } : {}),
+    ...(stringList(value.roles) ? { roles: stringList(value.roles) } : {}),
+    ...(typeof value.writes === "boolean" ? { writes: value.writes } : {})
+  };
+}
+
+function stringList(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : undefined;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

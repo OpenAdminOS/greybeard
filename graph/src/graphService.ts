@@ -1,8 +1,12 @@
 import { GreybeardGraphError } from "./errors.js";
 import { classifyGraphFailure, GraphErrorBody } from "./classify.js";
 import { getGreybeardAppDataPath } from "./appData.js";
+import { activeScopeLeases, readGreybeardConfig, updateGreybeardConfig } from "./config.js";
+import { ScopeAuditLog } from "./scopeAudit.js";
+import { isWriteScope } from "./consent.js";
 import {
   DEFAULT_TIER1_SCOPES,
+  AddScopeInput,
   AuthToken,
   AuthStatus,
   FetchLike,
@@ -10,6 +14,7 @@ import {
   GraphMeta,
   GraphToolInput,
   GraphToolResult,
+  RemoveScopeInput,
   ResponseLike
 } from "./types.js";
 import { ApprovalClientContext, BrowserOpen } from "./approvalChannels.js";
@@ -33,6 +38,7 @@ export class GraphService {
   private readonly fetcher: FetchLike;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly writeGate: WriteGate;
+  private readonly appDataPath: string;
   private readonly session: SessionMetadata = {
     requests: 0,
     pages: 0,
@@ -52,12 +58,13 @@ export class GraphService {
     clientContext?: () => ApprovalClientContext;
   }) {
     this.auth = params.auth;
+    this.appDataPath = params.appDataPath ?? getGreybeardAppDataPath();
     this.fetcher = params.fetcher ?? (globalThis.fetch as unknown as FetchLike);
     this.sleep = params.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.writeGate = new WriteGate({
       auth: this.auth,
       fetcher: this.fetcher,
-      appDataPath: params.appDataPath ?? getGreybeardAppDataPath(),
+      appDataPath: this.appDataPath,
       sleep: this.sleep,
       now: params.now,
       randomBytes: params.randomBytes,
@@ -88,7 +95,11 @@ export class GraphService {
     const normalized = normalizeInput(input);
     enforceReadGate(normalized);
 
-    const token = await this.auth.getToken([...DEFAULT_TIER1_SCOPES]);
+    const configuredScopes = await this.configuredReadScopes();
+    const token = await this.auth.getToken(uniqueScopes([
+      ...DEFAULT_TIER1_SCOPES,
+      ...configuredScopes
+    ]));
     const warnings = warningsFor(normalized);
     const notes = notesFor(normalized);
     this.addWarnings(warnings);
@@ -192,8 +203,19 @@ export class GraphService {
     } as AuthStatus;
   }
 
-  addScope(input: { scopes: string[]; reason: string }) {
+  addScope(input: AddScopeInput) {
     return this.auth.addScopes(input);
+  }
+
+  removeScope(input: RemoveScopeInput) {
+    if (!this.auth.removeScopes) {
+      throw new GreybeardGraphError({
+        code: "E_SCOPE_RELEASE_UNAVAILABLE",
+        message: "The active authentication provider cannot update scope configuration.",
+        guidance: "Restart Greybeard with the built-in authentication provider and retry."
+      });
+    }
+    return this.auth.removeScopes(input);
   }
 
   planWrite(input: PlanWriteInput) {
@@ -206,6 +228,34 @@ export class GraphService {
 
   executePlan(input: ExecutePlanInput) {
     return this.writeGate.executePlan(input);
+  }
+
+  private async configuredReadScopes(): Promise<string[]> {
+    const config = await readGreybeardConfig(this.appDataPath);
+    const active = activeScopeLeases(config);
+    const activeKeys = new Set(active.map((lease) => `${lease.scope.toLowerCase()}\n${lease.requestedAt}`));
+    const expired = (config.scopeLeases ?? []).filter((lease) => {
+      return !activeKeys.has(`${lease.scope.toLowerCase()}\n${lease.requestedAt}`);
+    });
+    if (expired.length > 0) {
+      await updateGreybeardConfig(this.appDataPath, (current) => ({
+        ...current,
+        scopeLeases: activeScopeLeases(current)
+      }));
+      await new ScopeAuditLog(this.appDataPath).append({
+        event: "expired",
+        scopes: expired.map((lease) => lease.scope),
+        reason: "configured scope lease expired",
+        details: {
+          leases: expired.map((lease) => ({
+            scope: lease.scope,
+            reason: lease.reason,
+            expiresAt: lease.expiresAt
+          }))
+        }
+      });
+    }
+    return active.map((lease) => lease.scope).filter((scope) => !isWriteScope(scope));
   }
 
   private async fetchWithRetry(url: string, init: RequestInit, meta: GraphMeta, token: AuthToken): Promise<ResponseLike> {
@@ -252,6 +302,18 @@ export class GraphService {
       }
     }
   }
+}
+
+function uniqueScopes(scopes: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return scopes.filter((scope) => {
+    const key = scope.toLowerCase();
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVersion" | "path" | "fetchAll" | "maxItems">> & {

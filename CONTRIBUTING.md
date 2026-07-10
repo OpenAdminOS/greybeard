@@ -40,7 +40,6 @@ Required `SKILL.md` frontmatter:
 ---
 name: skill-name
 description: Use when the user asks for a specific task.
-version: 0.1.0
 ---
 ```
 
@@ -51,7 +50,8 @@ Rules:
 - The trigger must be concrete and distinct from every other skill.
 - Keep specialist skills more specific than `ask-my-tenant`.
 - Do not add client-specific frontmatter fields to shared skills.
-- Include a body `Version: x.y.z` line and a `## CHANGELOG` section.
+- Add matching `agents/openai.yaml` metadata generated from the skill.
+- Add the skill version to `.agents/skills/manifest.json`; keep version history outside `SKILL.md`.
 - Add `test.md` with at least one trigger prompt and expected behavior.
 - Do not store secrets, tenant data, or live customer output in a skill file.
 
@@ -118,13 +118,13 @@ If two skills can answer the same prompt, either make one clearly more specific 
 
 ## Versioning
 
-Every skill has a frontmatter `version` and a body `Version:` line. Keep them aligned.
+Every skill has a version in `.agents/skills/manifest.json` and only `name` and `description` in frontmatter.
 
 - Major: breaking workflow or output contract.
 - Minor: new capability, references, examples, or trigger improvements.
 - Patch: typo, formatting, or clarification that does not change behavior.
 
-Add a `CHANGELOG` entry whenever behavior changes. `greybeard update` reports changed skill names and the current version after a pull.
+Update the manifest version whenever behavior changes. `greybeard update` reports changed skill names and the current manifest version after a pull.
 
 ## Build Path
 
@@ -142,7 +142,7 @@ Use this path for skill or reference improvements:
 
 1. Edit the existing skill or reference file.
 2. Update `test.md` if the trigger or expected behavior changed.
-3. Update the skill version and changelog.
+3. Update the manifest version and regenerate `agents/openai.yaml` if metadata changed.
 4. Run `npm test --workspace @greybeard/cli` and `npm run check:style`.
 
 ## Documentation Rules

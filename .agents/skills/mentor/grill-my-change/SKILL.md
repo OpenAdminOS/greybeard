@@ -1,14 +1,9 @@
 ---
 name: grill-my-change
 description: Use when the user asks to sanity-check, rehearse, pressure-test, or get grilled on a planned tenant change before executing it.
-version: 0.2.0
-requires:
-  servers: [greybeard-graph]
 ---
 
 # Grill My Change
-
-Version: 0.2.0
 
 The senior admin's pre-change interview. The goal is to find the failure mode before the tenant does. This skill never writes and never calls `plan-write`; when the admin is ready to execute, hand the finished Change Brief to the change-plan skill.
 
@@ -60,10 +55,5 @@ Reviewed: <date>
 
 Next step: run this through change-plan for staged execution with human approval.
 ```
-
-## CHANGELOG
-
-- 0.2.0: Added the capture preamble for confirmed learnings.
-- 0.1.0: Initial pre-change interview skill.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.

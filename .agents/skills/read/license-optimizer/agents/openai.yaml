@@ -1,0 +1,4 @@
+interface:
+  display_name: "License Optimizer"
+  short_description: "Find Microsoft 365 license waste"
+  default_prompt: "Use $license-optimizer to analyze license utilization and savings opportunities."

@@ -57,7 +57,8 @@ export type AuthStatus =
       clientIdKind: ClientIdKind;
       grantedScopes: string[];
       entraP1: boolean | null;
-      directoryRoles: string[];
+      directoryRoles: string[] | null;
+      directoryRolesStatus: DirectoryRolesStatus;
       cacheProtection: CacheProtection;
       gate: {
         pendingPlan: string | null;
@@ -76,7 +77,8 @@ export type AuthStatus =
       clientIdKind: ClientIdKind;
       grantedScopes: string[];
       entraP1: null;
-      directoryRoles: string[];
+      directoryRoles: null;
+      directoryRolesStatus: DirectoryRolesStatus;
       cacheProtection: CacheProtection;
       gate: {
         pendingPlan: string | null;
@@ -87,6 +89,7 @@ export type AuthStatus =
 export type AddScopeInput = {
   scopes: string[];
   reason: string;
+  leaseMinutes?: number;
 };
 
 export type AddScopeResult = {
@@ -97,12 +100,32 @@ export type AddScopeResult = {
   consentUrl?: string;
   justifications?: Record<string, string>;
   guidance?: string;
+  leaseExpiresAt?: string;
+};
+
+export type RemoveScopeInput = {
+  scopes: string[];
+  reason: string;
+  confirm: boolean;
+};
+
+export type RemoveScopeResult = {
+  removedScopes: string[];
+  notConfigured: string[];
+  requiresTenantConsentRevocation: boolean;
+  guidance: string;
+};
+
+export type DirectoryRolesStatus = {
+  state: "available" | "unavailable" | "not-signed-in";
+  diagnostic?: string;
 };
 
 export interface GraphAuthProvider {
   getToken(scopes: string[]): Promise<AuthToken>;
   getStatus(): Promise<AuthStatus>;
   addScopes(input: AddScopeInput): Promise<AddScopeResult>;
+  removeScopes?(input: RemoveScopeInput): Promise<RemoveScopeResult>;
 }
 
 export type GraphToolInput = {

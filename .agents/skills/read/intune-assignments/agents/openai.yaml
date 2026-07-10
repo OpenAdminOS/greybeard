@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intune Assignments"
+  short_description: "Map Intune targeting and exclusions"
+  default_prompt: "Use $intune-assignments to analyze Intune app or policy targeting."
