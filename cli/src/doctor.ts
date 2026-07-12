@@ -12,21 +12,8 @@ import {
 import { flagValue, ParsedArgs } from "./args.js";
 import {
   detectAllClients,
-  inspectCodexMcpConfig,
-  inspectCodexSkillFallback,
-  inspectCodexSkillWiring,
-  inspectCopilotMcpConfig,
-  inspectCopilotSkillFallback,
-  inspectCopilotSkillWiring,
-  inspectCursorMcpConfig,
-  inspectCursorSkillFallback,
-  inspectCursorSkillWiring,
-  inspectClaudeMcpConfig,
   inspectClaudeMemoryHook,
-  inspectClaudeSkillWiring,
-  inspectGeminiMcpConfig,
-  inspectGeminiSkillFallback,
-  inspectGeminiSkillWiring,
+  getClientAdapter,
   summarizeSkillWiring,
   type ClientDetection,
   type ClientMcpConfigResult,
@@ -35,14 +22,14 @@ import {
   type SkillFallbackResult,
   type SkillWireResult
 } from "./clients.js";
-import { CliRuntime, writeLine, writeStatusLine } from "./runtime.js";
+import { CliRuntime, writeInfoLine, writeLine, writeStatusLine } from "./runtime.js";
 import { enabledCatalogServers, findCatalogServer } from "./serverCatalog.js";
 import { loadSkillManifests, ROLE_GROUPS, type SkillManifestLoadResult } from "./skillManifest.js";
 
 export type FindingLevel = "PASS" | "WARN" | "FAIL";
 
 export type DoctorFinding = {
-  level: FindingLevel;
+  level: FindingLevel | null;
   label: string;
   detail: string;
 };
@@ -52,7 +39,11 @@ export async function runDoctor(args: ParsedArgs, runtime: CliRuntime): Promise<
   writeLine(runtime.stdout, "Greybeard doctor");
   writeLine(runtime.stdout, "────────────────");
   for (const finding of findings) {
-    writeStatusLine(runtime.stdout, finding.level, finding.label, finding.detail);
+    if (finding.level) {
+      writeStatusLine(runtime.stdout, finding.level, finding.label, finding.detail);
+    } else {
+      writeInfoLine(runtime.stdout, finding.label, finding.detail);
+    }
   }
 
   return findings.some((finding) => finding.level === "FAIL") ? 1 : 0;
@@ -388,6 +379,8 @@ async function clientFindings(
     return [];
   }
 
+  const adapter = getClientAdapter(client.name);
+
   const [mcp, skills, fallback] = await Promise.all([
     inspectClientMcp(client.name, runtime, serverOptions),
     inspectClientSkills(client.name, runtime),
@@ -397,9 +390,22 @@ async function clientFindings(
     mcpFinding(client.name, mcp, serverOptions),
     skillFinding(client.name, skills, fallback)
   ];
-  findings.push(client.name === "Claude Code"
-    ? await memoryHookFinding(runtime)
-    : contextBlockFinding(client.name, fallback));
+  if (adapter.ambientChannel === "memory-hook") {
+    findings.push(await memoryHookFinding(runtime));
+  } else if (adapter.ambientChannel === "context-block") {
+    findings.push(contextBlockFinding(client.name, fallback));
+  } else {
+    findings.push({
+      level: null,
+      label: `${client.name} activation`,
+      detail: "fully quit and restart Claude Desktop after MCP config edits"
+    });
+  }
+  findings.push(...(client.warnings ?? []).map((detail): DoctorFinding => ({
+    level: "WARN",
+    label: `${client.name} config path`,
+    detail
+  })));
   return findings;
 }
 
@@ -443,66 +449,15 @@ async function inspectClientMcp(
   runtime: CliRuntime,
   options: InspectServerOptions
 ): Promise<ClientMcpConfigResult> {
-  if (name === "Claude Code") {
-    return {
-      client: name,
-      ...await inspectClaudeMcpConfig(runtime, options)
-    };
-  }
-
-  if (name === "Cursor") {
-    return inspectCursorMcpConfig(runtime, options);
-  }
-
-  if (name === "Codex CLI") {
-    return inspectCodexMcpConfig(runtime, options);
-  }
-
-  if (name === "Gemini CLI") {
-    return inspectGeminiMcpConfig(runtime, options);
-  }
-
-  return inspectCopilotMcpConfig(runtime, options);
+  return getClientAdapter(name).inspectMcpConfig(runtime, options);
 }
 
 async function inspectClientSkills(name: KnownClientName, runtime: CliRuntime): Promise<SkillWireResult> {
-  if (name === "Claude Code") {
-    return inspectClaudeSkillWiring(runtime);
-  }
-
-  if (name === "Cursor") {
-    return inspectCursorSkillWiring(runtime);
-  }
-
-  if (name === "Codex CLI") {
-    return inspectCodexSkillWiring(runtime);
-  }
-
-  if (name === "Gemini CLI") {
-    return inspectGeminiSkillWiring(runtime);
-  }
-
-  return inspectCopilotSkillWiring(runtime);
+  return getClientAdapter(name).inspectSkills(runtime);
 }
 
 async function inspectClientFallback(name: KnownClientName, runtime: CliRuntime): Promise<SkillFallbackResult | null> {
-  if (name === "Cursor") {
-    return inspectCursorSkillFallback(runtime);
-  }
-
-  if (name === "Codex CLI") {
-    return inspectCodexSkillFallback(runtime);
-  }
-
-  if (name === "Gemini CLI") {
-    return inspectGeminiSkillFallback(runtime);
-  }
-
-  if (name === "GitHub Copilot") {
-    return inspectCopilotSkillFallback(runtime);
-  }
-
-  return null;
+  return getClientAdapter(name).inspectFallback?.(runtime) ?? null;
 }
 
 function mcpFinding(
@@ -543,6 +498,14 @@ function skillFinding(
   skills: SkillWireResult,
   fallback: SkillFallbackResult | null
 ): DoctorFinding {
+  if (skills.channel === "manual-zip") {
+    return {
+      level: null,
+      label: `${name} skills`,
+      detail: skills.manualInstruction ?? "manual ZIP upload; upload state cannot be verified locally"
+    };
+  }
+
   const summary = summarizeSkillWiring(skills);
   if (summary.ok) {
     return {

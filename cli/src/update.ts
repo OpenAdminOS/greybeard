@@ -96,7 +96,8 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
     writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
   }
   for (const result of mcpResults) {
-    writeStatusLine(runtime.stdout, "OK", result.client, result.path);
+    const restart = result.client === "Claude Desktop" ? "; full app restart required" : "";
+    writeStatusLine(runtime.stdout, "OK", result.client, `${result.path}${restart}`);
   }
 
   writeSection(runtime.stdout, "Skills");
@@ -105,6 +106,11 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
     writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
   }
   for (const result of skillResults) {
+    if (result.channel === "manual-zip") {
+      writeInfoLine(runtime.stdout, result.client ?? "Client", result.manualInstruction ?? "manual ZIP upload required");
+      continue;
+    }
+
     const summary = summarizeSkillWiring(result);
     writeStatusLine(runtime.stdout, summary.ok ? "OK" : "WARN", result.client ?? "Client", summary.detail);
   }
@@ -112,7 +118,8 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
   writeSection(runtime.stdout, "Context files");
   const fallbackResults = await writeAllClientSkillFallbacks(runtime, clients);
   const claudeDetected = clients.some((client) => client.detected && client.name === "Claude Code");
-  if (fallbackResults.length === 0 && !claudeDetected) {
+  const claudeDesktopDetected = clients.some((client) => client.detected && client.name === "Claude Desktop");
+  if (fallbackResults.length === 0 && !claudeDetected && !claudeDesktopDetected) {
     writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
   }
   for (const result of fallbackResults) {
@@ -126,10 +133,29 @@ export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<
       writeStatusLine(runtime.stdout, "OK", "Claude Code", `memory hook ${hook.status} in ${hook.path}`);
     }
   }
+  if (claudeDesktopDetected) {
+    writeInfoLine(runtime.stdout, "Claude Desktop", "no global instruction file; manual ZIP upload is the skills channel");
+  }
+
+  if (claudeDesktopDetected && changed.length > 0) {
+    const changedUploads = changed.filter((skill) => skill.version !== "removed");
+    const removedUploads = changed.filter((skill) => skill.version === "removed");
+    writeSection(runtime.stdout, "Claude Desktop skill uploads");
+    if (changedUploads.length > 0) {
+      writeInfoLine(runtime.stdout, "Action", "run greybeard skills pack, then re-upload the changed ZIPs in Settings > Capabilities > Skills");
+      writeInfoLine(runtime.stdout, "Changed ZIPs", changedUploads.map((skill) => `${skill.name}.zip`).join(", "));
+    }
+    if (removedUploads.length > 0) {
+      writeInfoLine(runtime.stdout, "Remove uploads", removedUploads.map((skill) => skill.name).join(", "));
+    }
+  }
 
   writeSection(runtime.stdout, "Activation");
   writeStatusLine(runtime.stdout, "OK", "Runtime", "rebuilt and verified before MCP configuration activation");
   writeInfoLine(runtime.stdout, "MCP clients", "reload or reconnect clients to launch the updated server runtime");
+  if (claudeDesktopDetected) {
+    writeInfoLine(runtime.stdout, "Claude Desktop", "fully quit and restart the app to load the updated MCP config");
+  }
 
   return 0;
 }

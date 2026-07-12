@@ -175,6 +175,7 @@ This table describes what the current adapters write.
 | Client | Detection | MCP Config | Skills | Ambient Recall | Approval Channel |
 |---|---|---|---|---|---|
 | Claude Code | `claude` on PATH, or a `~/.claude.json` that Greybeard did not create alone | Yes, `~/.claude.json` with `greybeard-graph` and `greybeard-memory` | Native symlinks into `~/.claude/skills` | Prompt-time recall hook in `~/.claude/settings.json`, on by default, `--no-memory-hook` opts out | MCP elicitation is allowlisted for Claude Code, with browser fallback. CLI approval is opt-in. |
+| Claude Desktop | macOS `/Applications/Claude.app`, Windows `%LOCALAPPDATA%\Programs\Claude\Claude.exe`, an Anthropic Claude MSIX package, or `claude_desktop_config.json` containing config Greybeard did not create alone. Claude Code signals do not count. | Yes, native stdio entries in macOS `~/Library/Application Support/Claude/claude_desktop_config.json` or Windows `%APPDATA%\Claude\claude_desktop_config.json`. Fully restart the app after edits. | Manual ZIP upload in Settings > Capabilities > Skills. Run `greybeard skills pack`; uploaded skills auto-trigger from their descriptions. | No global instruction file. Recall guidance is available when an uploaded skill triggers. | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
 | Cursor | `cursor` on PATH, or the installed app (`/Applications/Cursor.app`, `%LOCALAPPDATA%\Programs\cursor`) | Yes, `~/.cursor/mcp.json` | Native symlinks into `~/.cursor/skills`; setup and update also write `~/.cursor/rules/greybeard.mdc` | Always-applied Cursor rule with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
 | Codex CLI | `codex` on PATH, or `~/.codex/auth.json` | Yes, `~/.codex/config.toml` under `[mcp_servers.*]` | Native symlinks into `~/.agents/skills`; setup and update also write `~/.codex/AGENTS.md` | Context block in `~/.codex/AGENTS.md` with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
 | Gemini CLI | `gemini` on PATH only, because `~/.gemini` is shared by unrelated Google tooling | Yes, `~/.gemini/settings.json` | Native symlinks into `~/.gemini/skills`; setup and update also write `~/.gemini/GEMINI.md` | Context block in `~/.gemini/GEMINI.md` with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
@@ -183,6 +184,10 @@ This table describes what the current adapters write.
 Greybeard never treats the mere existence of a shared config directory, or files Greybeard itself wrote, as proof a client is installed. Undetected clients are skipped by setup and doctor.
 
 Native skills support was rechecked against current client documentation for Cursor, Codex CLI, Gemini CLI, and GitHub Copilot during M7. The smoke tests that require real client installs remain manual.
+
+### Claude Desktop skill ZIPs
+
+Run `greybeard skills pack` to write one upload-ready ZIP per skill to the Greybeard app-data directory under `skill-zips/`. Use `greybeard skills pack --out <directory>` to choose another destination. Each ZIP contains the named skill folder with `SKILL.md` at its root. Upload the ZIPs in Claude Desktop under Settings > Capabilities > Skills. After Greybeard reports changed skills during an update, pack again and re-upload the changed ZIPs.
 
 ## Headless And Scheduled Use
 
@@ -196,7 +201,7 @@ The read skills work in non-interactive client sessions, for example `claude -p 
 - `--skill-update login`: run on login where the OS scheduler supports it.
 - `--skill-update off`: manual update only.
 
-`greybeard update` requires a clean tracked tree, pulls with fast-forward only, runs `npm ci`, builds, and tests before activation. It then refreshes MCP config, re-links skills, rewrites detected-client context blocks and the Claude Code recall hook, and asks clients to reconnect. A failed verification restores and rebuilds the previous revision.
+`greybeard update` requires a clean tracked tree, pulls with fast-forward only, runs `npm ci`, builds, and tests before activation. It then refreshes MCP config, re-links filesystem skills, rewrites detected-client context blocks and the Claude Code recall hook, and asks clients to reconnect. When Claude Desktop is detected and skills changed, it names the ZIPs to repack and re-upload. Claude Desktop must be fully restarted after its MCP config changes. A failed verification restores and rebuilds the previous revision.
 
 Server update modes are implemented but npm publishing has not run yet. The default config writes local `node .../graph/dist/index.js` and `node .../memory/dist/index.js` paths. After first npm publish, `--server-source npm --server-update latest` writes `npx -y @greybeard/graph@latest` and `@greybeard/memory@latest`; pinned mode writes the current package versions.
 

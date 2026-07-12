@@ -245,11 +245,13 @@ function printClientLedgerLine(params: {
   }
 
   if (params.skills) {
-    const summary = summarizeSkillWiring(params.skills);
-    if (summary.ok) {
-      configured.push(`${params.skills.entries.length} skills`);
-    } else {
-      problems.push(summary.detail);
+    if (params.skills.channel !== "manual-zip") {
+      const summary = summarizeSkillWiring(params.skills);
+      if (summary.ok) {
+        configured.push(`${params.skills.entries.length} skills`);
+      } else {
+        problems.push(summary.detail);
+      }
     }
   }
 
@@ -264,12 +266,19 @@ function printClientLedgerLine(params: {
   ].filter((part) => part.length > 0).join("; ");
   writeStatusLine(params.runtime.stdout, problems.length === 0 ? "OK" : "WARN", params.client, detail);
 
+  if (params.skills?.channel === "manual-zip") {
+    writeInfoLine(params.runtime.stdout, "Skills", params.skills.manualInstruction ?? "manual ZIP upload required");
+  }
+  if (params.client === "Claude Desktop" && params.mcp?.configured) {
+    writeInfoLine(params.runtime.stdout, "Restart", "fully quit and restart Claude Desktop to load the MCP config");
+  }
+
   if (params.verbose) {
     if (params.mcp) {
       writeInfoLine(params.runtime.stdout, "MCP config", params.mcp.path);
     }
 
-    if (params.skills && !params.skills.empty) {
+    if (params.skills && !params.skills.empty && params.skills.channel !== "manual-zip") {
       writeInfoLine(params.runtime.stdout, "Skills", params.skills.targetDir);
     }
 

@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, readlink, writeFile, symlink } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readlink, stat, writeFile, symlink } from "node:fs/promises";
 import { PassThrough } from "node:stream";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { inflateRawSync } from "node:zlib";
 import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_TIER1_SCOPES,
@@ -22,6 +23,7 @@ import {
   codexAuthPath,
   codexConfigPath,
   codexFallbackPath,
+  claudeDesktopConfigPath,
   copilotFallbackPath,
   copilotMcpConfigPath,
   copilotSkillsDir,
@@ -30,6 +32,7 @@ import {
   cursorSkillsDir,
   detectCodexCli,
   detectClaudeCode,
+  detectClaudeDesktop,
   detectGithubCopilot,
   detectCursor,
   detectGeminiCli,
@@ -40,6 +43,7 @@ import {
   repoSkillsDir,
   wireClaudeSkills,
   writeClaudeMcpConfig,
+  writeClaudeDesktopMcpConfig,
   writeClaudeMemoryHook,
   writeCodexMcpConfig,
   writeCodexSkillFallback,
@@ -54,6 +58,7 @@ import { assembleDoctorFindings, skillRequirementFindings } from "./doctor.js";
 import { runCli } from "./index.js";
 import { CliRuntime, OutputStream } from "./runtime.js";
 import { ensureWorkspaceApplication, installAutoUpdateSchedule } from "./setup.js";
+import { packSkills } from "./skills.js";
 
 describe("greybeard CLI", () => {
   it("runs help when the built CLI is invoked through a symlink", async () => {
@@ -320,6 +325,35 @@ describe("greybeard CLI", () => {
       level: "PASS",
       label: "Codex CLI context block"
     }));
+  });
+
+  it("reports Claude Desktop skill uploads as an unverifiable manual fact", async () => {
+    const paths = await tempPaths();
+    await writeGreybeardConfig(paths.appData, {
+      activeTenantId: "tenant-id"
+    });
+    const runtime = createMockRuntime(paths, {
+      platform: "darwin"
+    });
+    const configPath = claudeDesktopConfigPath(runtime);
+    await mkdir(resolve(configPath, ".."), { recursive: true });
+    await writeFile(configPath, JSON.stringify({
+      theme: "dark",
+      mcpServers: {}
+    }), "utf8");
+
+    const findings = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    const skills = findings.find((finding) => finding.label === "Claude Desktop skills");
+
+    expect(skills?.level).toBeNull();
+    expect(skills?.detail).toContain("manual ZIP upload");
+    expect(skills?.detail).toContain("cannot be verified locally");
+    expect(findings.some((finding) => finding.label === "Claude Desktop context block")).toBe(false);
+    expect(findings).toContainEqual({
+      level: null,
+      label: "Claude Desktop activation",
+      detail: "fully quit and restart Claude Desktop after MCP config edits"
+    });
   });
 
   it("reports skill requirements against granted scopes, servers, writes, and roles", () => {
@@ -950,6 +984,51 @@ describe("greybeard CLI", () => {
     }));
   });
 
+  it("packs each skill as a Claude Desktop ZIP with the skill folder at its root", async () => {
+    const paths = await tempPaths();
+    const skillDir = await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    await mkdir(join(skillDir, "agents"), { recursive: true });
+    await writeFile(join(skillDir, "agents", "openai.yaml"), "name: tenant-pulse\n", "utf8");
+    await writeFile(join(skillDir, "test.md"), "test question\n", "utf8");
+    const outputDir = join(paths.root, "packed");
+
+    const packed = await packSkills(createMockRuntime(paths), outputDir);
+
+    expect(packed).toEqual([{
+      name: "tenant-pulse",
+      path: join(outputDir, "tenant-pulse.zip")
+    }]);
+    const entries = readZipEntries(await readFile(packed[0].path));
+    expect([...entries.keys()]).toEqual([
+      "tenant-pulse/",
+      "tenant-pulse/agents/",
+      "tenant-pulse/agents/openai.yaml",
+      "tenant-pulse/SKILL.md",
+      "tenant-pulse/test.md"
+    ]);
+    expect(entries.get("tenant-pulse/SKILL.md")?.toString("utf8")).toContain("name: tenant-pulse");
+    expect(entries.get("tenant-pulse/test.md")?.toString("utf8")).toBe("test question\n");
+  });
+
+  it("prints Claude Desktop upload instructions and blocks duplicate skill names", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    const outputDir = join(paths.root, "packed");
+    const runtime = createMockRuntime(paths);
+
+    const code = await runCli(["skills", "pack", "--out", outputDir], runtime);
+
+    expect(code).toBe(0);
+    expect(runtime.stdout.toString()).toContain("Settings > Capabilities > Skills");
+    expect(runtime.stdout.toString()).toContain(join(outputDir, "tenant-pulse.zip"));
+
+    await createSkillFixture(paths.repoRoot, "write", "tenant-pulse");
+    const duplicateRuntime = createMockRuntime(paths);
+    const duplicateCode = await runCli(["skills", "pack", "--out", outputDir], duplicateRuntime);
+    expect(duplicateCode).toBe(1);
+    expect(duplicateRuntime.stderr.toString()).toContain("duplicate folder names");
+  });
+
   it("detects clients only from client-owned signals", async () => {
     const paths = await tempPaths();
     const runtime = createMockRuntime(paths);
@@ -1009,6 +1088,82 @@ describe("greybeard CLI", () => {
     expect(copilotFromBinary.detectionDetail).toBe("copilot on PATH");
     expect(copilotWithOptIn.binaryPath).toBe("/usr/local/bin/copilot");
     expect(copilotWithOptIn.detectionDetail).toBe("copilot on PATH");
+  });
+
+  it("keeps Claude Desktop and Claude Code detection signals separate", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      platform: "darwin",
+      env: {
+        GREYBEARD_CLAUDE_DESKTOP_APP: join(paths.root, "not-installed", "Claude.app")
+      }
+    });
+    const desktopConfig = claudeDesktopConfigPath(runtime);
+    await mkdir(resolve(desktopConfig, ".."), { recursive: true });
+    await writeFile(desktopConfig, JSON.stringify({
+      mcpServers: {
+        userServer: {
+          command: "user-command"
+        }
+      }
+    }), "utf8");
+
+    expect((await detectClaudeDesktop(runtime)).detected).toBe(true);
+    expect((await detectClaudeCode(runtime)).detected).toBe(false);
+
+    await writeFile(desktopConfig, JSON.stringify({
+      mcpServers: {
+        "greybeard-graph": {
+          command: process.execPath,
+          args: ["graph/dist/index.js"],
+          env: {}
+        },
+        "greybeard-memory": {
+          command: process.execPath,
+          args: ["memory/dist/index.js"],
+          env: {}
+        }
+      }
+    }), "utf8");
+    expect((await detectClaudeDesktop(runtime)).detected).toBe(false);
+
+    await writeFile(join(paths.home, ".claude.json"), JSON.stringify({
+      theme: "dark"
+    }), "utf8");
+    expect((await detectClaudeCode(runtime)).detected).toBe(true);
+    expect((await detectClaudeDesktop(runtime)).detected).toBe(false);
+  });
+
+  it("detects Claude Desktop Windows installs and warns about MSIX config redirection", async () => {
+    const paths = await tempPaths();
+    const localAppData = join(paths.root, "local-app-data");
+    const appData = join(paths.root, "roaming-app-data");
+    const msixDir = join(localAppData, "Packages", "AnthropicPBC.Claude_test");
+    await mkdir(msixDir, { recursive: true });
+    const runtime = createMockRuntime(paths, {
+      platform: "win32",
+      env: {
+        APPDATA: appData,
+        LOCALAPPDATA: localAppData
+      }
+    });
+
+    const detection = await detectClaudeDesktop(runtime);
+
+    expect(detection.detected).toBe(true);
+    expect(detection.userConfigPath).toBe(join(appData, "Claude", "claude_desktop_config.json"));
+    expect(detection.warnings?.[0]).toContain("MSIX package detected");
+    expect(detection.warnings?.[0]).toContain("%APPDATA%/Claude/claude_desktop_config.json");
+
+    await writeGreybeardConfig(paths.appData, {
+      activeTenantId: "tenant-id"
+    });
+    const findings = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", paths.appData]), runtime);
+    expect(findings).toContainEqual(expect.objectContaining({
+      level: "WARN",
+      label: "Claude Desktop config path",
+      detail: expect.stringContaining("MSIX package detected")
+    }));
   });
 
   it("does not detect clients from Greybeard-written files alone", async () => {
@@ -1125,6 +1280,60 @@ describe("greybeard CLI", () => {
 
     const target = join(copilotSkillsDir(paths.home), "tenant-pulse");
     expect(resolve(join(target, ".."), await readlink(target))).toBe(source);
+  });
+
+  it("configures Claude Desktop with plain entries, preserves foreign servers, and prints manual steps", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse");
+    const runtime = createMockRuntime(paths, {
+      platform: "darwin"
+    });
+    const configPath = claudeDesktopConfigPath(runtime);
+    await mkdir(resolve(configPath, ".."), { recursive: true });
+    await writeFile(configPath, JSON.stringify({
+      mcpServers: {
+        userServer: {
+          command: "user-command",
+          args: ["--keep"]
+        }
+      }
+    }), "utf8");
+
+    const code = await runCli(["setup", "--yes", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(0);
+    const config = JSON.parse(await readFile(configPath, "utf8")) as {
+      mcpServers: Record<string, { type?: string; command: string; args: string[]; env: Record<string, string> }>;
+    };
+    expect(config.mcpServers.userServer.command).toBe("user-command");
+    expect(config.mcpServers["greybeard-graph"].type).toBeUndefined();
+    expect(config.mcpServers["greybeard-graph"].args[0]).toContain("graph/dist/index.js");
+    expect(config.mcpServers["greybeard-memory"].env).toEqual({});
+    expect(runtime.stdout.toString()).toContain("Claude Desktop");
+    expect(runtime.stdout.toString()).toContain("greybeard skills pack");
+    expect(runtime.stdout.toString()).toContain("fully quit and restart Claude Desktop");
+    expect(await pathExists(join(paths.home, ".claude", "skills"))).toBe(false);
+    if (process.platform !== "win32") {
+      expect((await stat(configPath)).mode & 0o777).toBe(0o600);
+    }
+  });
+
+  it("uses the Claude Desktop adapter writer without adding a type field", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths, {
+      platform: "win32",
+      env: {
+        APPDATA: join(paths.root, "roaming")
+      }
+    });
+
+    await writeClaudeDesktopMcpConfig(runtime);
+
+    const config = JSON.parse(await readFile(claudeDesktopConfigPath(runtime), "utf8")) as {
+      mcpServers: Record<string, { type?: string; args: string[] }>;
+    };
+    expect(config.mcpServers["greybeard-graph"].type).toBeUndefined();
+    expect(config.mcpServers["greybeard-graph"].args[0]).not.toContain("\\");
   });
 
   it("writes Cursor, Codex, Gemini, and Copilot MCP configs idempotently while preserving user config", async () => {
@@ -1498,6 +1707,29 @@ describe("greybeard CLI", () => {
     expect(await readFile(codexFallbackPath(paths.home), "utf8")).toContain("## Greybeard Memory");
   });
 
+  it("reminds detected Claude Desktop users to repack changed skill ZIPs and restart", async () => {
+    const paths = await tempPaths();
+    await createSkillFixture(paths.repoRoot, "read", "tenant-pulse", "0.2.0");
+    const appPath = join(paths.root, "Claude.app");
+    await mkdir(appPath, { recursive: true });
+    const runtime = createMockRuntime(paths, {
+      env: {
+        GREYBEARD_CLAUDE_DESKTOP_APP: appPath
+      },
+      runCommand: mockUpdateGit([".agents/skills/read/tenant-pulse/SKILL.md"])
+    });
+
+    const code = await runCli(["update", "--app-data", paths.appData], runtime);
+
+    expect(code).toBe(0);
+    const output = runtime.stdout.toString();
+    expect(output).toContain("Claude Desktop skill uploads");
+    expect(output).toContain("tenant-pulse.zip");
+    expect(output).toContain("greybeard skills pack");
+    expect(output).toContain("full app restart required");
+    expect(output).toContain("fully quit and restart the app");
+  });
+
   it("reports the real skill, not the old category, when a pull renames a category", async () => {
     const paths = await tempPaths();
     await createSkillFixture(paths.repoRoot, "authoring", "kql-authoring", "0.3.0");
@@ -1595,6 +1827,24 @@ class CaptureStream implements OutputStream {
   toString(): string {
     return this.chunks.join("");
   }
+}
+
+function readZipEntries(zip: Buffer): Map<string, Buffer> {
+  const entries = new Map<string, Buffer>();
+  let offset = 0;
+  while (zip.readUInt32LE(offset) === 0x04034b50) {
+    const method = zip.readUInt16LE(offset + 8);
+    const compressedSize = zip.readUInt32LE(offset + 18);
+    const nameLength = zip.readUInt16LE(offset + 26);
+    const extraLength = zip.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const name = zip.subarray(nameStart, nameStart + nameLength).toString("utf8");
+    const compressed = zip.subarray(dataStart, dataStart + compressedSize);
+    entries.set(name, method === 8 ? inflateRawSync(compressed) : Buffer.from(compressed));
+    offset = dataStart + compressedSize;
+  }
+  return entries;
 }
 
 async function createSkillFixture(repoRoot: string, category: string, name: string, version = "0.1.0"): Promise<string> {

@@ -115,6 +115,33 @@ Acceptance: on each client, the smoke test passes or the README matrix honestly 
 
 Acceptance: bumping a published server version reaches a latest-mode user on next client launch and does not reach a pinned user until `greybeard update`; a skills repo push reaches a weekly-mode user via the scheduled pull; README claims match doctor/smoke-test reality.
 
+## M9 - Claude Desktop client
+
+Research basis (verified 2026-07-12 against official docs): Claude Desktop still supports local stdio MCP servers via `claude_desktop_config.json` (macOS `~/Library/Application Support/Claude/`, Windows `%APPDATA%\Claude\`), plain `command/args/env` shape, full app restart required after edits. Skills are supported on all plans including Free, uploaded as ZIPs via Settings > Capabilities > Skills, and auto-trigger from the description field. Every tool call gets Claude Desktop's own explicit approval UI. MCP Bundles (`.mcpb`, renamed from `.dxt`) are the official one-click packaging for local stdio servers; no silent programmatic install exists, so direct config write remains the scripted path.
+
+- [x] Pre-work: extract the per-client if/else chains in `cli/src/clients.ts` and `cli/src/doctor.ts` into a `ClientAdapter` record keyed by `KnownClientName` (detection, MCP writer/inspector, skills wiring, fallback writer, ambient branch). Nine dispatch sites today; do this once before adding a sixth client
+- [x] Add `"Claude Desktop"` to `KnownClientName` with `detectClaudeDesktop`: macOS `/Applications/Claude.app` or config file present; Windows `%APPDATA%\Claude\claude_desktop_config.json`. Handle the Windows MSIX-install config-path discrepancy (anthropics/claude-code#26073) in detection notes
+- [x] MCP config writer/inspector for `claude_desktop_config.json`, `"plain"` shape, same foreign-entry preservation as other JSON clients, 0600 mode; setup output must state that a full Claude Desktop restart is required
+- [x] Skills channel: new `greybeard skills pack [--out <dir>]` command producing one ZIP per skill (folder name equals skill name, `SKILL.md` at root), Node built-ins only (no new dependency), plus printed upload instructions (Settings > Capabilities > Skills). No symlink dir and no ambient fallback file exist for this client; nothing is faked
+- [x] `greybeard update`: surfaces the changed-skill report with a repack-and-re-upload reminder naming the changed ZIPs when Claude Desktop is detected
+- [x] Doctor: inspects MCP wiring; reports the skills-upload state as a marker-free manual step that cannot be verified locally (uploads are private to the account)
+- [x] Write gate: localhost browser approval page only; elicitation allowlist verified unchanged (Claude Desktop joins the M7 elicitation smoke-test backlog)
+- [x] README support matrix row and a `docs/decisions.md` record (config path, skills mechanism, restart requirement, MSIX caveat), following the Codex CLI precedent
+- [x] Decision (user, 2026-07-12): the `.mcpb` one-click bundle is deferred out of the first pass; `greybeard setup` config-write is the only install path for now. Revisit as a release artifact once the adapter is proven
+- [ ] Real-client smoke test on a machine with Claude Desktop installed: setup detects and writes config, both servers appear after a full restart, `get-auth-status` answers in a normal chat, an uploaded skill ZIP auto-triggers on its `test.md` question (intune-compliance precedence over ask-my-tenant), and a `plan-write` opens the browser approval page
+- [ ] MSIX heuristic check against a real Windows MSIX install (the package-directory regex is a documented best-effort assumption)
+
+Acceptance: on a machine with Claude Desktop installed, `greybeard setup` detects it and writes both core servers into `claude_desktop_config.json` without touching user-authored entries; after an app restart both servers appear and `get-auth-status` answers in a normal chat; an uploaded skill ZIP auto-triggers on its test question from `test.md` (smoke: a compliance question triggers intune-compliance, not ask-my-tenant); a `plan-write` opens the browser approval page and an approved plan executes; doctor reports Claude Desktop MCP wiring truthfully and marks skills upload as manual; the README matrix row matches observed behavior.
+
+## M10 - ChatGPT desktop app: deferred (decision 2026-07-12)
+
+Hard constraints (verified 2026-07-12): the ChatGPT desktop app cannot connect to local stdio servers or plain localhost; custom connectors and developer-mode MCP require a publicly reachable HTTPS endpoint (SSE or Streamable HTTP) plus server-side OAuth ("OAuth with Client ID Metadata Documents" per https://developers.openai.com/api/docs/mcp), reached via OpenAI's Secure MCP Tunnel or ngrok/Cloudflare. Developer mode needs a paid plan. There is no Agent Skills equivalent; per-task guidance lives in Project instructions or a Custom GPT, and custom connectors do not auto-trigger as reliably as first-party ones.
+
+- [x] Decision (user, 2026-07-12): defer ChatGPT entirely. Tunnel exposure plus an OAuth build conflicts with the local-first principle (spec line 427) and the write gate's single-local-session design for too little payoff. Revisit when OpenAI supports local MCP servers. Recorded in docs/decisions.md
+- [ ] On revisit: re-verify transport and developer-mode requirements in-app before re-planning; the rejected options (read-only over tunnel, full experimental tunnel) are preserved in this file's git history
+
+Acceptance: docs/decisions.md carries the deferral with sources; no ChatGPT-related code, config, or README support-matrix row exists.
+
 ## Verification checkpoints (before calling v1 done)
 
 - [x] Re-verify current client support for the Agent Skills standard (Codex, Gemini CLI, Cursor, GitHub Copilot) and correct the adapters and matrix
@@ -128,6 +155,8 @@ Acceptance: bumping a published server version reaches a latest-mode user on nex
 - 2026-07-04, per-milestone orchestration review (independent reviewer, distinct from the implementer): 9 findings found and fixed across M1-M3 (error misclassification breaking the 403-to-consent flow on Tier 1 paths, fetchAll truncation flag overwrite, entraP1 tri-state, npm ci, write-gate token consumption leaving plans stuck in executing, bodyless POST sending a JSON null body, Application.ReadWrite.OwnedBy not existing as a delegated permission). Final verification: npm run ci green on all workspaces; both MCP servers smoke-tested over real stdio (initialize, tools/list, and a signed-out get-auth-status call returning the exact spec shape).
 - 2026-07-05, Codex CLI real-client smoke test passed: 12/12 skills listed by the live client, greybeard-graph MCP tool call succeeded with silent auth from the unified app cache. First attempt looked like a failure because the probe prompt forbade tool discovery; the wiring was correct throughout.
 - 2026-07-05, GitHub Copilot adapter added from current docs: Copilot CLI binary detection plus explicit override, Copilot CLI user MCP config, native personal skills, and fallback local instructions. Real-client Copilot smoke remains open.
+
+- 2026-07-12, M9 implementation review (independent reviewer, distinct from the implementer): no blocker or should-fix findings. Verified by inspection: ClientAdapter registry preserves all five existing clients on the shared write paths; Claude Desktop writer reuses the existing foreign-entry preservation and 0600 path; the skills pack ZIP writer's local/central/EOCD records hand-checked against the ZIP spec with a real zlib round-trip test; detection keeps Claude Code and Claude Desktop signals separate and never counts Greybeard-written config as a signal; doctor output keeps status markers off informational rows; elicitation allowlist unchanged; no graph/src or memory/src coupling. Full npm run ci green locally (implementer's sandbox could not run it). Manual remainder tracked as open M9 checkboxes.
 
 ## Graph call verification with Lokka (2026-07-05)
 

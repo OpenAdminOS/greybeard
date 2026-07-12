@@ -9,6 +9,7 @@ import { createRuntime, CliRuntime, writeLine } from "./runtime.js";
 import { runMemory } from "./memory.js";
 import { runScopes } from "./scopes.js";
 import { runSetup } from "./setup.js";
+import { runSkills } from "./skills.js";
 import { runUpdate } from "./update.js";
 
 export async function runCli(argv: string[], runtime: CliRuntime = createRuntime()): Promise<number> {
@@ -42,6 +43,10 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
     return runUpdate(args, runtime);
   }
 
+  if (args.command === "skills") {
+    return runSkills(args, runtime);
+  }
+
   writeLine(runtime.stderr, `greybeard ${args.command} is not implemented in this milestone.`);
   return 1;
 }
@@ -52,6 +57,7 @@ function printHelp(runtime: CliRuntime): void {
   writeLine(runtime.stdout, "Commands:");
   writeLine(runtime.stdout, "  greybeard setup [--yes] [--verbose] [--writes] [--memory-hook] [--no-memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm] [--enable-server <name>] [--disable-server <name>]");
   writeLine(runtime.stdout, "  greybeard update");
+  writeLine(runtime.stdout, "  greybeard skills pack [--out <directory>]");
   writeLine(runtime.stdout, "  greybeard doctor");
   writeLine(runtime.stdout, "  greybeard scopes");
   writeLine(runtime.stdout, "  greybeard approve [--plan-id <plan-id>]");

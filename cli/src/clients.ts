@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
@@ -16,7 +16,7 @@ export const MEMORY_HOOK_REMINDER = "For Microsoft 365, Intune, or Entra tasks, 
 const GREYBEARD_BLOCK_START = "<!-- GREYBEARD SKILLS START -->";
 const GREYBEARD_BLOCK_END = "<!-- GREYBEARD SKILLS END -->";
 
-export type KnownClientName = "Claude Code" | "Cursor" | "Codex CLI" | "Gemini CLI" | "GitHub Copilot";
+export type KnownClientName = "Claude Code" | "Claude Desktop" | "Cursor" | "Codex CLI" | "Gemini CLI" | "GitHub Copilot";
 
 export type ClientDetectionOptions = {
   githubCopilot?: boolean;
@@ -31,6 +31,7 @@ export type ClientDetection = {
   userDirPath?: string;
   userDirExists?: boolean;
   detectionDetail?: string;
+  warnings?: string[];
 };
 
 export type ClaudeDetection = ClientDetection & {
@@ -74,6 +75,8 @@ export type SkillWireResult = {
   targetDir: string;
   empty: boolean;
   entries: SkillWireEntry[];
+  channel?: "filesystem" | "manual-zip";
+  manualInstruction?: string;
 };
 
 export type SkillFallbackResult = {
@@ -91,6 +94,19 @@ export type ServerConfigOptions = {
 
 export type InspectServerOptions = {
   serverToggles?: Record<string, boolean>;
+};
+
+export type ClientAmbientChannel = "memory-hook" | "context-block" | "none-manual";
+
+export type ClientAdapter = {
+  detect: (runtime: CliRuntime, options?: ClientDetectionOptions) => Promise<ClientDetection>;
+  writeMcpConfig: (runtime: CliRuntime, options?: ServerConfigOptions) => Promise<ClientMcpConfigResult>;
+  inspectMcpConfig: (runtime: CliRuntime, options?: InspectServerOptions) => Promise<ClientMcpConfigResult>;
+  wireSkills: (runtime: CliRuntime) => Promise<SkillWireResult>;
+  inspectSkills: (runtime: CliRuntime) => Promise<SkillWireResult>;
+  writeFallback: ((runtime: CliRuntime) => Promise<SkillFallbackResult>) | null;
+  inspectFallback: ((runtime: CliRuntime) => Promise<SkillFallbackResult>) | null;
+  ambientChannel: ClientAmbientChannel;
 };
 
 type StdioServerDefinition = {
@@ -126,6 +142,32 @@ export async function detectCursor(runtime: CliRuntime): Promise<ClientDetection
     binaryPath,
     userConfigPath: appPath ?? cursorMcpConfigPath(runtime.homeDir),
     userConfigExists: appExists
+  };
+}
+
+export async function detectClaudeDesktop(runtime: CliRuntime): Promise<ClientDetection> {
+  const configPath = claudeDesktopConfigPath(runtime);
+  const appPath = claudeDesktopAppPath(runtime);
+  const msixPackageDirs = await claudeDesktopMsixPackageDirs(runtime);
+  const [appExists, configSignal] = await Promise.all([
+    appPath ? fileExists(appPath) : Promise.resolve(false),
+    jsonConfigDetectionSignal(configPath)
+  ]);
+  const msixDetected = msixPackageDirs.length > 0;
+  const warnings = msixDetected
+    ? [
+      "Claude Desktop MSIX package detected. Greybeard uses %APPDATA%/Claude/claude_desktop_config.json because that is the config Claude Desktop reads; the MSIX redirected config may differ."
+    ]
+    : undefined;
+  return {
+    name: "Claude Desktop",
+    detected: Boolean(appExists || configSignal || msixDetected),
+    binaryPath: null,
+    userConfigPath: configPath,
+    userConfigExists: configSignal,
+    ...(appPath ? { userDirPath: appPath, userDirExists: appExists } : {}),
+    ...(appExists ? { detectionDetail: `installed app at ${appPath}` } : {}),
+    ...(warnings ? { warnings } : {})
   };
 }
 
@@ -177,13 +219,7 @@ export async function detectAllClients(
   runtime: CliRuntime,
   options: ClientDetectionOptions = {}
 ): Promise<ClientDetection[]> {
-  return Promise.all([
-    detectClaudeCode(runtime),
-    detectCursor(runtime),
-    detectCodexCli(runtime),
-    detectGeminiCli(runtime),
-    detectGithubCopilot(runtime, options)
-  ]);
+  return Promise.all(clientNames().map((client) => CLIENT_ADAPTERS[client].detect(runtime, options)));
 }
 
 export function claudeConfigPath(homeDir: string): string {
@@ -192,6 +228,17 @@ export function claudeConfigPath(homeDir: string): string {
 
 export function claudeSettingsPath(homeDir: string): string {
   return join(homeDir, ".claude", "settings.json");
+}
+
+export function claudeDesktopConfigPath(runtime: Pick<CliRuntime, "env" | "homeDir" | "platform">): string {
+  if (runtime.platform === "win32") {
+    // The MSIX build can expose a redirected config path (anthropics/claude-code#26073).
+    // If both exist, prefer %APPDATA%/Claude because that is the file Claude Desktop reads.
+    const appData = runtime.env.APPDATA || join(runtime.homeDir, "AppData", "Roaming");
+    return join(appData, "Claude", "claude_desktop_config.json");
+  }
+
+  return join(runtime.homeDir, "Library", "Application Support", "Claude", "claude_desktop_config.json");
 }
 
 export function claudeSkillsDir(homeDir: string): string {
@@ -294,6 +341,26 @@ export async function inspectCursorMcpConfig(
   options: InspectServerOptions = {}
 ): Promise<ClientMcpConfigResult> {
   return inspectJsonMcpConfig("Cursor", cursorMcpConfigPath(runtime.homeDir), options);
+}
+
+export async function writeClaudeDesktopMcpConfig(
+  runtime: CliRuntime,
+  options: ServerConfigOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return writeJsonMcpConfig({
+    runtime,
+    client: "Claude Desktop",
+    configPath: claudeDesktopConfigPath(runtime),
+    shape: "plain",
+    options
+  });
+}
+
+export async function inspectClaudeDesktopMcpConfig(
+  runtime: CliRuntime,
+  options: InspectServerOptions = {}
+): Promise<ClientMcpConfigResult> {
+  return inspectJsonMcpConfig("Claude Desktop", claudeDesktopConfigPath(runtime), options);
 }
 
 export async function writeGeminiMcpConfig(
@@ -413,26 +480,7 @@ export async function writeClientMcpConfig(
   client: KnownClientName,
   options: ServerConfigOptions = {}
 ): Promise<ClientMcpConfigResult> {
-  if (client === "Claude Code") {
-    return {
-      client,
-      ...await writeClaudeMcpConfig(runtime, options)
-    };
-  }
-
-  if (client === "Cursor") {
-    return writeCursorMcpConfig(runtime, options);
-  }
-
-  if (client === "Codex CLI") {
-    return writeCodexMcpConfig(runtime, options);
-  }
-
-  if (client === "Gemini CLI") {
-    return writeGeminiMcpConfig(runtime, options);
-  }
-
-  return writeCopilotMcpConfig(runtime, options);
+  return CLIENT_ADAPTERS[client].writeMcpConfig(runtime, options);
 }
 
 export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
@@ -518,6 +566,14 @@ export async function inspectClaudeSkillWiring(runtime: CliRuntime): Promise<Ski
   return inspectSkillsInDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir));
 }
 
+export async function wireClaudeDesktopSkills(runtime: CliRuntime): Promise<SkillWireResult> {
+  return claudeDesktopManualSkills(runtime);
+}
+
+export async function inspectClaudeDesktopSkillWiring(runtime: CliRuntime): Promise<SkillWireResult> {
+  return claudeDesktopManualSkills(runtime);
+}
+
 export async function wireCursorSkills(runtime: CliRuntime): Promise<SkillWireResult> {
   return wireSkillsToDir(runtime, "Cursor", cursorSkillsDir(runtime.homeDir));
 }
@@ -558,23 +614,7 @@ export async function wireAllClientSkills(
 }
 
 export async function wireClientSkills(runtime: CliRuntime, client: KnownClientName): Promise<SkillWireResult> {
-  if (client === "Claude Code") {
-    return wireClaudeSkills(runtime);
-  }
-
-  if (client === "Cursor") {
-    return wireCursorSkills(runtime);
-  }
-
-  if (client === "Codex CLI") {
-    return wireCodexSkills(runtime);
-  }
-
-  if (client === "Gemini CLI") {
-    return wireGeminiSkills(runtime);
-  }
-
-  return wireCopilotSkills(runtime);
+  return CLIENT_ADAPTERS[client].wireSkills(runtime);
 }
 
 export async function writeCodexSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
@@ -618,24 +658,7 @@ export async function writeClientSkillFallback(
   runtime: CliRuntime,
   client: KnownClientName
 ): Promise<SkillFallbackResult | null> {
-  if (client === "Claude Code") {
-    // Claude Code's ambient channel is the UserPromptSubmit memory hook.
-    return null;
-  }
-
-  if (client === "Cursor") {
-    return writeCursorSkillFallback(runtime);
-  }
-
-  if (client === "Codex CLI") {
-    return writeCodexSkillFallback(runtime);
-  }
-
-  if (client === "Gemini CLI") {
-    return writeGeminiSkillFallback(runtime);
-  }
-
-  return writeCopilotSkillFallback(runtime);
+  return CLIENT_ADAPTERS[client].writeFallback?.(runtime) ?? null;
 }
 
 export async function writeAllClientSkillFallbacks(
@@ -646,9 +669,82 @@ export async function writeAllClientSkillFallbacks(
   return results.filter((result): result is SkillFallbackResult => result !== null);
 }
 
+export const CLIENT_ADAPTERS: Record<KnownClientName, ClientAdapter> = {
+  "Claude Code": {
+    detect: detectClaudeCode,
+    writeMcpConfig: async (runtime, options) => ({
+      client: "Claude Code",
+      ...await writeClaudeMcpConfig(runtime, options)
+    }),
+    inspectMcpConfig: async (runtime, options) => ({
+      client: "Claude Code",
+      ...await inspectClaudeMcpConfig(runtime, options)
+    }),
+    wireSkills: wireClaudeSkills,
+    inspectSkills: inspectClaudeSkillWiring,
+    writeFallback: null,
+    inspectFallback: null,
+    ambientChannel: "memory-hook"
+  },
+  "Claude Desktop": {
+    detect: detectClaudeDesktop,
+    writeMcpConfig: writeClaudeDesktopMcpConfig,
+    inspectMcpConfig: inspectClaudeDesktopMcpConfig,
+    wireSkills: wireClaudeDesktopSkills,
+    inspectSkills: inspectClaudeDesktopSkillWiring,
+    writeFallback: null,
+    inspectFallback: null,
+    ambientChannel: "none-manual"
+  },
+  Cursor: {
+    detect: detectCursor,
+    writeMcpConfig: writeCursorMcpConfig,
+    inspectMcpConfig: inspectCursorMcpConfig,
+    wireSkills: wireCursorSkills,
+    inspectSkills: inspectCursorSkillWiring,
+    writeFallback: writeCursorSkillFallback,
+    inspectFallback: inspectCursorSkillFallback,
+    ambientChannel: "context-block"
+  },
+  "Codex CLI": {
+    detect: detectCodexCli,
+    writeMcpConfig: writeCodexMcpConfig,
+    inspectMcpConfig: inspectCodexMcpConfig,
+    wireSkills: wireCodexSkills,
+    inspectSkills: inspectCodexSkillWiring,
+    writeFallback: writeCodexSkillFallback,
+    inspectFallback: inspectCodexSkillFallback,
+    ambientChannel: "context-block"
+  },
+  "Gemini CLI": {
+    detect: detectGeminiCli,
+    writeMcpConfig: writeGeminiMcpConfig,
+    inspectMcpConfig: inspectGeminiMcpConfig,
+    wireSkills: wireGeminiSkills,
+    inspectSkills: inspectGeminiSkillWiring,
+    writeFallback: writeGeminiSkillFallback,
+    inspectFallback: inspectGeminiSkillFallback,
+    ambientChannel: "context-block"
+  },
+  "GitHub Copilot": {
+    detect: detectGithubCopilot,
+    writeMcpConfig: writeCopilotMcpConfig,
+    inspectMcpConfig: inspectCopilotMcpConfig,
+    wireSkills: wireCopilotSkills,
+    inspectSkills: inspectCopilotSkillWiring,
+    writeFallback: writeCopilotSkillFallback,
+    inspectFallback: inspectCopilotSkillFallback,
+    ambientChannel: "context-block"
+  }
+};
+
+export function getClientAdapter(client: KnownClientName): ClientAdapter {
+  return CLIENT_ADAPTERS[client];
+}
+
 function clientNames(clients?: readonly ClientDetection[]): KnownClientName[] {
   if (!clients) {
-    return ["Claude Code", "Cursor", "Codex CLI", "Gemini CLI", "GitHub Copilot"];
+    return Object.keys(CLIENT_ADAPTERS) as KnownClientName[];
   }
 
   return clients
@@ -666,6 +762,44 @@ function cursorAppPath(runtime: CliRuntime): string | null {
   }
 
   return null;
+}
+
+function claudeDesktopAppPath(runtime: CliRuntime): string | null {
+  if (runtime.platform === "darwin") {
+    return runtime.env.GREYBEARD_CLAUDE_DESKTOP_APP || "/Applications/Claude.app";
+  }
+
+  if (runtime.platform === "win32" && runtime.env.LOCALAPPDATA) {
+    return runtime.env.GREYBEARD_CLAUDE_DESKTOP_APP
+      || join(runtime.env.LOCALAPPDATA, "Programs", "Claude", "Claude.exe");
+  }
+
+  return runtime.env.GREYBEARD_CLAUDE_DESKTOP_APP || null;
+}
+
+async function claudeDesktopMsixPackageDirs(runtime: CliRuntime): Promise<string[]> {
+  if (runtime.platform !== "win32" || !runtime.env.LOCALAPPDATA) {
+    return [];
+  }
+
+  const packagesDir = join(runtime.env.LOCALAPPDATA, "Packages");
+  try {
+    const entries = await readdir(packagesDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() && isClaudeDesktopMsixPackage(entry.name))
+      .map((entry) => join(packagesDir, entry.name));
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+function isClaudeDesktopMsixPackage(name: string): boolean {
+  return /^(?:AnthropicPBC\.)?Claude_/iu.test(name)
+    || (/claude/iu.test(name) && /anthropic/iu.test(name));
 }
 
 async function claudeConfigDetectionSignal(path: string): Promise<boolean> {
@@ -688,6 +822,31 @@ async function claudeConfigDetectionSignal(path: string): Promise<boolean> {
 
     const catalogNames = new Set(SERVER_CATALOG.map((server) => server.name));
     return serverNames.some((name) => !catalogNames.has(name));
+  } catch {
+    return true;
+  }
+}
+
+async function jsonConfigDetectionSignal(path: string): Promise<boolean> {
+  if (!await fileExists(path)) {
+    return false;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+    if (!isObject(parsed)) {
+      return true;
+    }
+
+    if (Object.keys(parsed).some((key) => key !== "mcpServers")) {
+      return true;
+    }
+
+    const servers = isObject(parsed.mcpServers) ? parsed.mcpServers : {};
+    return Object.entries(servers).some(([name, entry]) => {
+      const catalogServer = findCatalogServer(name);
+      return !catalogServer || isForeignJsonServerEntry(catalogServer, entry);
+    });
   } catch {
     return true;
   }
@@ -998,6 +1157,18 @@ async function wireSkillsToDir(
     targetDir,
     empty: entries.length === 0,
     entries
+  };
+}
+
+function claudeDesktopManualSkills(runtime: CliRuntime): SkillWireResult {
+  return {
+    client: "Claude Desktop",
+    sourceDir: repoSkillsDir(runtime.repoRoot),
+    targetDir: "Claude Desktop Settings > Capabilities > Skills",
+    empty: false,
+    entries: [],
+    channel: "manual-zip",
+    manualInstruction: "manual ZIP upload: run greybeard skills pack, then upload the ZIPs in Settings > Capabilities > Skills. Upload state is private to the Claude account and cannot be verified locally."
   };
 }
 
@@ -1342,6 +1513,7 @@ async function writeJsonObject(path: string, value: Record<string, unknown>): Pr
     encoding: "utf8",
     mode: 0o600
   });
+  await chmod(path, 0o600);
 }
 
 async function readTextFile(path: string): Promise<string> {
