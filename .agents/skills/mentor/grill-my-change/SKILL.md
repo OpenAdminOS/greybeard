@@ -5,12 +5,13 @@ description: Use when the user asks to sanity-check, rehearse, pressure-test, or
 
 # Grill My Change
 
-The senior admin's pre-change interview. The goal is to find the failure mode before the tenant does. This skill never writes and never calls `plan-write`; when the admin is ready to execute, hand the finished Change Brief to the change-plan skill.
+The senior admin's pre-change interview. The goal is to find the failure mode before the tenant does. This skill never writes and never calls `plan-write`; hand the finished Change Brief to the change-plan skill for a script and the admin's existing execution workflow.
 
 ## Workflow
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+In Greybeard 0.1, `remember` stores a candidate even after conversational agreement. Ask the admin to review and confirm it in local setup or `greybeard memory confirm --id <id>`. Never simulate that human confirmation or describe a candidate as confirmed.
 When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Restate the proposed change in one sentence and confirm it with the admin before questioning.

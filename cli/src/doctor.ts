@@ -52,47 +52,17 @@ export async function runDoctor(args: ParsedArgs, runtime: CliRuntime): Promise<
 export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRuntime): Promise<DoctorFinding[]> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
   const config = await readGreybeardConfig(appDataPath);
-  const authConfig = graphAuthConfig(config);
-  const activeAuth = await runtime.authFactory({
-    ...authConfig,
-    appDataPath,
-    fetcher: runtime.fetcher
-  });
-  const status = await activeAuth.getStatus();
-  const firstPartyAuth = await runtime.authFactory({
-    tenantId: config.activeTenantId,
-    clientId: GRAPH_CLI_CLIENT_ID,
-    clientIdKind: "first-party",
-    credentialMode: "read-only",
-    writesConfigured: false,
-    appDataPath,
-    fetcher: runtime.fetcher
-  });
-  const firstPartyStatus = await firstPartyAuth.getStatus();
-
   const findings: DoctorFinding[] = [
-    authFinding(status),
-    cacheFinding(status.cacheProtection),
-    entraFinding(status),
-    rolesFinding(status),
-    firstPartyFinding(firstPartyStatus),
-    bootstrapCleanupFinding(config),
-    gateFinding(config),
-    updateFinding(config)
+    { level: "PASS", label: "Local profile", detail: config.profileId ?? "local" },
+    { level: "PASS", label: "Mentor", detail: config.learningEnabled === false ? "paused" : "enabled" },
+    { level: null, label: "Updates", detail: config.updateMode ?? "notify" },
+    { level: null, label: "Tenant", detail: config.appOnlyProfile ? "configured; use greybeard connect status for connection checks" : "optional, disconnected" }
   ];
-
-  const manifests = await loadSkillManifests(runtime.repoRoot);
-  const enabledServers = enabledCatalogServers(config.mcpServers ?? {}).map((server) => server.name);
-  findings.push(...skillRequirementFindings(manifests, status, enabledServers));
-
-  const clients = await detectAllClients(runtime, {
-    githubCopilot: config.clients?.githubCopilot === true
-  });
-  const serverOptions: InspectServerOptions = {
-    serverToggles: config.mcpServers ?? {}
-  };
-  for (const client of clients) {
-    findings.push(...await clientFindings(client, runtime, serverOptions));
+  const clients = await detectAllClients(runtime, { githubCopilot: config.clients?.githubCopilot === true });
+  for (const client of clients.filter(c => c.detected)) {
+    for (const warning of client.warnings ?? []) findings.push({ level: "WARN", label: `${client.name} config path`, detail: warning });
+    const result = await getClientAdapter(client.name).inspectMcpConfig(runtime, { serverToggles: { ...config.mcpServers, "greybeard-graph": Boolean(config.appOnlyProfile) } });
+    findings.push({ level: result.configured ? "PASS" : "WARN", label: client.name, detail: result.configured ? "memory configured" : "run greybeard setup to configure" });
   }
 
   return findings;

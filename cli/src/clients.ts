@@ -1,8 +1,9 @@
-import { chmod, lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink, writeFile } from "node:fs/promises";
+import { withClientConfigLock, writeClientConfigAtomic } from "./clientConfigFile.js";
+import { lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
+import { getGreybeardAppDataPath, type ServerPackageSource, type ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
-import { CliRuntime } from "./runtime.js";
+import { CliRuntime, runtimeCommand } from "./runtime.js";
 import {
   enabledCatalogServers,
   findCatalogServer,
@@ -409,11 +410,12 @@ export async function writeCodexMcpConfig(
 ): Promise<ClientMcpConfigResult> {
   const configPath = codexConfigPath(runtime.homeDir);
   const servers = await enabledServerDefinitions(runtime, options);
+  return withClientConfigLock(configPath, async () => {
   const current = await readTextFile(configPath);
   const preserved: string[] = [];
   const replaceable = SERVER_CATALOG.filter((server) => {
     const table = extractTomlTable(current, `mcp_servers.${server.name}`);
-    if (table !== null && !isGreybeardManagedEntry(server, table)) {
+    if (table !== null && !isGreybeardManagedEntry(server, table, runtime.repoRoot)) {
       preserved.push(server.name);
       return false;
     }
@@ -439,6 +441,7 @@ export async function writeCodexMcpConfig(
     server: Object.fromEntries(servers.map((server) => [server.name, server.definition])),
     ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
+  });
 }
 
 export async function inspectCodexMcpConfig(
@@ -483,59 +486,46 @@ export async function writeClientMcpConfig(
   return CLIENT_ADAPTERS[client].writeMcpConfig(runtime, options);
 }
 
+function pruneClaudeMemoryHooks(root: Record<string, unknown>, runtime: CliRuntime): void {
+  const hooks = isObject(root.hooks) ? root.hooks : {};
+  for (const event of ["UserPromptSubmit", "PreToolUse"]) {
+    if (!Array.isArray(hooks[event])) continue;
+    hooks[event] = hooks[event].flatMap((group: unknown) => {
+      if (!isObject(group) || !Array.isArray(group.hooks)) return [group];
+      const kept = group.hooks.filter(candidate => !isGreybeardMemoryHookHandler(candidate, runtime));
+      return kept.length ? [{ ...group, hooks: kept }] : [];
+    });
+  }
+  root.hooks = hooks;
+}
+
+export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void> {
+  const path = claudeSettingsPath(runtime.homeDir);
+  try { await lstat(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
+  await withClientConfigLock(path, async () => {
+    const root = await readJsonObject(path);
+    pruneClaudeMemoryHooks(root, runtime);
+    await writeJsonObject(path, root);
+  });
+}
+
 export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
   const path = claudeSettingsPath(runtime.homeDir);
+  return withClientConfigLock(path, async () => {
   const root = await readJsonObject(path);
+  pruneClaudeMemoryHooks(root, runtime);
   const hooks = isObject(root.hooks) ? root.hooks : {};
-  const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
-  const handler = memoryHookHandler(runtime.nodePath);
-
-  // Strip every Greybeard-owned handler (old reminder text included) so a
-  // wording change replaces the hook instead of stacking a duplicate.
-  let found: "none" | "identical" | "different" = "none";
-  const remaining: unknown[] = [];
-  for (const group of promptSubmit) {
-    if (!isObject(group) || !Array.isArray(group.hooks)) {
-      remaining.push(group);
-      continue;
-    }
-
-    const kept = group.hooks.filter((candidate) => {
-      if (!isGreybeardMemoryHookHandler(candidate)) {
-        return true;
-      }
-
-      if (isSameHookHandler(candidate, handler)) {
-        if (found === "none") {
-          found = "identical";
-        }
-      } else {
-        found = "different";
-      }
-
-      return false;
-    });
-    if (kept.length > 0) {
-      remaining.push({
-        ...group,
-        hooks: kept
-      });
-    }
-  }
-
-  remaining.push({
-    hooks: [
-      handler
-    ]
-  });
-  hooks.UserPromptSubmit = remaining;
+  const existing = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
+  const invocation = runtimeCommand(runtime, ["mentor", "pre-tool", "--app-data", runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(), "--profile", runtime.env.GREYBEARD_PROFILE_ID || "local", "--tenant", runtime.env.GREYBEARD_TENANT_ID || "local", "--greybeard-owned-hook=0.1"]);
+  const quote = runtime.platform === "win32"
+    ? (value: string) => { if (/[\r\n%!"]/u.test(value)) throw new Error("Unsupported character in Windows hook path."); return `"${value}"`; }
+    : (value: string) => "'" + value.replace(/'/gu, "'\\''") + "'";
+  existing.push({ matcher: "Bash", hooks: [{ type: "command", command: [invocation.command, ...invocation.args].map(quote).join(" "), timeout: 5 }] });
+  hooks.PreToolUse = existing;
   root.hooks = hooks;
   await writeJsonObject(path, root);
-  return {
-    path,
-    configured: true,
-    status: found === "none" ? "installed" : found === "different" ? "updated" : "already-configured"
-  };
+  return { path, configured: true, status: "installed" };
+  });
 }
 
 export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
@@ -543,9 +533,9 @@ export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<Clau
   try {
     const root = await readJsonObject(path);
     const hooks = isObject(root.hooks) ? root.hooks : {};
-    const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
+    const promptSubmit = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
     const configured = promptSubmit.some((group) =>
-      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(isGreybeardMemoryHookHandler));
+      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(candidate => isGreybeardMemoryHookHandler(candidate, runtime)));
     return {
       path,
       configured
@@ -859,6 +849,7 @@ async function writeJsonMcpConfig(params: {
   shape: "plain" | "stdio" | "copilot-local";
   options: ServerConfigOptions;
 }): Promise<ClientMcpConfigResult> {
+  return withClientConfigLock(params.configPath, async () => {
   const root = await readJsonObject(params.configPath);
   const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
   const servers = await enabledServerDefinitions(params.runtime, params.options);
@@ -870,7 +861,7 @@ async function writeJsonMcpConfig(params: {
       continue;
     }
 
-    if (isForeignJsonServerEntry(server, existing)) {
+    if (isForeignJsonServerEntry(server, existing, params.runtime.repoRoot)) {
       preserved.push(server.name);
     } else {
       delete mcpServers[server.name];
@@ -881,7 +872,7 @@ async function writeJsonMcpConfig(params: {
   for (const server of servers) {
     const catalogServer = findCatalogServer(server.name);
     const existing = mcpServers[server.name];
-    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing)) {
+    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing, params.runtime.repoRoot)) {
       preserved.push(server.name);
       written[server.name] = existing;
       continue;
@@ -901,18 +892,11 @@ async function writeJsonMcpConfig(params: {
     server: written,
     ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
+  });
 }
 
-function isForeignJsonServerEntry(server: CatalogServer, entry: unknown): boolean {
-  if (!isObject(entry)) {
-    return false;
-  }
-
-  if (isObject(entry.env) && Object.keys(entry.env).length > 0) {
-    return true;
-  }
-
-  return !isGreybeardManagedEntry(server, JSON.stringify(entry));
+function isForeignJsonServerEntry(server: CatalogServer, entry: unknown, repoRoot?: string): boolean {
+  return !isObject(entry) || !isGreybeardManagedEntry(server, JSON.stringify(entry), repoRoot);
 }
 
 async function inspectJsonMcpConfig(
@@ -999,11 +983,14 @@ async function serverDefinition(
   }
 
   return {
-    command: runtime.nodePath,
-    args: [
-      toPortablePath(join(runtime.repoRoot, server.source.packageDir, "dist", "index.js"))
-    ],
-    env: {}
+    ...runtimeCommand(runtime, ["mcp", server.source.packageDir]),
+    env: {
+      GREYBEARD_MANAGED: "0.1",
+      GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(),
+      GREYBEARD_PROFILE_ID: runtime.env.GREYBEARD_PROFILE_ID || "local",
+      GREYBEARD_TENANT_ID: runtime.env.GREYBEARD_TENANT_ID || "local",
+      ...(server.source.packageDir === "graph" ? { GREYBEARD_CLIENT_ID: runtime.env.GREYBEARD_CLIENT_ID || "" } : {})
+    }
   };
 }
 
@@ -1032,11 +1019,12 @@ function tomlServerBlock(name: string, server: StdioServerDefinition): string {
   return [
     `[mcp_servers.${name}]`,
     `command = ${tomlString(server.command)}`,
-    `args = ${tomlStringArray(server.args)}`
+    `args = ${tomlStringArray(server.args)}`,
+    `env = { ${Object.entries(server.env).map(([key, value]) => `${tomlString(key)} = ${tomlString(value)}`).join(", ")} }`
   ].join("\n");
 }
 
-function removeTomlTable(text: string, table: string): string {
+export function removeTomlTable(text: string, table: string): string {
   const lines = text.split(/\r?\n/u);
   const output: string[] = [];
   let skipping = false;
@@ -1061,7 +1049,7 @@ function removeTomlTable(text: string, table: string): string {
   return output.join("\n");
 }
 
-function extractTomlTable(text: string, table: string): string | null {
+export function extractTomlTable(text: string, table: string): string | null {
   const lines = text.split(/\r?\n/u);
   const collected: string[] = [];
   let inside = false;
@@ -1122,12 +1110,15 @@ function isSameHookHandler(candidate: unknown, expected: Record<string, unknown>
     && JSON.stringify(candidate.args) === JSON.stringify(expected.args);
 }
 
-function isGreybeardMemoryHookHandler(candidate: unknown): boolean {
-  if (!isObject(candidate) || candidate.type !== "command" || !Array.isArray(candidate.args)) {
-    return false;
+function isGreybeardMemoryHookHandler(candidate: unknown, runtime: CliRuntime): boolean {
+  if (!isObject(candidate) || candidate.type !== "command") return false;
+  if (typeof candidate.command === "string" && candidate.command.includes("--greybeard-owned-hook=0.1")) {
+    const invocation = runtimeCommand(runtime, ["mentor", "pre-tool"]);
+    const quote = runtime.platform === "win32" ? (value: string) => `"${value}"` : (value: string) => "'" + value.replace(/'/gu, "'\\''") + "'";
+    return candidate.command.startsWith([invocation.command, ...invocation.args].map(quote).join(" ") + " ");
   }
-
-  return candidate.args.some((arg) => typeof arg === "string" && arg.includes("greybeard-memory recall"));
+  return candidate.command === runtime.nodePath && Array.isArray(candidate.args) && candidate.args.length === 2 && candidate.args[0] === "-e"
+    && typeof candidate.args[1] === "string" && candidate.args[1].startsWith("process.stdout.write(") && candidate.args[1].includes("greybeard-memory recall");
 }
 
 async function wireSkillsToDir(
@@ -1235,14 +1226,7 @@ async function ensureSkillLink(params: {
       };
     }
 
-    await unlink(params.target);
-    await symlink(params.source, params.target, params.platform === "win32" ? "junction" : "dir");
-    return {
-      name: params.name,
-      source: params.source,
-      target: params.target,
-      status: "replaced-stale-symlink"
-    };
+    return { name: params.name, source: params.source, target: params.target, status: "blocked", message: "Existing symlink points elsewhere; preserved." };
   }
 
   return {
@@ -1302,6 +1286,7 @@ async function writeSkillFallbackBlock(
   skillsPath: string,
   finalize?: (text: string) => string
 ): Promise<SkillFallbackResult> {
+  return withClientConfigLock(path, async () => {
   const current = await readTextFile(path);
   const block = greybeardFallbackBlock(skillsPath);
   let next = replaceDelimitedBlock(current, block);
@@ -1320,8 +1305,8 @@ async function writeSkillFallbackBlock(
     configured: true,
     status: next === current ? "already-configured" : hadBlock ? "updated" : "installed"
   };
+  });
 }
-
 async function inspectSkillFallbackBlock(client: KnownClientName, path: string): Promise<SkillFallbackResult> {
   const current = await readTextFile(path);
   const configured = current.includes(GREYBEARD_BLOCK_START) && current.includes(GREYBEARD_BLOCK_END);
@@ -1508,12 +1493,7 @@ async function readJsonObject(path: string): Promise<Record<string, unknown>> {
 }
 
 async function writeJsonObject(path: string, value: Record<string, unknown>): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: "utf8",
-    mode: 0o600
-  });
-  await chmod(path, 0o600);
+  await writeClientConfigAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 async function readTextFile(path: string): Promise<string> {
@@ -1529,11 +1509,7 @@ async function readTextFile(path: string): Promise<string> {
 }
 
 async function writeTextFile(path: string, value: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, value, {
-    encoding: "utf8",
-    mode: 0o600
-  });
+  await writeClientConfigAtomic(path, value);
 }
 
 async function samePath(left: string, right: string): Promise<boolean> {

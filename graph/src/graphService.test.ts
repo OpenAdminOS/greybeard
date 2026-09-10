@@ -563,16 +563,14 @@ describe("GraphService", () => {
     const service = new GraphService({ auth: new MockAuth(), fetcher });
 
     const result = await service.graph({
-      apiVersion: "v1.0",
+      apiVersion: "beta",
       path: "/users",
       fetchAll: true
     });
 
-    expect(result.meta.apiVersion).toBe("v1.0");
-    expect(result.meta.usedBeta).toBe(false);
-    expect(result.meta.notes).toEqual([
-      "v1.0 used explicitly; Greybeard defaults to beta"
-    ]);
+    expect(result.meta.apiVersion).toBe("beta");
+    expect(result.meta.usedBeta).toBe(true);
+    expect(result.meta.notes).toEqual([]);
     expect(result.meta.warnings).toEqual([
       "no $select on collection read: consider selecting only needed fields",
       "fetchAll without $filter: consider narrowing the collection before paging"

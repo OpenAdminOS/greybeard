@@ -9,6 +9,7 @@ description: Use when the user asks about license waste, unused seats, duplicate
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+In Greybeard 0.1, `remember` stores a candidate even after conversational agreement. Ask the admin to review and confirm it in local setup or `greybeard memory confirm --id <id>`. Never simulate that human confirmation or describe a candidate as confirmed.
 When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call.
@@ -16,7 +17,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. SKU utilization is not Entra P1 gated; stale-license candidates require P1, `AuditLog.Read.All`, and a reporting role.
 4. Use SKU utilization first. Only inspect user license assignments when the user asks for candidates or waste detail.
 5. Tier 2 scope for this skill is `LicenseAssignment.Read.All` when the server asks for it. `User.Read.All` and `Group.Read.All` support user and group assignment context.
-6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
+6. If access is unavailable, report the exact endpoint and error. Ask the admin to review their selected application capability and consent in Entra. Greybeard 0.1 does not request or grant additional permissions.
 
 ## Report Shapes
 
@@ -90,3 +91,7 @@ Return:
 - No direct removals. License changes route through `change-plan`.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.
+
+## Available access
+
+The optional 0.1 connection exposes only its selected read capabilities. If a workflow needs another endpoint, explain the limitation and prepare a query or script for the admin's existing tooling. Do not escalate permissions or substitute a different credential.

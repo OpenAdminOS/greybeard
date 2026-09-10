@@ -1,5 +1,5 @@
 export const MEMORY_TYPES = ["query", "preference", "script", "fact", "scope", "decision"] as const;
-export const EDGE_RELATIONS = ["used", "depends_on", "needs", "prefers"] as const;
+export const EDGE_RELATIONS = ["used", "depends_on", "needs", "prefers", "exception_to"] as const;
 
 export type MemoryType = typeof MEMORY_TYPES[number];
 export type EdgeRelation = typeof EDGE_RELATIONS[number];
@@ -51,17 +51,30 @@ export type MemoryLinkInput = {
 export type RecallInput = {
   query: string;
   limit?: number;
+  /** Only global and this exact scope are applicable. */
+  scope?: string;
+  /** Conservative UTF-8 byte budget; actual model tokenization varies. */
+  tokenBudget?: number;
 };
 
 export type RememberInput = {
   type: MemoryType;
   content: string;
   links?: MemoryLinkInput[];
+  source?: string;
+  scope?: string;
+  /** Explicit correction target; the original remains until confirmation. */
+  supersedes?: number;
 };
+
+export type MemoryStatus = "candidate" | "confirmed";
+export type ConfirmInput = { id: number; expectedRevision: string; confirmationChannel?: "local-cli" | "local-ui" };
 
 export type ListInput = {
   type?: MemoryType;
+  status?: MemoryStatus;
   limit?: number;
+  cursor?: number;
 };
 
 export type ForgetInput = {
@@ -72,14 +85,23 @@ export type ForgetInput = {
 
 export type MemoryNode = {
   id: number;
+  revision: string;
   type: MemoryType;
   content: string;
   tenant: string;
   createdAt: number;
   lastUsedAt: number;
+  profileId: string;
+  status: MemoryStatus;
+  source: string;
+  scope: string;
+  confirmedAt: number | null;
+  confirmationChannel: string | null;
+  supersedes: number | null;
+  supersededAt: number | null;
 };
 
-export type RecallResultNode = MemoryNode & {
+export type RecallResultNode = Omit<MemoryNode, "revision" | "confirmationChannel" | "supersedes" | "supersededAt"> & {
   matched: boolean;
   score: number;
   linkedFrom?: number;
@@ -89,9 +111,12 @@ export type RecallResultNode = MemoryNode & {
 
 export type RecallResult = {
   tenant: string;
-  query: string;
   message: string;
   results: RecallResultNode[];
+  /** Upper bound for serialized recalled nodes only, excludes the response envelope. */
+  estimatedTokens: number;
+  tokenBudget: number;
+  budgetScope: "serialized-recalled-nodes";
 };
 
 export type RememberResult = {
@@ -101,11 +126,21 @@ export type RememberResult = {
   type: MemoryType;
   content: string;
   linked: number;
+  status: "candidate";
 };
 
 export type ListResult = {
   tenant: string;
   results: MemoryNode[];
+  nextCursor?: number;
+};
+
+export type MemoryExport = {
+  version: 1;
+  tenant: string;
+  profileId: string;
+  nodes: MemoryNode[];
+  edges: Array<{ source: number; target: number; relation: EdgeRelation; weight: number }>;
 };
 
 export type ForgetResult = {
@@ -116,7 +151,8 @@ export type ForgetResult = {
 export type MemoryErrorCode =
   | "privacy-rejected"
   | "invalid-input"
-  | "target-not-found";
+  | "target-not-found"
+  | "learning-disabled";
 
 export class GreybeardMemoryError extends Error {
   readonly code: MemoryErrorCode;

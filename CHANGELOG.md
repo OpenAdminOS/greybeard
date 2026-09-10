@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased - 0.1 executable and mentor work
+
+- Start with local mentoring and memory, with no mandatory Microsoft sign-in.
+- Propose, inspect, confirm, correct, export, pause, and forget scoped lessons through local controls.
+- Offer relevant confirmed guidance before supported Claude Code actions.
+- Build a single executable with embedded runtime and assets, with Notify updates and verified staging.
+- Add customer-owned app-only read connections; disable production writes and consent mutation.
+- Track platform signing, protected credential providers, and minimum-permission evidence as release requirements.
+
+Historical entries below describe earlier code and retain their original version labels.
+
 ## 0.1.1 - 2026-07-10
 
 ### Security

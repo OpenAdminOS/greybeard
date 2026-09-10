@@ -7,13 +7,7 @@ import {
   type Configuration,
   PublicClientApplication
 } from "@azure/msal-node";
-import {
-  DataProtectionScope,
-  type IPersistence,
-  type IPersistenceConfiguration,
-  PersistenceCachePlugin,
-  PersistenceCreator
-} from "@azure/msal-node-extensions";
+import type { IPersistence, IPersistenceConfiguration, PersistenceCachePlugin } from "@azure/msal-node-extensions";
 import { getGreybeardAppDataPath, safePathPart } from "./appData.js";
 import { activeScopeLeases, readGreybeardConfig, updateGreybeardConfig } from "./config.js";
 import { buildAdminConsentUrl, isAdminConsentError, isWriteScope, scopeJustification } from "./consent.js";
@@ -364,7 +358,9 @@ export class MsalGraphAuthProvider implements GraphAuthProvider {
 
   private async findAccount(): Promise<AccountInfo | null> {
     const accounts = await this.app.getAllAccounts();
-    return accounts.find((account) => account.tenantId === this.tenantId) ?? accounts[0] ?? null;
+    return accounts.find((account) => account.tenantId === this.tenantId)
+      ?? (["organizations", "common"].includes(this.tenantId) && accounts.length === 1 ? accounts[0] : null)
+      ?? null;
   }
 
   private toAuthToken(result: AuthenticationResult): AuthToken {
@@ -490,6 +486,7 @@ async function createCachePlugin(params: {
   appDataPath: string;
   clientId: string;
 }): Promise<CacheSetup> {
+  const { DataProtectionScope, PersistenceCachePlugin, PersistenceCreator } = await import("@azure/msal-node-extensions");
   const cachePath = join(
     params.appDataPath,
     "auth",
@@ -502,7 +499,7 @@ async function createCachePlugin(params: {
     cachePath,
     serviceName: "greybeard",
     accountName: params.clientId,
-    dataProtectionScope: DataProtectionScope.CurrentUser
+    dataProtectionScope: "CurrentUser" as IPersistenceConfiguration["dataProtectionScope"]
   };
 
   if (process.platform === "linux") {
@@ -625,6 +622,7 @@ async function loadLegacyCache(params: {
   clientId: string;
   protection: CacheProtection;
 }): Promise<string | null> {
+  const { PersistenceCreator } = await import("@azure/msal-node-extensions");
   for (const config of legacyPersistenceConfigs(params)) {
     try {
       const persistence = await PersistenceCreator.createPersistence(config);
@@ -650,7 +648,7 @@ function legacyPersistenceConfigs(params: {
     cachePath: params.cachePath,
     serviceName: "greybeard",
     accountName: `${params.tenantKey}.${params.clientId}`,
-    dataProtectionScope: DataProtectionScope.CurrentUser
+    dataProtectionScope: "CurrentUser" as IPersistenceConfiguration["dataProtectionScope"]
   };
 
   if (process.platform !== "linux") {

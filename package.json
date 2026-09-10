@@ -15,10 +15,14 @@
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces --if-present",
     "check:style": "node scripts/check-style.mjs",
-    "ci": "npm run build && npm test && npm run check:style"
+    "ci": "npm run build && npm test && npm run check:style",
+    "build:executable": "npm run build && node scripts/build-executable.mjs",
+    "test:executable": "node scripts/smoke-executable.mjs && node scripts/smoke-update.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6",
     "typescript": "^6.0.3",
     "vitest": "^3.2.6"
   }

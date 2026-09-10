@@ -1,265 +1,187 @@
+import { createHash, createPublicKey, verify } from "node:crypto";
+import { mkdir, readFile, writeFile, chmod, rename, copyFile, readdir, unlink, lstat, rmdir } from "node:fs/promises";
+import { constants } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, resolve } from "node:path";
 import { getGreybeardAppDataPath, readGreybeardConfig } from "@greybeard/graph";
-import { flagValue, ParsedArgs } from "./args.js";
-import {
-  detectAllClients,
-  summarizeSkillWiring,
-  wireAllClientSkills,
-  writeAllClientMcpConfigs,
-  writeAllClientSkillFallbacks,
-  writeClaudeMemoryHook
-} from "./clients.js";
-import { CliRuntime, writeInfoLine, writeLine, writeSection, writeStatusLine } from "./runtime.js";
-import { serverOptionsFromConfig } from "./serverCatalog.js";
-import { loadSkillManifests } from "./skillManifest.js";
+import { flagValue, hasFlag, ParsedArgs } from "./args.js";
+import { CliRuntime, writeLine } from "./runtime.js";
 
-export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
-  const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
-  const status = await git(runtime, ["status", "--porcelain", "--untracked-files=no"]);
-  if (status.code !== 0) {
-    writeLine(runtime.stderr, `Unable to verify the Greybeard working tree: ${status.stderr || status.stdout}`);
-    return 1;
-  }
-  if (status.stdout.trim()) {
-    writeLine(runtime.stderr, "Greybeard update requires a clean tracked working tree. Commit or stash local changes and retry.");
-    return 1;
-  }
-
-  const before = await git(runtime, ["rev-parse", "HEAD"]);
-  if (before.code !== 0) {
-    writeLine(runtime.stderr, `Unable to read git HEAD in ${runtime.repoRoot}: ${before.stderr || before.stdout}`);
-    return 1;
-  }
-
-  const pull = await git(runtime, ["pull", "--ff-only"]);
-  if (pull.code !== 0) {
-    writeLine(runtime.stderr, `git pull --ff-only failed in ${runtime.repoRoot}: ${pull.stderr || pull.stdout}`);
-    return 1;
-  }
-
-  const after = await git(runtime, ["rev-parse", "HEAD"]);
-  if (after.code !== 0) {
-    const rollback = await rollbackUpdate(runtime, before.stdout.trim());
-    writeLine(runtime.stderr, `Unable to read updated git HEAD in ${runtime.repoRoot}: ${after.stderr || after.stdout}`);
-    writeLine(runtime.stderr, rollback.ok
-      ? `Rolled back source, dependencies, and runtime artifacts to ${before.stdout.trim()}.`
-      : `Rollback to ${before.stdout.trim()} was incomplete: ${rollback.detail}`);
-    return 1;
-  }
-
-  const beforeRevision = before.stdout.trim();
-  const afterRevision = after.stdout.trim();
-  const verification = [
-    { label: "Dependencies", command: "npm", args: ["ci"] },
-    { label: "Build", command: "npm", args: ["run", "build"] },
-    { label: "Tests", command: "npm", args: ["test"] }
-  ];
-  for (const step of verification) {
-    const result = await runtime.runCommand(step.command, step.args, { cwd: runtime.repoRoot });
-    if (result.code !== 0) {
-      const rollback = await rollbackUpdate(runtime, beforeRevision);
-      writeLine(runtime.stderr, `${step.label} failed after update: ${result.stderr || result.stdout}`);
-      writeLine(runtime.stderr, rollback.ok
-        ? `Rolled back source, dependencies, and runtime artifacts to ${beforeRevision}.`
-        : `Rollback to ${beforeRevision} was incomplete: ${rollback.detail}`);
-      return 1;
-    }
-  }
-
-  writeLine(runtime.stdout, "Greybeard update");
-  writeLine(runtime.stdout, "────────────────");
-  writeInfoLine(runtime.stdout, "Before", beforeRevision);
-  writeInfoLine(runtime.stdout, "After", afterRevision);
-  writeStatusLine(runtime.stdout, "OK", "Git", pull.stdout.trim() || "Already up to date.");
-  for (const step of verification) {
-    writeStatusLine(runtime.stdout, "OK", step.label, "complete");
-  }
-
-  const changed = beforeRevision === afterRevision
-    ? []
-    : await changedSkills(runtime, beforeRevision, afterRevision);
-  writeSection(runtime.stdout, "Changed skills");
-  if (changed.length === 0) {
-    writeInfoLine(runtime.stdout, "Skills", "none");
-  } else {
-    for (const skill of changed) {
-      writeInfoLine(runtime.stdout, skill.name, skill.version);
-    }
-  }
-
-  const config = await readGreybeardConfig(appDataPath);
-  const clients = await detectAllClients(runtime, {
-    githubCopilot: config.clients?.githubCopilot === true
-  });
-  writeSection(runtime.stdout, "MCP configuration");
-  const mcpResults = await writeAllClientMcpConfigs(runtime, serverOptionsFromConfig(config), clients);
-  if (mcpResults.length === 0) {
-    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
-  }
-  for (const result of mcpResults) {
-    const restart = result.client === "Claude Desktop" ? "; full app restart required" : "";
-    writeStatusLine(runtime.stdout, "OK", result.client, `${result.path}${restart}`);
-  }
-
-  writeSection(runtime.stdout, "Skills");
-  const skillResults = await wireAllClientSkills(runtime, clients);
-  if (skillResults.length === 0) {
-    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
-  }
-  for (const result of skillResults) {
-    if (result.channel === "manual-zip") {
-      writeInfoLine(runtime.stdout, result.client ?? "Client", result.manualInstruction ?? "manual ZIP upload required");
-      continue;
-    }
-
-    const summary = summarizeSkillWiring(result);
-    writeStatusLine(runtime.stdout, summary.ok ? "OK" : "WARN", result.client ?? "Client", summary.detail);
-  }
-
-  writeSection(runtime.stdout, "Context files");
-  const fallbackResults = await writeAllClientSkillFallbacks(runtime, clients);
-  const claudeDetected = clients.some((client) => client.detected && client.name === "Claude Code");
-  const claudeDesktopDetected = clients.some((client) => client.detected && client.name === "Claude Desktop");
-  if (fallbackResults.length === 0 && !claudeDetected && !claudeDesktopDetected) {
-    writeInfoLine(runtime.stdout, "Clients", "no detected clients, skipped");
-  }
-  for (const result of fallbackResults) {
-    writeStatusLine(runtime.stdout, "OK", result.client, `${result.status} in ${result.path}`);
-  }
-  if (claudeDetected) {
-    if (config.memoryHook === false) {
-      writeInfoLine(runtime.stdout, "Claude Code", "memory hook off by setup choice");
-    } else {
-      const hook = await writeClaudeMemoryHook(runtime);
-      writeStatusLine(runtime.stdout, "OK", "Claude Code", `memory hook ${hook.status} in ${hook.path}`);
-    }
-  }
-  if (claudeDesktopDetected) {
-    writeInfoLine(runtime.stdout, "Claude Desktop", "no global instruction file; manual ZIP upload is the skills channel");
-  }
-
-  if (claudeDesktopDetected && changed.length > 0) {
-    const changedUploads = changed.filter((skill) => skill.version !== "removed");
-    const removedUploads = changed.filter((skill) => skill.version === "removed");
-    writeSection(runtime.stdout, "Claude Desktop skill uploads");
-    if (changedUploads.length > 0) {
-      writeInfoLine(runtime.stdout, "Action", "run greybeard skills pack, then re-upload the changed ZIPs in Settings > Capabilities > Skills");
-      writeInfoLine(runtime.stdout, "Changed ZIPs", changedUploads.map((skill) => `${skill.name}.zip`).join(", "));
-    }
-    if (removedUploads.length > 0) {
-      writeInfoLine(runtime.stdout, "Remove uploads", removedUploads.map((skill) => skill.name).join(", "));
-    }
-  }
-
-  writeSection(runtime.stdout, "Activation");
-  writeStatusLine(runtime.stdout, "OK", "Runtime", "rebuilt and verified before MCP configuration activation");
-  writeInfoLine(runtime.stdout, "MCP clients", "reload or reconnect clients to launch the updated server runtime");
-  if (claudeDesktopDetected) {
-    writeInfoLine(runtime.stdout, "Claude Desktop", "fully quit and restart the app to load the updated MCP config");
-  }
-
-  return 0;
-}
-
-type ChangedSkill = {
-  name: string;
+export type ReleaseManifest = {
+  schema: 1;
   version: string;
+  sequence: number;
+  expires: string;
+  platform: string;
+  arch: string;
+  url: string;
+  sha256: string;
+  bytes: number;
 };
 
-async function changedSkills(runtime: CliRuntime, before: string, after: string): Promise<ChangedSkill[]> {
-  const diff = await git(runtime, ["diff", "--name-only", `${before}..${after}`, "--", ".agents/skills"]);
-  if (diff.code !== 0) {
-    throw new Error(diff.stderr || diff.stdout || "git diff failed");
-  }
-
-  const { manifests, errors } = await loadSkillManifests(runtime.repoRoot);
-  const versions = new Map(manifests.map((manifest) => [manifest.name, manifest.version]));
-  const unreadable = new Set(errors.map((error) => error.name));
-  const known = new Set([...versions.keys(), ...unreadable]);
-  const categories = new Set(manifests.map((manifest) => manifest.category).filter((category) => category.length > 0));
-
-  const names = new Set<string>();
-  let manifestChanged = false;
-  for (const line of diff.stdout.split(/\r?\n/u)) {
-    const [first, second, third, fourth, fifth] = line.split("/");
-    if (first === ".agents" && second === "skills" && third === "manifest.json") {
-      manifestChanged = true;
-      continue;
-    }
-    if (first !== ".agents" || second !== "skills" || !third || !fourth) {
-      continue;
-    }
-
-    // Resolve the skill name against the current tree first, so paths under a
-    // renamed or deleted category still report the skill, not the category.
-    if (known.has(fourth)) {
-      names.add(fourth);
-    } else if (known.has(third)) {
-      names.add(third);
-    } else if (fifth) {
-      names.add(fourth);
-    } else if (!categories.has(third)) {
-      names.add(third);
-    }
-  }
-  if (manifestChanged) {
-    for (const name of await changedManifestSkills(runtime, before, after)) {
-      names.add(name);
-    }
-  }
-
-  return [...names].sort().map((name) => ({
-    name,
-    version: unreadable.has(name)
-      ? "manifest unreadable"
-      : versions.has(name) ? `version ${versions.get(name)}` : "removed"
-  }));
+export function verifyReleaseManifest(raw: Buffer, signature: Buffer, publicKey: string, now = Date.now()): ReleaseManifest {
+  const key = createPublicKey(publicKey);
+  if (key.asymmetricKeyType !== "ed25519" || !verify(null, raw, key, signature)) throw new Error("Release signature verification failed.");
+  const m = JSON.parse(raw.toString("utf8")) as ReleaseManifest;
+  if (m.schema !== 1 || !/^0\.1(?:\.\d+)?$/u.test(m.version) || !Number.isSafeInteger(m.sequence) || m.sequence < 1
+    || !Number.isFinite(Date.parse(m.expires)) || Date.parse(m.expires) <= now
+    || !/^[a-f0-9]{64}$/u.test(m.sha256) || !Number.isSafeInteger(m.bytes) || m.bytes < 1 || m.bytes > 300 * 1024 * 1024
+    || typeof m.platform !== "string" || typeof m.arch !== "string") throw new Error("Release manifest is invalid or expired.");
+  const url = new URL(m.url);
+  if (url.protocol !== "https:" || url.username || url.password) throw new Error("Release download requires HTTPS without URL credentials.");
+  return m;
 }
 
-async function changedManifestSkills(runtime: CliRuntime, before: string, after: string): Promise<string[]> {
-  const [oldResult, newResult] = await Promise.all([
-    git(runtime, ["show", `${before}:.agents/skills/manifest.json`]),
-    git(runtime, ["show", `${after}:.agents/skills/manifest.json`])
-  ]);
-  const oldSkills = manifestSkills(oldResult.code === 0 ? oldResult.stdout : "{}");
-  const newSkills = manifestSkills(newResult.code === 0 ? newResult.stdout : "{}");
-  return [...new Set([...Object.keys(oldSkills), ...Object.keys(newSkills)])]
-    .filter((name) => JSON.stringify(oldSkills[name]) !== JSON.stringify(newSkills[name]));
+async function download(url: string, maximum: number): Promise<Buffer> {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Update requests require HTTPS without URL credentials.");
+  const signal = AbortSignal.timeout(120_000);
+  let response: Response | undefined;
+  let target = parsed;
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    if (target.protocol !== "https:" || target.username || target.password) throw new Error("Unsafe update redirect.");
+    response = await fetch(target, { redirect: "manual", signal });
+    if (![301, 302, 303, 307, 308].includes(response.status)) break;
+    const location = response.headers.get("location");
+    await response.body?.cancel();
+    if (!location || redirects === 5) throw new Error("Invalid or excessive update redirects.");
+    target = new URL(location, target);
+  }
+  if (!response) throw new Error("Update download did not return a response.");
+  if (!response.ok || !response.body) throw new Error(`Update download failed (${response.status}).`);
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  for await (const chunk of response.body) {
+    length += chunk.length;
+    if (length > maximum) { await response.body.cancel().catch(() => undefined); throw new Error("Update response exceeds its size limit."); }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
-function manifestSkills(content: string): Record<string, unknown> {
+export async function runUpdate(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
+  const appData = resolve(flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath());
+  const directory = join(appData, "updates");
+  const feed = runtime.env.GREYBEARD_UPDATE_MANIFEST_URL;
+  const keyPath = runtime.env.GREYBEARD_UPDATE_PUBLIC_KEY_FILE;
+  const config = await readGreybeardConfig(appData);
+  writeLine(runtime.stdout, `Greybeard 0.1 updates · ${config.updateMode ?? "notify"}`);
+  if (!feed || !keyPath) {
+    writeLine(runtime.stdout, "Verified update delivery is not configured. The current executable remains installed.");
+    writeLine(runtime.stdout, "A release operator must provision an HTTPS manifest feed and a trusted Ed25519 public key. No Git or npm commands are run.");
+    return 0;
+  }
   try {
-    const parsed: unknown = JSON.parse(content);
-    if (!isObject(parsed) || !isObject(parsed.skills)) {
-      return {};
-    }
-    return parsed.skills;
-  } catch {
-    return {};
+    const raw = await download(feed, 16_384);
+    const signature = await download(`${feed}.sig`, 256);
+    const manifest = verifyReleaseManifest(raw, signature, await readFile(keyPath, "utf8"));
+    if (manifest.platform !== runtime.platform || manifest.arch !== process.arch) throw new Error("Release does not match this OS and architecture.");
+    let accepted = 0;
+    try { accepted = Number(await readFile(join(directory, "sequence"), "utf8")); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    if (!Number.isSafeInteger(accepted) || accepted < 0) throw new Error("Installed build sequence is invalid.");
+    if (manifest.sequence <= accepted) { writeLine(runtime.stdout, "No newer accepted release is available."); return 0; }
+    writeLine(runtime.stdout, `Greybeard ${manifest.version}, build ${manifest.sequence} is available. Your current executable continues running.`);
+    if (!hasFlag(args, "stage")) { writeLine(runtime.stdout, "Run greybeard update --stage to verify and stage the download."); return 0; }
+    const binary = await download(manifest.url, manifest.bytes);
+    if (binary.length !== manifest.bytes || createHash("sha256").update(binary).digest("hex") !== manifest.sha256) throw new Error("Release size or SHA-256 verification failed.");
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    const staged = join(directory, `greybeard-${manifest.sequence}${runtime.platform === "win32" ? ".exe" : ""}`);
+    const temporary = `${staged}.${process.pid}.tmp`;
+    await writeFile(temporary, binary, { mode: 0o700, flag: "wx" });
+    await rename(temporary, staged);
+    await chmod(staged, 0o700);
+    await writeFile(join(directory, "pending.json"), JSON.stringify({ manifest, staged, signature: signature.toString("base64"), raw: raw.toString("base64"), executable: runtime.packaged ? runtime.nodePath : null }), { mode: 0o600 });
+    writeLine(runtime.stdout, `Verified release staged at ${staged}.`);
+    writeLine(runtime.stdout, runtime.packaged && runtime.platform !== "win32"
+      ? "The release activates at the next launch after all current Greybeard processes exit. The previous executable is retained for recovery."
+      : "Activation is deferred on this installation. Keep the current executable until a supported replacement flow is available.");
+    return 0;
+  } catch (error) {
+    writeLine(runtime.stderr, `Update stopped: ${error instanceof Error ? error.message : String(error)} The current executable was not replaced.`);
+    return 1;
   }
 }
 
-async function rollbackUpdate(runtime: CliRuntime, revision: string): Promise<{ ok: boolean; detail: string }> {
-  const commands = [
-    ["git", ["-C", runtime.repoRoot, "reset", "--hard", revision]],
-    ["npm", ["ci"]],
-    ["npm", ["run", "build"]]
-  ] as const;
-  for (const [command, args] of commands) {
-    const result = await runtime.runCommand(command, [...args], { cwd: runtime.repoRoot });
-    if (result.code !== 0) {
-      return {
-        ok: false,
-        detail: `${command} ${args.join(" ")} failed: ${result.stderr || result.stdout}`
-      };
+/** POSIX activation runs only at process startup, before opening SQLite or MCP. */
+export async function activatePendingUpdate(runtime: CliRuntime): Promise<boolean> {
+  if (!runtime.packaged || runtime.platform === "win32" || runtime.env.GREYBEARD_UPDATE_PROBE === "1") return false;
+  const appData = runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+  const directory = join(appData, "updates");
+  const pendingPath = join(directory, "pending.json");
+  let pending: { manifest: ReleaseManifest; staged: string; raw: string; signature: string; executable: string };
+  try { pending = JSON.parse(await readFile(pendingPath, "utf8")); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return false; throw error; }
+  if (pending.executable !== runtime.nodePath) return false;
+  const keyPath = runtime.env.GREYBEARD_UPDATE_PUBLIC_KEY_FILE;
+  if (!keyPath) throw new Error("Pending update cannot activate without the configured publisher key.");
+  const manifest = verifyReleaseManifest(Buffer.from(pending.raw, "base64"), Buffer.from(pending.signature, "base64"), await readFile(keyPath, "utf8"));
+  if (manifest.platform !== runtime.platform || manifest.arch !== process.arch) throw new Error("Pending release platform mismatch.");
+  let installedSequence = 0;
+  try { installedSequence = Number(await readFile(join(directory, "sequence"), "utf8")); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+  if (!Number.isSafeInteger(installedSequence) || manifest.sequence <= installedSequence) throw new Error("Pending release would repeat or downgrade an accepted build.");
+  const expectedStage = join(directory, `greybeard-${manifest.sequence}`);
+  if (pending.staged !== expectedStage) throw new Error("Unexpected staged executable path.");
+  const staged = await readFile(expectedStage);
+  if (staged.length !== manifest.bytes || createHash("sha256").update(staged).digest("hex") !== manifest.sha256) throw new Error("Staged executable integrity check failed.");
+  const lock = join(appData, "runtime-lock");
+  try { await mkdir(lock, { mode: 0o700 }); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "EEXIST") return false; throw error; }
+  try {
+    const sessions = join(appData, "sessions");
+    await writeFile(join(lock, "owner"), String(process.pid), { mode: 0o600, flag: "wx" });
+    for (const filename of await readdir(sessions)) {
+      if (!/^\d+\.json$/u.test(filename)) throw new Error("Unexpected runtime session record.");
+      const pid = Number(filename.slice(0, -5));
+      if (pid === process.pid) continue;
+      try { process.kill(pid, 0); return false; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") return false; await unlink(join(sessions, filename)); }
     }
+    const existing = await lstat(runtime.nodePath);
+    if (!existing.isFile() || existing.isSymbolicLink() || existing.uid !== process.getuid?.()) throw new Error("Executable ownership does not permit automatic activation.");
+    // The candidate must start successfully before it can replace the running version.
+    const health = spawnSync(expectedStage, ["--help"], { env: { ...runtime.env, GREYBEARD_UPDATE_PROBE: "1" }, timeout: 15_000, encoding: "utf8" });
+    if (health.status !== 0 || !health.stdout.includes("Greybeard")) throw new Error("Staged executable failed its startup check.");
+    const candidate = `${runtime.nodePath}.${process.pid}.next`;
+    const previous = `${runtime.nodePath}.previous`;
+    await writeFile(candidate, staged, { mode: existing.mode & 0o777, flag: "wx" });
+    const previousTemp = `${previous}.${process.pid}.tmp`;
+    await copyFile(runtime.nodePath, previousTemp, constants.COPYFILE_EXCL);
+    await rename(previousTemp, previous);
+    await rename(candidate, runtime.nodePath);
+    // Activation never rolls back user data or silently changes permission grants.
+    await writeFile(join(directory, "sequence"), String(manifest.sequence), { mode: 0o600 });
+    await unlink(pendingPath);
+    writeLine(runtime.stderr, `Greybeard ${manifest.version} build ${manifest.sequence} activated. Previous executable retained at ${previous}.`);
+    return true;
+  } finally {
+    await unlink(join(lock, "owner")).catch(() => undefined);
+    await rmdir(lock);
   }
-  return { ok: true, detail: "complete" };
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function git(runtime: CliRuntime, args: string[]) {
-  return runtime.runCommand("git", ["-C", runtime.repoRoot, ...args]);
+/** Long-running clients check at launch and daily; manual mode schedules nothing. */
+export function scheduleUpdateChecks(runtime: CliRuntime): void {
+  if (!runtime.packaged || !runtime.env.GREYBEARD_UPDATE_MANIFEST_URL || !runtime.env.GREYBEARD_UPDATE_PUBLIC_KEY_FILE || runtime.env.GREYBEARD_UPDATE_PROBE === "1") return;
+  let checking = false;
+  const check = async () => {
+    if (checking) return;
+    checking = true;
+    try {
+      const appData = runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+      const config = await readGreybeardConfig(appData);
+      if (config.updateMode === "manual") return;
+      const directory = join(appData, "updates");
+      const checkedPath = join(directory, "last-check");
+      try { if (Date.now() - Number(await readFile(checkedPath, "utf8")) < 86_400_000) return; } catch {}
+      await mkdir(directory, { recursive: true, mode: 0o700 });
+      await writeFile(checkedPath, String(Date.now()), { mode: 0o600 });
+      const flags = new Map<string, string[]>();
+      if (config.updateMode === "automatic") flags.set("stage", ["true"]);
+      await runUpdate({ command: "update", flags, positionals: [] }, { ...runtime, stdout: runtime.stderr });
+    } catch (error) {
+      writeLine(runtime.stderr, `Update check deferred: ${error instanceof Error ? error.message : String(error)}`);
+    } finally { checking = false; }
+  };
+  setTimeout(() => { void check(); }, 1000).unref();
+  setInterval(() => { void check(); }, 86_400_000).unref();
 }

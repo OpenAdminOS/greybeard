@@ -86,6 +86,10 @@ export type OperationExecutionResult = {
 export type TerminalPlanStatus = "completed" | "partial" | "failed";
 
 export type GreybeardConfig = {
+  profileId?: string;
+  learningEnabled?: boolean;
+  updateMode?: "automatic" | "notify" | "manual";
+  appOnlyProfile?: AppOnlyProfile;
   configRevision?: number;
   activeTenantId?: string;
   credentialMode?: CredentialMode;
@@ -105,6 +109,14 @@ export type GreybeardConfig = {
   gate?: {
     cliApprove?: boolean;
   };
+};
+
+export type AppOnlyProfile = {
+  tenantId: string;
+  clientId: string;
+  certificatePath: string;
+  privateKeyPath: string;
+  capabilities: string[];
 };
 
 export type ScopeLease = {

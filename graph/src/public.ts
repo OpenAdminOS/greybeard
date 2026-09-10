@@ -42,3 +42,8 @@ export type {
   ServerUpdateMode,
   SkillUpdateMode
 } from "./writeGateTypes.js";
+
+export { AppOnlyGraphAuthProvider, APPLICATION_CAPABILITIES, expectedApplicationRoles, validateAppOnlyProfile } from "./appOnlyAuth.js";
+export type { AppOnlyProfile } from "./writeGateTypes.js";
+export { runGraphServer } from "./serverMain.js";
+export { GraphService } from "./graphService.js";

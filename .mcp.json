@@ -1,26 +1,16 @@
 {
   "mcpServers": {
-    "greybeard-graph": {
-      "command": "node",
-      "args": [
-        "graph/dist/index.js"
-      ],
-      "env": {}
-    },
     "greybeard-memory": {
       "command": "node",
       "args": [
-        "memory/dist/index.js"
+        "cli/dist/index.js",
+        "mcp",
+        "memory"
       ],
-      "env": {}
-    },
-    "intuneautomation": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@ugurkocde/intuneautomation-mcp@latest"
-      ],
-      "env": {}
+      "env": {
+        "GREYBEARD_PROFILE_ID": "local",
+        "GREYBEARD_TENANT_ID": "local"
+      }
     },
     "microsoft-learn": {
       "url": "https://learn.microsoft.com/api/mcp"

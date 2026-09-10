@@ -1,29 +1,17 @@
 {
   "mcpServers": {
-    "greybeard-graph": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "graph/dist/index.js"
-      ],
-      "env": {}
-    },
     "greybeard-memory": {
       "type": "stdio",
-      "command": "node",
+      "command": "greybeard",
       "args": [
-        "memory/dist/index.js"
+        "mcp",
+        "memory"
       ],
-      "env": {}
-    },
-    "intuneautomation": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@ugurkocde/intuneautomation-mcp@latest"
-      ],
-      "env": {}
+      "env": {
+        "GREYBEARD_MANAGED": "0.1",
+        "GREYBEARD_PROFILE_ID": "local",
+        "GREYBEARD_TENANT_ID": "local"
+      }
     }
   }
 }

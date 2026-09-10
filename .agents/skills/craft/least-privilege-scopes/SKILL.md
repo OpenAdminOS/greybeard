@@ -9,32 +9,15 @@ description: Use when the user needs minimum Microsoft Graph permissions, scope 
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+In Greybeard 0.1, `remember` stores a candidate even after conversational agreement. Ask the admin to review and confirm it in local setup or `greybeard memory confirm --id <id>`. Never simulate that human confirmation or describe a candidate as confirmed.
 When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
-Read `references/scope-tables.md` before answering. Use it to choose the smallest delegated Microsoft Graph scope set, identify admin-consent requirements, and call out license or role gates that scopes do not solve.
+Read `references/scope-tables.md` before answering. Identify the specific capability and distinguish the planned Application permission from permissions actually verified on the active connection.
 
-Distinguish these values explicitly:
+The optional Greybeard 0.1 tenant connection uses a customer-owned app-only registration. No permissions are selected by default. Do not recommend broad directory access to make a probe succeed. A successful read using a broadly granted token does not demonstrate minimum permissions.
 
-- Delegated scopes requested by a public client for a signed-in user.
-- Application roles used by app-only credentials; never present them as delegated scopes.
-- Configured permissions in an app registration's `requiredResourceAccess`.
-- Scopes embedded in the current access token.
-- Tenant consent grants stored on the service principal.
-- Greybeard scope leases, which control future requests but do not by themselves revoke tenant consent.
+Report the requested capability, candidate role, endpoint and selected fields, the evidence obtained, missing evidence, and any license or other access constraints that were actually verified. Do not infer a missing permission solely from a generic 403. Read the error and distinguish permission, licensing, service availability, and query failures.
 
-Do not recommend `Directory.Read.All` for Greybeard v1 read paths unless the user explicitly accepts the tradeoff after seeing the narrower alternative. Writes must route through `change-plan` and require `greybeard setup --writes`.
+Consent and configuration are changed by the administrator in their existing Entra workflow. Greybeard 0.1 exposes no scope mutation or production write tools. It leaves a profile inactive when token roles exceed the selected capability set. Checkboxes do not narrow pre-existing tenant grants.
 
-When the admin settles on a scope set for a recurring task, `recall` for an equivalent memory, then record the choice with `remember` as `type: "preference"`, for example the accepted tradeoff or the scope set this tenant standardizes on.
-
-## Output
-
-Return:
-
-- Minimal scopes.
-- Why each scope is needed.
-- Admin consent required: yes or no.
-- Extra non-scope gates: Entra ID P1, Intune license, reporting role, or directory role.
-- What to do on 403: use `add-scope` for the exact missing scope and relay the consent URL when `granted` is false.
-- Cleanup: use a temporary lease for bootstrap access, then `remove-scope`; state whether an admin must also revoke tenant consent.
-
-Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.
+After the admin chooses a recurring access policy, propose reusable intent as a memory candidate. Confirmation remains a separate local action. Report only live requests actually made; never claim a candidate mapping was validated without isolated evidence.

@@ -1,56 +1,16 @@
-# Scope Tables
+# Application permission candidates for Greybeard 0.1
 
-Use delegated scopes. Greybeard read-only setup starts with a narrow Tier 1 set and requests Tier 2 only on first need. Every tenant-admin scope requires admin consent.
+Mentor-only use requires none. These mappings support implementation planning; an isolated credential with exactly the candidate grants must verify success and missing-permission behavior before a minimum-permission claim.
 
-## Tier 1
+| Capability | Candidate Application permission | Fields for initial probe |
+| --- | --- | --- |
+| User profiles | `User.Read.All` | `/users`: id, displayName, department, jobTitle |
+| Basic groups | `GroupMember.Read.All` | `/groups`: id, displayName |
+| Intune inventory | `DeviceManagementManagedDevices.Read.All` | `/deviceManagement/managedDevices`: id, deviceName, operatingSystem, complianceState |
+| Conditional Access review | `Policy.Read.ConditionalAccess` | `/identity/conditionalAccess/policies`: id, displayName, state, conditions, grantControls |
 
-| Task | Minimal scope | Admin consent | Extra gate | Notes |
-|---|---|---:|---|---|
-| Read users, count disabled users, list guests | `User.Read.All` | yes | none | Use `$select`; use `$count` plus `ConsistencyLevel: eventual` for counts. |
-| Read groups and memberships | `Group.Read.All` | yes | none | Use `$select`; use `$batch` only for all-GET fanout. |
-| Read Conditional Access policies | `Policy.Read.All` | yes | none | Resolve application display names only if `Application.Read.All` is granted. |
-| Read subscribed SKUs | `LicenseAssignment.Read.All` | yes | directory role for delegated access | Greybeard setup may already have `Organization.Read.All`; the least-privileged Graph permission is `LicenseAssignment.Read.All`. |
-| MFA registration report | `AuditLog.Read.All` | yes | Entra ID P1 and reporting role | Endpoint: `/reports/authenticationMethods/userRegistrationDetails`. |
-| User sign-in activity | `AuditLog.Read.All` plus `User.Read.All` | yes | Entra ID P1 and reporting role | `signInActivity` is selected on `/users`; do not widen to `Directory.Read.All` by default. |
-| Usage and reports | `Reports.Read.All` | yes | reporting role for delegated reports | Some reporting surfaces also need product licenses. |
+Use explicit `/beta` and bounded selected fields. The current broadly granted Lokka connection verified the probe response fields and collection paging on 10 September 2026; it does not certify the candidate roles. Conditional Access endpoint documentation and the live role catalog disagree on the narrower role. Basic-group narrower role availability also needs isolated validation. Do not silently substitute a broader role.
 
-Reporting roles include Reports Reader, Security Reader, Security Administrator, Global Reader, or a higher admin role.
+All selections are optional and administrator-consented on their own registration. Greybeard checks the application identity and token role set. Missing, excessive, or uninspectable roles keep the connection inactive. A generic 403 is not proof of a particular missing role; report the actual error without automatic consent escalation.
 
-## Tier 2
-
-| Task | Minimal scope | Admin consent | Extra gate | Notes |
-|---|---|---:|---|---|
-| Intune managed devices | `DeviceManagementManagedDevices.Read.All` | yes | Intune license | Endpoint: `/deviceManagement/managedDevices`. |
-| Intune compliance policies and configuration profiles | `DeviceManagementConfiguration.Read.All` | yes | Intune license | Endpoints under `/deviceManagement/deviceCompliancePolicies` and `/deviceManagement/deviceConfigurations`. |
-| Intune mobile apps and assignments | `DeviceManagementApps.Read.All` | yes | Intune license | Endpoint: `/deviceAppManagement/mobileApps`. |
-| Entra devices | `Device.Read.All` | yes | none | Use only when device directory objects are needed outside Intune managed devices. |
-| Application and service principal names | `Application.Read.All` | yes | none | Needed to resolve app IDs in Conditional Access and app hygiene reports. |
-| Directory role assignments | `RoleManagement.Read.Directory` | yes | Entra role visibility can still be role-gated | Endpoint: `/roleManagement/directory/roleAssignments`. |
-| Identity Protection risky users | `IdentityRiskyUser.Read.All` | yes | Entra ID P2 for many Identity Protection features | Roadmap for risky sign-ins. |
-| Secure Score and security events | `SecurityEvents.Read.All` | yes | security portal role may apply | Roadmap for secure score. |
-
-## Write Scopes
-
-Never request write scopes on the first-party read-only app. In read-only mode, write-scope requests return `E_WRITES_NOT_CONFIGURED`; tell the admin to run `greybeard setup --writes`.
-
-Common write scopes after writes mode is configured:
-
-| Write task | Scope |
-|---|---|
-| Update users | `User.ReadWrite.All` |
-| Update groups or memberships | `Group.ReadWrite.All` |
-| Update Conditional Access policies | `Policy.ReadWrite.ConditionalAccess` |
-| Update Intune configuration | `DeviceManagementConfiguration.ReadWrite.All` |
-| Update Intune apps | `DeviceManagementApps.ReadWrite.All` |
-
-Every write still goes through `change-plan`; consent alone is not authorization to execute.
-
-## 403 Handling
-
-When `graph` returns a missing-scope 403:
-
-1. Read the exact `missingScope` returned by the server.
-2. Call `add-scope` with that one scope and a concrete reason.
-3. If `granted` is true, retry the original scoped call once.
-4. If `granted` is false, relay the returned `consentUrl` and one-line justification.
-5. If the error is missing license or missing directory role, do not call `add-scope`; report the real gate.
+Other skill workflows may describe queries beyond these initial capabilities. Explain that limitation and prepare a script for the admin's existing tooling. Do not claim that installing a skill grants access or that the initial inventory feature performs full compliance diagnosis.

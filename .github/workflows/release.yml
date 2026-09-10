@@ -1,49 +1,47 @@
-name: Release
+name: Executable artifacts
 
+# Build candidates only. Publishing requires platform signing, an authenticated
+# release manifest, protected release approval, and clean-machine evidence.
 on:
   push:
-    tags:
-      - "v*.*.*"
+    paths:
+      - "cli/**"
+      - "graph/**"
+      - "memory/**"
+      - "scripts/**"
+      - "package*.json"
+      - ".agents/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
-    name: Publish packages
-    runs-on: ubuntu-latest
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Use npm 11 to match the committed lockfile
-        run: npm install -g npm@11
-
-      - name: Install libsecret (Linux keyring for MSAL cache)
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
-
+          node-version: 22.23.2
+          cache: npm
       - name: Install
         run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
-      - name: Publish graph
-        run: npm publish --workspace @greybeard/graph --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish memory
-        run: npm publish --workspace @greybeard/memory --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Validate source
+        run: npm run ci
+      - name: Build executable
+        run: npm run build:executable
+      - name: Exercise executable outside checkout
+        run: npm run test:executable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: greybeard-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            dist/executable/greybeard-*
+          if-no-files-found: error

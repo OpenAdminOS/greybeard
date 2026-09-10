@@ -9,6 +9,7 @@ description: Use when the user asks to review existing Conditional Access, audit
 
 Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
+In Greybeard 0.1, `remember` stores a candidate even after conversational agreement. Ask the admin to review and confirm it in local setup or `greybeard memory confirm --id <id>`. Never simulate that human confirmation or describe a candidate as confirmed.
 When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
 
 1. Call `get-auth-status` before any `graph` call.
@@ -16,7 +17,7 @@ When a crafted query, script, or approach is confirmed working, or a durable fac
 3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, and `grantedScopes`. Treat `directoryRoles: null` as unknown. Existing CA policy review is not Entra P1 gated through Graph, but tenant licensing terms still apply.
 4. Use live state only. Do not design new CA policies here; route design and writes through `change-plan`.
 5. Tier 2 scope for this skill is `Application.Read.All` when application IDs in policies need display-name resolution. `Policy.Read.All` is the core read scope.
-6. On a missing-scope 403, call `add-scope` for the exact scope returned by the server. If `granted` is false, relay the returned consent URL and stop.
+6. If access is unavailable, report the exact endpoint and error. Ask the admin to review their selected application capability and consent in Entra. Greybeard 0.1 does not request or grant additional permissions.
 7. Treat MFA wording precisely: this skill checks whether Conditional Access policies enforce MFA. It does not report user MFA registration coverage. If the user asks for MFA coverage or registration status, use `tenant-pulse` instead.
 
 ## Report Shapes
@@ -62,7 +63,7 @@ Flag:
 
 ### Resolve Target Application Names
 
-Use only if `Application.Read.All` is granted or after a successful `add-scope`.
+If access is unavailable, report the exact endpoint and error. Ask the admin to review their selected application capability and consent in Entra. Greybeard 0.1 does not request or grant additional permissions.
 
 ```json
 {
@@ -88,3 +89,7 @@ Return:
 - If the admin asks to fix a policy, hand off to `change-plan` with a proposed operation list.
 
 Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.
+
+## Available access
+
+The optional 0.1 connection exposes only its selected read capabilities. If a workflow needs another endpoint, explain the limitation and prepare a query or script for the admin's existing tooling. Do not escalate permissions or substitute a different credential.

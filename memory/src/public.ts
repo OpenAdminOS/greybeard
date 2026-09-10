@@ -14,6 +14,9 @@ export {
   isGreybeardMemoryError
 } from "./types.js";
 export type {
+  ConfirmInput,
+  MemoryExport,
+  MemoryStatus,
   EdgeRelation,
   ForgetInput,
   ForgetResult,
@@ -28,3 +31,5 @@ export type {
   RememberInput,
   RememberResult
 } from "./types.js";
+
+export type { MemoryServiceOptions } from "./service.js";
