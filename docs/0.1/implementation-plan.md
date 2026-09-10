@@ -48,6 +48,8 @@ Model-originated and migrated unverified memories begin as candidates. MCP canno
 
 Use supported client events to observe a proposed action, retrieve applicable confirmed context, offer a concise suggestion, and record a confirmed correction or outcome. Explain why a suggestion appeared, permit dismissal, and avoid repetitive advice. Unrecognized actions must not be labeled safe. Add Codex only after the first complete Claude Code loop works.
 
+Current implementation supplies advisory context through Claude Code's PreToolUse hook but does not pause execution. The observed host session surfaced the lesson after the command. A guaranteed user-visible warning before execution requires a separately defined interaction and remains an acceptance gate, not a delivered behavior.
+
 Acceptance scenario: record a month-end device-cleanup exception; recognize its relevance in a later session; handle an intentional exception without overwriting the general rule; apply the scoped lesson correctly in a second client. Record intervention usefulness, false warnings, latency, model context, and task completion. Do not promise net token savings before measuring whole tasks.
 
 Proposed recall budget: 300-800 tokens of relevant memory, enforced after expansion. This is a design target, not a measured current limit. Prefer local checks and the host's existing model; no mandatory second model subscription.

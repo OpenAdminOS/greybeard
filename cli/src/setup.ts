@@ -55,7 +55,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
   if (!updated.memoryHook) await removeClaudeMemoryHook(bound);
   else if (detected.some(c => c.name === "Claude Code")) await writeClaudeMemoryHook(bound);
   if (detected.length === 0) writeLine(runtime.stdout, "No selected installed client detected. Install a supported client and rerun setup.");
-  writeLine(runtime.stdout, "Claude Code: advice before supported tool calls. Other clients: memory and guidance when requested.");
+  writeLine(runtime.stdout, "Claude Code: advisory context for supported commands; execution is not paused and advice may appear afterward. Other clients: memory and guidance when requested.");
   writeLine(runtime.stdout, `Updates: ${updated.updateMode}. Run greybeard update to check available releases.`);
   writeLine(runtime.stdout, "Start by asking your AI client to remember an operating preference. Review it with greybeard memory candidates.");
   return results.some(r => !r.configured) ? 1 : 0;

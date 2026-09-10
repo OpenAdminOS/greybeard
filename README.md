@@ -12,7 +12,7 @@ For Microsoft 365, Intune, and Entra administrators using AI tools.
 
 </div>
 
-Greybeard keeps the decisions and lessons you confirm, brings relevant context into later work, and offers advice before supported actions in Claude Code. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
+Greybeard keeps the decisions and lessons you confirm, brings relevant context into later work, and supplies relevant advisory context for supported commands in Claude Code. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
 
 Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
@@ -44,13 +44,13 @@ greybeard memory confirm --id 1
 
 Use the actual candidate ID returned by the first command. Confirmation previews the exact lesson and requires an interactive terminal; you can also review and confirm it in local graphical setup. A conversation, tool result, or successful command cannot silently turn a candidate into confirmed guidance.
 
-For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. Advice never means a command is safe or authorized.
+For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. The hook does not pause execution: Claude Code may surface the advice after a command runs. A guaranteed user-visible warning before execution remains a release acceptance requirement. Advice never means a command is safe or authorized.
 
 ## Client behavior
 
 | Client | Integration behavior |
 | --- | --- |
-| Claude Code | Skills, memory MCP, and advice before the supported commands above |
+| Claude Code | Skills, memory MCP, and advisory context for the supported commands above; execution is not paused |
 | Codex CLI, Cursor, Gemini CLI | Memory MCP and configured guidance; automatic action advice is not implemented |
 | Claude Desktop | Memory MCP; skills require the documented manual pack route; assistance on request |
 | GitHub Copilot | Optional configuration through `--with-copilot`; assistance on request |
@@ -110,6 +110,6 @@ npm run build:executable
 npm run test:executable
 ```
 
-Build on the intended operating system and architecture with the same Node runtime used to install native dependencies. Current local executable evidence covers Linux x64; Windows and macOS release support depends on their own builds, signing, and clean-machine checks. No release is implied by a successful local build.
+Build on the intended operating system and architecture with the same Node runtime used to install native dependencies. Local executable evidence covers Linux x64; target-platform CI results are recorded in the implementation handoff. Windows and macOS release support also depends on signing and clean-machine checks. No release is implied by a successful local build.
 
 The [0.1 plan](docs/0.1/implementation-plan.md), [review decisions](docs/0.1/review-decisions.md), and [implementation status](docs/0.1/implementation-status.md) govern this work. Historical tags and internal package versions remain separate from the public 0.1 display label.

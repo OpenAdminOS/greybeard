@@ -15,7 +15,7 @@ On the current Linux x64 machine, the built artifact passed an isolated smoke ru
 - A locally signed update fixture activated on the next launch and retained the prior executable.
 - An invalid pending signature left the installed executable usable.
 
-The artifact is `dist/executable/greybeard-linux-x64`. This is local developer evidence, not a signed published release or a clean-machine certification. Linux system compatibility, macOS and Windows still require their own clean-machine verification. No GitHub workflow or publication was triggered by this implementation.
+The artifact is `dist/executable/greybeard-linux-x64`. This is local developer evidence, not a signed published release or a clean-machine certification. Linux system compatibility, macOS and Windows still require their own clean-machine verification. Branch CI and executable artifact workflows are running; their terminal results and the final commit are recorded in the handoff. No public artifact publication was performed.
 
 ## Build and verify
 

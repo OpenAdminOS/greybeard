@@ -29,19 +29,34 @@ try {
   assert.equal(config.mcpServers["greybeard-graph"], false);
   const result = await new Promise((resolveResult, reject) => {
     const child = spawn(binary, ['mcp', 'memory'], { cwd: temporary, env, stdio: ['pipe', 'pipe', 'pipe'] });
-    let output = '', errors = '';
-    const timer = setTimeout(() => { child.kill(); reject(new Error(`MCP timeout: ${errors}`)); }, 15_000);
-    child.on('error', reject);
+    let output = '', errors = '', initialized = false, failure;
+    const timer = setTimeout(() => {
+      failure = new Error(`MCP timeout: ${errors}`);
+      child.kill('SIGKILL');
+    }, 15_000);
+    child.on('error', error => { failure = error; });
+    child.stdin.on('error', error => { failure = error; });
     child.stderr.on('data', chunk => errors += chunk);
     child.stdout.on('data', chunk => {
       output += chunk;
-      if (output.includes('"serverInfo"')) { clearTimeout(timer); child.stdin.end(); child.kill(); resolveResult(output); }
+      if (!initialized && output.includes('"serverInfo"')) {
+        initialized = true;
+        child.stdin.end();
+        child.kill();
+      }
     });
-    child.on('exit', code => { if (!output.includes('"serverInfo"')) { clearTimeout(timer); reject(new Error(`MCP exited ${code}: ${errors}`)); } });
+    // Windows holds the .exe and native addon open until process termination.
+    // Do not let the caller delete the temporary installation before close.
+    child.on('close', code => {
+      clearTimeout(timer);
+      if (failure) reject(failure);
+      else if (!initialized) reject(new Error(`MCP exited ${code}: ${errors}`));
+      else resolveResult(output);
+    });
     child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'executable-smoke', version: '0.1' } } }) + '\n');
   });
   assert.match(result, /serverInfo/);
   console.log('Executable smoke passed: isolated copy, empty PATH, help, mentor-only setup, SQLite, memory MCP initialize.');
 } finally {
-  await rm(temporary, { recursive: true, force: true });
+  await rm(temporary, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
