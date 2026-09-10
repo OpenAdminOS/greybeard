@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { toPortablePath } from "./portablePath.js";
 import {
   FetchLike,
   MsalGraphAuthProvider,
@@ -302,5 +303,5 @@ export function runCommand(command: string, args: string[], options: {
 export function runtimeCommand(runtime: CliRuntime, args: string[]): { command: string; args: string[] } {
   return runtime.packaged
     ? { command: runtime.nodePath, args }
-    : { command: runtime.nodePath, args: [resolve(runtime.repoRoot, "cli/dist/index.js"), ...args] };
+    : { command: runtime.nodePath, args: [toPortablePath(resolve(runtime.repoRoot, "cli/dist/index.js")), ...args] };
 }

@@ -1,11 +1,12 @@
-import { mkdtemp, mkdir, copyFile, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, copyFile, readFile, writeFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync, sign, createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 if (process.platform === 'win32') { console.log('Windows automatic activation requires a separately signed replacement helper; not supported by this candidate.'); process.exit(0); }
-const directory = await mkdtemp(join(tmpdir(), 'greybeard-update-executable-'));
+// Match process.execPath's canonical identity (macOS /var is /private/var).
+const directory = await realpath(await mkdtemp(join(tmpdir(), 'greybeard-update-executable-')));
 try {
   const binary = join(directory, 'greybeard');
   await copyFile(resolve('dist/executable', `greybeard-${process.platform}-${process.arch}`), binary);
