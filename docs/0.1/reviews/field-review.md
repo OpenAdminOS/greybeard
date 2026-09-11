@@ -17,7 +17,7 @@ The source improvements fix the Mac transcript's budget error, clarify byte acco
 
 ## Where value appeared
 
-Cases 021 and 023 reused a confirmed 48-hour pilot/helpdesk checkpoint that the baseline did not know. Cases 031–035 returned the corrected 72-hour rule without the superseded duration. Case 027 correctly separated a confirmed process rule from an unknown historical reason. Forgetting, pause, and cross-profile isolation prevented the stored rule from appearing in their respective fixtures.
+Cases 021 and 023 reused a confirmed 48-hour pilot/helpdesk checkpoint that the baseline did not know. Cases 031-035 returned the corrected 72-hour rule without the superseded duration. Case 027 correctly separated a confirmed process rule from an unknown historical reason. Forgetting, pause, and cross-profile isolation prevented the stored rule from appearing in their respective fixtures.
 
 These demonstrate specific remembered context and working controls. They do not prove that the host will notice the relevant task without prompting, that the recalled rule remains operationally current, or that the generated plan preserves every nuance. Several answers changed “helpdesk review” into “helpdesk approval.”
 

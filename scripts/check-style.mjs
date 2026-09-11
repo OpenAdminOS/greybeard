@@ -17,9 +17,14 @@ const tracked = execFileSync("git", ["ls-files"], { encoding: "utf8" })
   .filter((file) => !file.startsWith("node_modules/"))
   .filter((file) => !file.endsWith("package-lock.json"));
 
+// Captured model responses and their quoted review evidence must stay verbatim.
+// Continue checking authored evaluation scripts and README documentation.
+const recordedEvaluation = /^evaluations\/mentor-100\/(?:(?:runs|baselines|skill-rechecks|smoke-failures)\/|manual-[^/]+\.json$|paired-baselines\.json$|review\.html$)/u;
+
 const failures = [];
 
 for (const file of tracked) {
+  if (recordedEvaluation.test(file)) continue;
   const contents = readFileSync(file);
   if (contents.includes(0)) {
     continue;

@@ -62,4 +62,4 @@ The most concrete observed contribution is in paired prompts 021, 023, and 031: 
 
 ## Substantive reviews
 
-Every initial response has a separately saved substantive agent review: [001–050](manual-review-001-050.json) and [051–100](manual-review-051-100.json). Totals: 72 pass, 26 concern, 2 fail. The searchable HTML and per-case review files include these judgments alongside mechanical checks. These are agent editorial judgments, not external human adjudication. [Eight supplementary comparisons](manual-skill-rechecks.json) retain the original outcomes.
+Every initial response has a separately saved substantive agent review: [001-050](manual-review-001-050.json) and [051-100](manual-review-051-100.json). Totals: 72 pass, 26 concern, 2 fail. The searchable HTML and per-case review files include these judgments alongside mechanical checks. These are agent editorial judgments, not external human adjudication. [Eight supplementary comparisons](manual-skill-rechecks.json) retain the original outcomes.
