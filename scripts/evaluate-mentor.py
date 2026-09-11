@@ -68,7 +68,7 @@ def main():
    usage=[e['usage'] for e in events if e.get('usage')]
    errors=[e for e in events if e.get('type') in ['error','turn.failed'] or e.get('item',{}).get('type')=='error']
    actual=dict(id=case['id'],category=case['category'],fixture=case['fixture'],model=model,elapsedSeconds=round(time.monotonic()-started,2),exitCode=exitcode,usage=usage,mcpCalls=calls,errors=errors,response=response)
-   (dest/'response.md').write_text(response+'\n');(dest/'result.json').write_text(json.dumps(actual,indent=2)+'\n')
+   (dest/'response.md').write_text('\n'.join(line.rstrip() for line in response.splitlines())+'\n');(dest/'result.json').write_text(json.dumps(actual,indent=2)+'\n')
    return f"{case['id']} exit={exitcode} calls={len(calls)} seconds={actual['elapsedSeconds']}"
  with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
   for result in pool.map(run,cases):print(result,flush=True)

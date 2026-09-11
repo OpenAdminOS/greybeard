@@ -7,7 +7,7 @@ Use this structure:
 **Change brief: [policy name]**
 
 - **Decision requested:** Approve, reject, or revise [specific change].
-- **Current state:** [Existing policy and who it covers].  
+- **Current state:** [Existing policy and who it covers].
   Evidence: [policy document, owner, date verified].
 - **Proposed state:** Replace “[current rule]” with “[new rule].”
 - **Reason:** [Problem, trigger, or requirement].

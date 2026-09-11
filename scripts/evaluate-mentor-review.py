@@ -45,7 +45,7 @@ def main():
   if flags:lines+=['']+['- '+flag for flag in flags]
   if record.get('agentEditorialReview'):lines+=['','Agent editorial assessment: '+record['agentEditorialReview']]
   lines+=['','## Value to assess','',case['valueExpected'],'','## Actual response','',response,'']
-  (directory/'review.md').write_text('\n'.join(lines));reviews.append(record)
+  (directory/'review.md').write_text('\n'.join(line.rstrip() for line in '\n'.join(lines).splitlines())+'\n');reviews.append(record)
   for u in actual['usage']:usage.update(u)
   base=OUT/'baselines'/case['id']/'result.json'
   if base.exists():
@@ -71,6 +71,6 @@ def main():
  for pair in paired:
   cards.append(f'<details><summary>Paired baseline {pair["id"]} · {html.escape(pair["prompt"])}</summary><p>{html.escape(pair["interpretation"])}</p><h3>With Greybeard</h3><pre>{html.escape(pair["withGreybeard"])}</pre><h3>Without Greybeard</h3><pre>{html.escape(pair["withoutGreybeard"])}</pre><p>Usage with: {html.escape(json.dumps(pair["withUsage"]))}</p><p>Usage without: {html.escape(json.dumps(pair["withoutUsage"]))}</p></details>')
  document+=f'<p>{len(reviews)} distinct actual Codex conversations · {len(paired)} paired baselines · Synthetic memory fixtures with real MCP calls.</p><p>This is a controlled integration evaluation. Recall is explicitly requested. It does not establish natural discovery, autonomous background mentoring, live tenant correctness, or a 100% quality pass rate.</p><input aria-label="Filter reviews" id="filter" placeholder="Filter by prompt, category, or finding"><main>'+''.join(cards)+'</main><script>document.getElementById("filter").addEventListener("input",e=>{for(const d of document.querySelectorAll("details"))d.hidden=!d.textContent.toLowerCase().includes(e.target.value.toLowerCase())})</script></html>'
- (OUT/'review.html').write_text(document)
+ (OUT/'review.html').write_text('\n'.join(line.rstrip() for line in document.splitlines())+'\n')
  print(json.dumps(summary,indent=2))
 if __name__=='__main__':main()
