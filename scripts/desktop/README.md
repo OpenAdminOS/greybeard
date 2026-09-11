@@ -9,6 +9,9 @@ The installed application is a complete Electron companion containing its own
 Node executable. SQLite remains inside that executable, avoiding an Electron
 native-addon ABI dependency. Mac uses `Greybeard.app/Contents/MacOS/GreybeardCompanion`
 for the window (distinct even on case-insensitive filesystems) and `Contents/MacOS/greybeard` for existing terminal references.
+The Mac after-pack hook renames only the Electron shell and its plist entry
+before copying the service, then signing both. It deliberately avoids the
+`executableName` setting, which also changes the bundle filename in this builder.
 Windows and Linux bundle the service under `resources/bin`. No browser tab is
 opened by the desktop shell.
 

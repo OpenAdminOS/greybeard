@@ -11,7 +11,6 @@ module.exports = {
   afterPack: './scripts/desktop/after-pack.cjs',
   publish: { provider: 'github', owner: 'OpenAdminOS', repo: 'greybeard', releaseType: 'release' },
   mac: {
-    executableName: 'GreybeardCompanion',
     target: [{ target: 'dmg', arch: ['arm64'] }, { target: 'zip', arch: ['arm64'] }],
     category: 'public.app-category.developer-tools',
     icon: 'assets/logo/greybeard-avatar.png',
@@ -22,7 +21,6 @@ module.exports = {
     entitlementsInherit: 'scripts/desktop/entitlements.mac.plist',
     binaries: ['Contents/MacOS/greybeard'],
     notarize: release,
-    extraFiles: [{ from: 'dist/executable/greybeard-darwin-arm64', to: 'MacOS/greybeard' }],
     artifactName: 'Greybeard-${version}-mac-arm64.${ext}'
   },
   dmg: { sign: release, title: 'Greybeard ${version}' },

@@ -11,9 +11,9 @@ const require = createRequire(import.meta.url);
 test('companion bundles the service at the paths used by installed launchers', () => {
   const config = require('../../desktop/electron-builder.cjs');
   assert.equal(config.appId, 'com.ugurlabs.greybeard');
-  assert.equal(config.mac.extraFiles[0].to, 'MacOS/greybeard');
-  assert.equal(config.mac.executableName, 'GreybeardCompanion');
-  assert.notEqual(config.mac.executableName.toLowerCase(), config.mac.extraFiles[0].to.split('/').at(-1).toLowerCase());
+  assert.equal(config.mac.extraFiles, undefined); // Copy only after the shell is renamed.
+  assert.equal(config.mac.executableName, undefined); // Preserve Greybeard.app product filename.
+  assert.equal(config.afterPack, './scripts/desktop/after-pack.cjs');
   assert.equal(config.win.extraResources[0].to, 'bin/greybeard.exe');
   assert.equal(config.linux.extraResources[0].to, 'bin/greybeard');
   assert.deepEqual(config.mac.target.map(t => t.target), ['dmg', 'zip']);
@@ -51,5 +51,28 @@ test('update manifests cannot refer outside the artifact directory', async () =>
     await writeFile(join(directory, artifactNames('linux', '0.1.0')[0]), 'fixture');
     await writeFile(join(directory, 'latest-linux.yml'), 'version: 0.1.0\nfiles:\n  - url: ../private-file\n    sha512: invalid\n    size: 1\n');
     await assert.rejects(() => verifyArtifacts({ root, platform: 'linux' }), /Unexpected file reference/u);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+
+test('Mac packaging preserves both executable payloads before signing without casefold collisions', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'greybeard-mac-layout-'));
+  try {
+    const appOutDir = join(root, 'dist/companion/mac-arm64');
+    const contents = join(appOutDir, 'Greybeard.app/Contents');
+    await mkdir(join(contents, 'MacOS'), { recursive: true });
+    await mkdir(join(root, 'dist/executable'), { recursive: true });
+    await writeFile(join(contents, 'MacOS/Greybeard'), 'original-electron-shell');
+    await writeFile(join(root, 'dist/executable/greybeard-darwin-arm64'), 'original-node-service');
+    await writeFile(join(contents, 'Info.plist'), '<plist><dict><key>CFBundleIdentifier</key><string>com.ugurlabs.greybeard</string><key>CFBundleExecutable</key><string>Greybeard</string></dict></plist>');
+    const hook = require('./after-pack.cjs');
+    await hook.prepareMacBundle({ appOutDir, projectDir: root, replaceExecutable: async plist => {
+      const text = await readFile(plist, 'utf8');
+      await writeFile(plist, text.replace('<key>CFBundleExecutable</key><string>Greybeard</string>', '<key>CFBundleExecutable</key><string>GreybeardCompanion</string>'));
+    } });
+    assert.equal(await readFile(join(contents, 'MacOS/GreybeardCompanion'), 'utf8'), 'original-electron-shell');
+    assert.equal(await readFile(join(contents, 'MacOS/greybeard'), 'utf8'), 'original-node-service');
+    assert.match(await readFile(join(contents, 'Info.plist'), 'utf8'), /CFBundleExecutable<\/key><string>GreybeardCompanion/u);
+    assert.notEqual('GreybeardCompanion'.toLowerCase(), 'greybeard'.toLowerCase());
   } finally { await rm(root, { recursive: true, force: true }); }
 });
