@@ -2,7 +2,7 @@
 
 **An IT mentor that learns how you work.**
 
-Release tag: `v0.1.0`. Download from the [private GitHub release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) using an account with repository access. The release handoff confirms publication and the final asset checksums.
+Release tag: `v0.1.0`. Download from the [private GitHub release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) using an account with repository access.
 
 ## Included
 
@@ -18,20 +18,20 @@ Release tag: `v0.1.0`. Download from the [private GitHub release](https://github
 | Asset | Computer |
 | --- | --- |
 | `greybeard-win32-x64.exe` | Windows x64 |
-| `greybeard-darwin-arm64.tar.gz` | Apple Silicon Mac |
+| `greybeard-darwin-arm64.dmg` | Apple Silicon Mac, macOS 14+ |
 | `greybeard-linux-x64.tar.gz` | Linux x64 |
 | `SHA256SUMS.txt` | Checksums for the release assets |
 
-The Mac and Linux archives contain one executable, `greybeard`, with executable permissions preserved. Intel Mac and native Windows ARM64 builds are not included.
+Open the Mac DMG, drag `Greybeard.app` to Applications, then open the installed app. The Linux archive contains one executable, `greybeard`, with executable permissions preserved. Intel Mac and native Windows ARM64 builds are not included.
 
 Verify the asset checksum, move the executable to its permanent location, then launch setup. Client integrations store that location, so moving the executable afterward requires rerunning setup. Follow [installation instructions](executable-delivery.md).
 
 ## Current limits
 
 - This is a private repository release, not a public unauthenticated download. Browser download needs GitHub access; terminal download can use an already authenticated GitHub CLI.
-- The platform metadata records the delivered Mac artifact's signing and notarization status. Only a completed, verified signing and notarization result establishes Apple publisher delivery. If an artifact is explicitly marked ad-hoc and macOS blocks the verified download, use [Apple's per-app Open Anyway instructions](https://support.apple.com/en-gb/102445).
+- The Mac release workflow requires signed, notarized, stapled app and DMG delivery. DMG metadata identifies the unchanged released runtime separately from the packaging source. The original Mac CLI archive remains available.
 - Windows tenant connection is unavailable until a protected credential provider is implemented. Local mentor functionality is available without it.
-- There is no configured automatic-update feed. Notify is the default setting, but install later versions by verified manual replacement. Windows automatic replacement is not implemented.
+- There is no configured automatic-update feed. Notify is the default setting, but install later versions by verified manual replacement. Windows automatic replacement is not implemented. Mac updates replace the complete app bundle to preserve its signature.
 - The mentor provides contextual advice, not guaranteed warnings before execution, autonomous background reasoning, or approval of an action. Other clients do not have the same automatic command advice as Claude Code.
 - Exact minimum application grants and the customer certificate flow still need a dedicated narrowly permissioned environment. Do not interpret the listed permission candidates as certified minimum access.
 - Greybeard is free. Your AI client's normal model usage still applies, and recalled memory adds context. No token savings are promised.

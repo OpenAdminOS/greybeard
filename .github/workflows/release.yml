@@ -27,12 +27,18 @@ on:
         options:
           - ad-hoc
           - developer-id
+      dmg-only:
+        description: Package the unchanged published v0.1.0 Mac core as a signed and stapled DMG
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   build:
+    if: ${{ !inputs.dmg-only }}
     name: Build on ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -111,6 +117,13 @@ jobs:
       - name: Package candidate and verify archive
         if: github.event_name != 'workflow_dispatch' || !inputs.release
         run: node scripts/package-release.mjs
+      - name: Package signed app and notarized stapled DMG
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: node scripts/macos-signing.mjs dmg
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: greybeard-${{ matrix.target }}
@@ -120,4 +133,48 @@ jobs:
           retention-days: 30
       - name: Remove Apple signing material
         if: always() && runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
+        run: node scripts/macos-signing.mjs cleanup
+
+  macos-dmg:
+    name: Package published Mac core as signed DMG
+    if: github.event_name == 'workflow_dispatch' && inputs.dmg-only
+    runs-on: macos-14
+    env:
+      APPLE_TEAM_ID: D259ULY2B4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+      - name: Require explicit Developer ID release mode
+        env:
+          RELEASE_REQUESTED: ${{ inputs.release }}
+          SIGNING_MODE: ${{ inputs.macos-signing }}
+        run: node -e 'if(process.env.RELEASE_REQUESTED !== "true" || process.env.SIGNING_MODE !== "developer-id") throw Error("DMG packaging requires release=true and Developer ID signing")'
+      - name: Download and verify unchanged published core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/prepare-published-macos.mjs
+      - name: Prepare Apple Developer ID
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: node scripts/macos-signing.mjs prepare-bundle
+      - name: Sign app, notarize and staple app and DMG, verify installation
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: node scripts/macos-signing.mjs dmg
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: greybeard-darwin-arm64-dmg
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Remove Apple signing material
+        if: always()
         run: node scripts/macos-signing.mjs cleanup

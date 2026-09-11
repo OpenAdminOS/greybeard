@@ -36,7 +36,17 @@ async function verify(file) {
   if (file === binary && !/flags=.*\bruntime\b/.test(result.stderr)) throw new Error('Apple executable is missing hardened runtime.');
   return { teamId: team, publisher: identity };
 }
-if (mode === 'prepare') {
+async function notarizeArchive(archive) {
+  const keyFile = join(directory, 'notary-key.p8');
+  await writeFile(keyFile, required('APPLE_API_KEY'), { mode: 0o600 });
+  try {
+    const result = JSON.parse(run('xcrun', ['notarytool', 'submit', archive, '--key', keyFile, '--key-id', required('APPLE_API_KEY_ID'), '--issuer', required('APPLE_API_ISSUER'), '--wait', '--timeout', '30m', '--output-format', 'json']));
+    if (result.status !== 'Accepted' || typeof result.id !== 'string') throw new Error(`Apple notarization did not accept this build (status ${String(result.status)}).`);
+    console.log(`Apple notarization accepted: ${result.id}.`);
+    return result.id;
+  } finally { await rm(keyFile, { force: true }); }
+}
+if (mode === 'prepare' || mode === 'prepare-bundle') {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const certificate = join(directory, 'certificate.p12');
   await writeFile(certificate, Buffer.from(required('CSC_LINK'), 'base64'), { mode: 0o600 });
@@ -57,9 +67,11 @@ if (mode === 'prepare') {
   const identities = [...run('security', ['find-identity', '-v', '-p', 'codesigning', keychain]).matchAll(/"(Developer ID Application: [^"]+)"/g)].map(match => match[1]).filter(identity => identity.endsWith(`(${team})`));
   if (new Set(identities).size !== 1) throw new Error('Expected one Developer ID Application identity for the configured Apple team.');
   await writeFile(join(directory, 'identity.json'), JSON.stringify({ publisher: identities[0], teamId: team }), { mode: 0o600 });
-  run('codesign', ['--force', '--sign', identities[0], '--keychain', keychain, '--timestamp', native]);
-  await verify(native);
-  console.log('Developer ID certificate prepared; SQLite addon signed before embedding.');
+  if (mode === 'prepare') {
+    run('codesign', ['--force', '--sign', identities[0], '--keychain', keychain, '--timestamp', native]);
+    await verify(native);
+    console.log('Developer ID certificate prepared; SQLite addon signed before embedding.');
+  } else console.log('Developer ID certificate prepared for packaging the unchanged published core.');
 } else if (mode === 'sign') {
   const identity = JSON.parse(await readFile(join(directory, 'identity.json'), 'utf8')).publisher;
   run('codesign', ['--force', '--sign', identity, '--keychain', keychain, '--options', 'runtime', '--timestamp', '--entitlements', join(root, 'scripts/macos-entitlements.plist'), binary]);
@@ -82,6 +94,10 @@ if (mode === 'prepare') {
   await verify(binary);
   await writeFile(join(root, 'dist/executable/macos-signature.json'), JSON.stringify({ status: 'verified', ...identity, notarized: true, notarizationId: result.id, hardenedRuntime: true, sha256: createHash('sha256').update(await readFile(binary)).digest('hex') }, null, 2) + '\n');
   console.log(`Apple notarization accepted: ${result.id}. Raw executable tickets are retrieved online; no stapling is claimed.`);
+} else if (mode === 'dmg') {
+  const identity = await verify(binary);
+  const { packageMacDmg } = await import('./package-macos-dmg.mjs');
+  await packageMacDmg({ run, verify, notarize: notarizeArchive, directory, keychain, identity, binary });
 } else if (mode === 'cleanup') {
   try {
     const searchList = JSON.parse(await readFile(join(directory, 'search-list.json'), 'utf8'));
@@ -89,4 +105,4 @@ if (mode === 'prepare') {
   } catch { /* Preparation may have failed before saving the search list. */ }
   try { run('security', ['delete-keychain', keychain]); } catch { /* The prepare step may have failed before creating it. */ }
   await rm(directory, { recursive: true, force: true });
-} else throw new Error('Use prepare, sign, notarize, or cleanup.');
+} else throw new Error('Use prepare, prepare-bundle, sign, notarize, dmg, or cleanup.');

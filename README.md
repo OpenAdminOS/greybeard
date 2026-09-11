@@ -18,15 +18,15 @@ Greybeard is a local application. MCP exposes its memory and optional tenant-rea
 
 ## Install Greybeard 0.1
 
-Download the assets from the [private 0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**. Until the release is published, use the final delivery link provided with the release handoff.
+Download the assets from the [private 0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**.
 
 | Computer | Download |
 | --- | --- |
 | Windows x64 | `greybeard-win32-x64.exe` |
-| Apple Silicon Mac | `greybeard-darwin-arm64.tar.gz` |
+| Apple Silicon Mac (macOS 14+) | `greybeard-darwin-arm64.dmg` |
 | Linux x64 | `greybeard-linux-x64.tar.gz` |
 
-Each archive contains one executable named `greybeard`. You do not need Node, npm, Git, or a source checkout. Download `SHA256SUMS.txt` from the same authenticated release and compare the checksum for your asset before opening it. Put the executable in its permanent location **before setup**, because client configurations refer to that path.
+The Mac disk image contains `Greybeard.app`; the Linux archive contains `greybeard`. You do not need Node, npm, Git, or a source checkout. Download `SHA256SUMS.txt` from the same authenticated release and compare the checksum for your asset before opening it. Put the executable in its permanent location **before setup**, because client configurations refer to that path.
 
 On Windows, move the executable into `%LOCALAPPDATA%\Greybeard\bin`, rename it to `greybeard.exe`, then double-click it. For terminal setup:
 
@@ -34,13 +34,13 @@ On Windows, move the executable into `%LOCALAPPDATA%\Greybeard\bin`, rename it t
 & "$env:LOCALAPPDATA\Greybeard\bin\greybeard.exe" setup
 ```
 
-On a Mac, expand the archive and move `greybeard` into `~/Applications/Greybeard` before opening it. The archive preserves its executable permission. You can also launch local graphical setup from Terminal:
+On a Mac, open the DMG, drag **Greybeard.app** into **Applications**, eject the disk image, then open **Greybeard** from Applications. For terminal setup:
 
 ```sh
-"$HOME/Applications/Greybeard/greybeard" setup --ui
+"/Applications/Greybeard.app/Contents/MacOS/GreybeardLauncher" setup
 ```
 
-Check the Mac artifact's signing and notarization status in the release metadata. If the delivered artifact is explicitly marked ad-hoc and macOS blocks the verified download, follow [Apple's instructions for Open Anyway](https://support.apple.com/en-gb/102445). Do not disable Gatekeeper globally.
+The release workflow signs, notarizes, and staples both the Mac app and disk image. The DMG metadata records the verification results and software and packaging commits.
 
 Setup detects your AI clients, configures your selection, creates local memory, and defaults updates to **Notify**. It requires no Microsoft sign-in or tenant permissions. Restart your selected AI clients after setup.
 
