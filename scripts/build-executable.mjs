@@ -7,6 +7,8 @@ import { resolve, relative, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = resolve(import.meta.dirname, '..');
 const out = join(root, 'dist', 'executable');
+const packageVersion = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version;
+if (!/^\d+\.\d+\.\d+$/.test(packageVersion)) throw new Error('Executable requires a numeric three-part package version.');
 await mkdir(out, { recursive: true });
 const assets = {};
 async function collect(dir) {
@@ -45,10 +47,22 @@ const binary = join(out, `greybeard-${process.platform}-${process.arch}${process
 await copyFile(process.execPath, binary);
 await chmod(binary, 0o755);
 if (process.platform === 'darwin') execFileSync('codesign', ['--remove-signature', binary]);
+if (process.platform === 'win32') {
+  execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-File', join(root, 'scripts/windows-signature.ps1'), '-Operation', 'remove', '-BinaryPath', binary], { stdio: 'inherit' });
+  const { rcedit } = await import('rcedit');
+  await rcedit(binary, {
+    'file-version': `${packageVersion}.0`, 'product-version': `${packageVersion}.0`,
+    'version-string': { ProductName: 'Greybeard', FileDescription: 'Greybeard IT mentor', CompanyName: 'Ugurlabs', InternalName: 'greybeard', OriginalFilename: 'greybeard.exe', LegalCopyright: 'Copyright Ugurlabs and Node.js contributors' },
+    'requested-execution-level': 'asInvoker'
+  });
+}
 await inject(binary, 'NODE_SEA_BLOB', await readFile(join(out, 'app.blob')), {
   sentinelFuse: 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2', ...(process.platform === 'darwin' ? { machoSegmentName: 'NODE_SEA' } : {})
 });
-if (process.platform === 'darwin') execFileSync('codesign', ['--sign', '-', binary]);
+if (process.platform === 'darwin') {
+  execFileSync('codesign', ['--sign', '-', binary]);
+  execFileSync('codesign', ['--verify', '--strict', binary], { stdio: 'inherit' });
+}
 const digest = createHash('sha256').update(await readFile(binary)).digest('hex');
 await writeFile(`${binary}.sha256`, `${digest}  ${binary.split(/[\\/]/).pop()}\n`);
 console.log(`Built ${binary}. Local artifact only; publisher signing and target validation are separate release requirements.`);

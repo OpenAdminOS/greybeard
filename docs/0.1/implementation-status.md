@@ -1,6 +1,6 @@
 # Greybeard 0.1 implementation status
 
-Updated 10 September 2026 on branch `feat/0.1-mentor-foundation`. This is engineering evidence, not a release announcement. The public product display remains 0.1.
+This records the foundation verification from 10 September 2026 on branch `feat/0.1-mentor-foundation`. For the 0.1 downloads, signing status, and installation instructions, see [executable delivery](executable-delivery.md) and [release notes](release-notes.md). The public product display remains 0.1.
 
 ## Implemented
 
@@ -21,7 +21,7 @@ Updated 10 September 2026 on branch `feat/0.1-mentor-foundation`. This is engine
 
 ## Verification
 
-Branch CI and executable artifact workflows are being run against the committed implementation. Terminal results and the final head are recorded in the handoff. Build artifacts are not public product releases.
+The foundation source and executable artifact workflows completed successfully on Windows, macOS, and Linux at `21c3c0f44c3d22798c3403991180aa23f0b05ce8`. Release signing and packaging are verified separately by the release workflow. Historical foundation checks do not establish publisher signing or complete end-user installation coverage.
 
 - Integrated build, all 176 unit tests (89 Graph, 30 memory, 57 CLI), and repository style check passed, including final client-configuration concurrency hardening.
 - Actual Linux executable: setup and SQLite outside the checkout with no Node on PATH, memory MCP initialization, explicit application-data override, valid local signed update activation, and invalid-signature recovery passed.
@@ -36,7 +36,7 @@ The authenticated Lokka connection used explicit `graphApiVersion: beta`. Read-o
 
 The connection has broad permissions. This evidence verifies response contracts and error/paging behavior, not minimum grants. No tenant data, token, or credential has been copied into this repository. See the shared capability catalog in `graph/src/appOnlyAuth.ts` and [permission candidate notes](../../.agents/skills/craft/least-privilege-scopes/references/scope-tables.md).
 
-## Remaining work before release
+## Remaining product work
 
 1. **Windows certificate provider.** The current PEM provider checks ownership and file permissions on POSIX; Windows tenant connection deliberately refuses until protected key access is implemented and verified. macOS OS-backed non-exportable key signing is also not implemented. This does not block mentor-only use.
 2. **Customer credential and minimum-grant evidence.** Provision a dedicated app/Lokka connection with only each candidate permission, then validate successes and missing-permission cases and the actual Greybeard certificate path. Current broad grants cannot establish the answer. An authorized tenant administrator must supply this environment; no production credential is silently repurposed.

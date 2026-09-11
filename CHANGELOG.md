@@ -1,13 +1,17 @@
 # Changelog
 
-## Unreleased - 0.1 executable and mentor work
+## 0.1 - 2026-09-11
 
-- Start with local mentoring and memory, with no mandatory Microsoft sign-in.
+Release tag: `v0.1.0`. Access to this executable release requires an account with access to the private repository; historical package versions below describe an earlier distribution.
+
+- Install one executable, with local graphical or terminal setup and no Node, npm, or Git requirement.
+- Use local mentoring and memory without connecting a Microsoft tenant.
 - Propose, inspect, confirm, correct, export, pause, and forget scoped lessons through local controls.
-- Offer relevant confirmed guidance before supported Claude Code actions.
-- Build a single executable with embedded runtime and assets, with Notify updates and verified staging.
-- Add customer-owned app-only read connections; disable production writes and consent mutation.
-- Track platform signing, protected credential providers, and minimum-permission evidence as release requirements.
+- Supply confirmed advisory context for supported Claude Code commands. Execution is not paused and advice may appear afterward.
+- Connect a customer-owned application for optional tenant reads on supported POSIX systems; production writes and consent mutation remain disabled.
+- Retain memories when replacing the executable or removing client integrations.
+
+Updates use manual verified downloads for this release. Windows tenant credentials and automatic update activation are not implemented. Platform signing and notarization status is recorded with the release assets. See [release notes](docs/0.1/release-notes.md) for installation and current limits.
 
 Historical entries below describe earlier code and retain their original version labels.
 

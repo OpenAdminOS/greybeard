@@ -16,21 +16,37 @@ Greybeard keeps the decisions and lessons you confirm, brings relevant context i
 
 Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
-## Install and first run
+## Install Greybeard 0.1
 
-The distribution format is one executable for each supported operating system and architecture. The graphical download and terminal downloader use the same executable; users do not need Git, npm, or Node. Public signed downloads are not published yet. Do not use an old package release as a substitute for the executable described here.
+Download the assets from the [private 0.1 release](https://github.com/ugurkocde/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**. Until the release is published, use the final delivery link provided with the release handoff.
 
-Launch the executable without arguments to open local graphical setup, or run:
+| Computer | Download |
+| --- | --- |
+| Windows x64 | `greybeard-win32-x64.exe` |
+| Apple Silicon Mac | `greybeard-darwin-arm64.tar.gz` |
+| Linux x64 | `greybeard-linux-x64.tar.gz` |
 
-```sh
-greybeard setup
+Each archive contains one executable named `greybeard`. You do not need Node, npm, Git, or a source checkout. Download `SHA256SUMS.txt` from the same authenticated release and compare the checksum for your asset before opening it. Put the executable in its permanent location **before setup**, because client configurations refer to that path.
+
+On Windows, move the executable into `%LOCALAPPDATA%\Greybeard\bin`, rename it to `greybeard.exe`, then double-click it. For terminal setup:
+
+```powershell
+& "$env:LOCALAPPDATA\Greybeard\bin\greybeard.exe" setup
 ```
 
-Setup detects your AI clients, configures the selected integrations, creates local memory, and defaults updates to **Notify**. It does not open Microsoft sign-in or require tenant permissions. Use `greybeard setup --client "Claude Code"` to select one detected client, or `greybeard setup --ui` to open the graphical route.
+On a Mac, expand the archive and move `greybeard` into `~/Applications/Greybeard` before opening it. The archive preserves its executable permission. You can also launch local graphical setup from Terminal:
 
-The executable contains the application runtime, skills, logo, and SQLite library. It extracts integrity-checked assets and the native SQLite library into private application data. Your settings and memories remain outside the executable so they survive updates.
+```sh
+"$HOME/Applications/Greybeard/greybeard" setup --ui
+```
 
-The shell and PowerShell downloaders in this repository require an authenticated release tag and checksum. They deliberately stop when those release inputs are missing. [Executable delivery](docs/0.1/executable-delivery.md) documents the current build and release requirements.
+Check the Mac artifact's signing and notarization status in the release metadata. If the delivered artifact is explicitly marked ad-hoc and macOS blocks the verified download, follow [Apple's instructions for Open Anyway](https://support.apple.com/en-gb/102445). Do not disable Gatekeeper globally.
+
+Setup detects your AI clients, configures your selection, creates local memory, and defaults updates to **Notify**. It requires no Microsoft sign-in or tenant permissions. Restart your selected AI clients after setup.
+
+The executable contains the runtime, skills, logo, and SQLite library. It extracts integrity-checked assets into application data; settings and memories remain outside the executable so they survive replacement. There is no configured automatic-update feed for this release: updates are manual downloads.
+
+For checksum commands, authenticated terminal installation, and replacement instructions, see [executable delivery](docs/0.1/executable-delivery.md). The [release notes](docs/0.1/release-notes.md) describe the available features and limits.
 
 ## Your first lesson
 
@@ -44,7 +60,7 @@ greybeard memory confirm --id 1
 
 Use the actual candidate ID returned by the first command. Confirmation previews the exact lesson and requires an interactive terminal; you can also review and confirm it in local graphical setup. A conversation, tool result, or successful command cannot silently turn a candidate into confirmed guidance.
 
-For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. The hook does not pause execution: Claude Code may surface the advice after a command runs. A guaranteed user-visible warning before execution remains a release acceptance requirement. Advice never means a command is safe or authorized.
+For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. The hook does not pause execution: Claude Code may surface the advice after a command runs. It does not guarantee a user-visible warning before execution. Advice never means a command is safe or authorized.
 
 ## Client behavior
 
@@ -95,7 +111,7 @@ Tenant tools use explicit Microsoft Graph `/beta` reads. **Production tenant wri
 
 ## Updates and model usage
 
-Notify is the default. Automatic is opt-in; Manual disables scheduled checks. A configured trusted publisher feed is required before update checks can succeed. Updates verify signed metadata and the artifact hash before staging. Supported activation waits for a later launch without active Greybeard peers; platform limits are documented in the delivery plan. No database backup is blindly restored during executable recovery.
+Notify is the default, but this release has no configured publisher update feed. Selecting Automatic does not make new GitHub releases install themselves. Download and verify a replacement manually, close Greybeard and its AI clients, retain the old executable, then replace it at the same path. Keep the application-data directory. The update engine supports verified staging with an independently configured trusted feed; Windows automatic activation is not implemented.
 
 Local SQLite and deterministic matching use no model tokens. Recalled context adds input tokens to your existing client's conversation. Retrieval is bounded after link expansion; actual whole-task costs depend on the client, model, and task. Greybeard does not require a separate model subscription or continuous model worker, and does not promise net token savings.
 
@@ -110,6 +126,6 @@ npm run build:executable
 npm run test:executable
 ```
 
-Build on the intended operating system and architecture with the same Node runtime used to install native dependencies. Local executable evidence covers Linux x64; target-platform CI results are recorded in the implementation handoff. Windows and macOS release support also depends on signing and clean-machine checks. No release is implied by a successful local build.
+Build on the intended operating system and architecture with the same Node runtime used to install native dependencies. Target-platform build and executable-check outcomes are recorded in the release handoff. Release signing status and supported architecture names belong to the actual release assets; a source build alone does not establish them.
 
 The [0.1 plan](docs/0.1/implementation-plan.md), [review decisions](docs/0.1/review-decisions.md), and [implementation status](docs/0.1/implementation-status.md) govern this work. Historical tags and internal package versions remain separate from the public 0.1 display label.

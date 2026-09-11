@@ -1,25 +1,123 @@
-# Greybeard 0.1 executable delivery
+# Install Greybeard 0.1
 
-Greybeard now builds one executable for the build machine's OS and architecture. It includes its Node runtime, application JavaScript, SQLite native addon, skills, and logo. Users do not install Node, Git, npm, or a source checkout.
+The release tag is `v0.1.0`; the application displays **0.1**. The repository remains private. Open the [release page](https://github.com/ugurkocde/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with access. The final release handoff confirms publication and asset hashes.
 
-The executable materializes its embedded native addon and skills in a private, content-addressed runtime directory inside Greybeard app data. This is required by Node's native addon loader; it is one download, not a promise of zero supporting files. Extracted files are checked against embedded SHA-256 hashes before use. Runtime directories reject symbolic links, foreign ownership, and group/world write access on POSIX. The mentor path does not load the legacy native credential extension. Bootstrap resolves `--app-data` before opening assets, session locks, or updates. Its defaults match source installations: `%APPDATA%/greybeard` on Windows, `~/Library/Application Support/greybeard` on macOS, and `$XDG_DATA_HOME/greybeard` (or `~/.local/share/greybeard`) on Linux.
+Greybeard runs from one executable. It includes the runtime, application, SQLite library, skills, and logo. You do not install Node, npm, Git, or a source checkout. Its extracted runtime assets, settings, and memory database live in application data.
 
-## Current evidence
+## Windows x64
 
-On the current Linux x64 machine, the built artifact passed an isolated smoke run after copying outside the repository, with an empty PATH and a fresh home and data directory:
+1. Download `greybeard-win32-x64.exe` and `SHA256SUMS.txt` from the authenticated release.
+2. In PowerShell, display the downloaded executable's checksum and compare it with the matching line in `SHA256SUMS.txt`:
 
-- `--help` launched the embedded application.
-- `setup --yes` created local configuration and SQLite without a tenant connection.
-- `memory list` opened the local SQLite database.
-- `mcp memory` completed protocol initialization.
-- A locally signed update fixture activated on the next launch and retained the prior executable.
-- An invalid pending signature left the installed executable usable.
+   ```powershell
+   Get-FileHash "$env:USERPROFILE\Downloads\greybeard-win32-x64.exe" -Algorithm SHA256
+   ```
 
-The artifact is `dist/executable/greybeard-linux-x64`. This is local developer evidence, not a signed published release or a clean-machine certification. Linux system compatibility, macOS and Windows still require their own clean-machine verification. Branch CI and executable artifact workflows are running; their terminal results and the final commit are recorded in the handoff. No public artifact publication was performed.
+3. Create `%LOCALAPPDATA%\Greybeard\bin`, move the verified executable there, and rename it to `greybeard.exe`. Use a permanent folder, because setup stores this executable path in your client configurations.
+4. Double-click `greybeard.exe` for local graphical setup, or run:
 
-## Build and verify
+   ```powershell
+   & "$env:LOCALAPPDATA\Greybeard\bin\greybeard.exe" setup
+   ```
 
-Use Node 22.23.2 for the build, including installation of native dependencies:
+5. Select your installed AI clients, finish setup, and restart those clients.
+
+The release assets include signing metadata. Check the executable's actual publisher details if Windows presents a security prompt; a checksum verifies the selected bytes, not a publisher signature. A native Windows ARM64 executable is not included.
+
+Windows supports local mentor setup. Tenant connection and automatic executable replacement are not implemented on Windows in this release.
+
+## Apple Silicon Mac
+
+1. Download `greybeard-darwin-arm64.tar.gz` and `SHA256SUMS.txt` from the authenticated release.
+2. In Terminal, display the archive checksum and compare it with the matching line in `SHA256SUMS.txt`:
+
+   ```sh
+   shasum -a 256 "$HOME/Downloads/greybeard-darwin-arm64.tar.gz"
+   ```
+
+3. Expand the archive in Finder. It contains one executable named `greybeard`, with its executable permission preserved.
+4. Create `~/Applications/Greybeard` and move the executable there **before running setup**. Open it from Finder, or launch graphical setup from Terminal:
+
+   ```sh
+   "$HOME/Applications/Greybeard/greybeard" setup --ui
+   ```
+
+5. Select your installed AI clients, finish setup, and restart those clients.
+
+The platform metadata records whether the delivered Mac executable is Developer ID signed and notarized. Signing credentials alone do not establish a completed notarization. If the delivered artifact is explicitly marked ad-hoc and macOS blocks the verified download, Apple's documented route is **System Settings > Privacy & Security > Open Anyway** after the opening attempt. Use the exception only for the Greybeard file you obtained and verified. Do not disable Gatekeeper globally. [Apple's opening instructions](https://support.apple.com/en-gb/102445).
+
+This asset is for Apple Silicon. An Intel Mac executable is not included.
+
+## Terminal installer
+
+The optional installers put the same executable in a stable location and run terminal setup. They require the expected SHA-256 from the authenticated release. The release tag defaults to `v0.1.0`.
+
+For the private download, use an already authenticated GitHub CLI with repository access, or download the asset in your browser and set `GREYBEARD_RELEASE_FILE`. GitHub CLI is optional; the manual installation above requires no package manager. [GitHub CLI release download reference](https://cli.github.com/manual/gh_release_download).
+
+After downloading `install.sh` from the same release, macOS or Linux users can run:
+
+```sh
+GREYBEARD_RELEASE_SHA256='<matching archive hash from the release>' sh install.sh
+```
+
+To use an archive already downloaded in the browser instead:
+
+```sh
+GREYBEARD_RELEASE_FILE="$HOME/Downloads/greybeard-darwin-arm64.tar.gz" GREYBEARD_RELEASE_SHA256='<matching archive hash>' sh install.sh
+```
+
+The shell installer supports Apple Silicon macOS and x64 Linux. The Linux asset is `greybeard-linux-x64.tar.gz`. Both archives contain the single member `greybeard`; the installer verifies the archive hash before extracting or executing it. The default destination is `~/.local/bin/greybeard`.
+
+After downloading `install.ps1` from the same release, Windows users can run:
+
+```powershell
+$env:GREYBEARD_RELEASE_SHA256 = '<matching executable hash from the release>'
+.\install.ps1
+```
+
+To use the browser download instead of GitHub CLI:
+
+```powershell
+$env:GREYBEARD_RELEASE_FILE = "$env:USERPROFILE\Downloads\greybeard-win32-x64.exe"
+$env:GREYBEARD_RELEASE_SHA256 = '<matching executable hash>'
+.\install.ps1
+```
+
+The default Windows destination is `%LOCALAPPDATA%\Greybeard\bin\greybeard.exe`. Both installers accept `GREYBEARD_BIN_DIR` for a different permanent directory and `GREYBEARD_RELEASE_TAG` for a later specific release. They refuse to overwrite an existing installation. Add the destination directory to your PATH if you want to type `greybeard` from any terminal. No script disables operating-system security settings.
+
+## First run and local data
+
+Graphical setup uses a private session link on `127.0.0.1`. Keep that link private and close setup when finished. You can complete mentor-only setup without a Microsoft sign-in, app registration, or tenant permissions. Optional tenant access is separate.
+
+The application creates its data directory at:
+
+- Windows: `%APPDATA%\greybeard`
+- macOS: `~/Library/Application Support/greybeard`
+- Linux: `$XDG_DATA_HOME/greybeard`, or `~/.local/share/greybeard`
+
+The same executable serves local MCP connections and setup. Embedded runtime assets are extracted into an owned, integrity-checked data directory. Settings and SQLite memories stay outside the executable. Use `--app-data <directory>` consistently if you choose a different store.
+
+## Replacing Greybeard
+
+There is **no configured automatic-update feed** for this release. Notify remains the default setting, but selecting Automatic does not install new GitHub releases. `greybeard update` explains that no feed is available unless a trusted publisher feed has been configured independently.
+
+To install a later release:
+
+1. Download and verify its matching executable or archive.
+2. Close Greybeard setup and quit AI clients that are running its MCP process.
+3. Retain the current executable as a separate backup, then place the replacement at the same permanent path.
+4. Keep the application-data directory. Do not replace the memory database with an older copy.
+5. Reopen Greybeard and your AI clients. If you moved the executable to a different path, rerun setup to update the integrations.
+
+The update engine includes signed-metadata validation and staged replacement for supported POSIX paths, but publisher-key distribution and a live release feed are separate work. Windows automatic activation is not implemented. Keeping an old executable does not establish that it can read a newer database schema; consult the later release's migration notes before reverting.
+
+## Build and distribution evidence
+
+Release assets are built for their actual OS and architecture with Node 22.23.2. The workflow runs source checks and exercises the executable outside the checkout. The final release handoff records the source commit, workflow outcomes, and asset hashes. Those checks do not certify every personal machine or organizational policy.
+
+The release includes checksums and per-platform metadata describing signing. macOS ad-hoc signing is distinct from Apple publisher signing and notarization. No feed signing key or publisher identity is embedded as a substitute for real release provisioning.
+
+For development only:
 
 ```sh
 npm ci
@@ -28,55 +126,4 @@ npm run build:executable
 npm run test:executable
 ```
 
-Build separately on each target OS and architecture. The script names the executable using the actual build platform and architecture. Do not rename an x64 artifact to imply arm64 support. The `Executable artifacts` workflow (source changes or manual dispatch) builds candidates on Linux, Windows, and macOS and uploads CI artifacts. It does not publish npm packages or GitHub releases. The macOS build applies a local ad-hoc signature for execution; that is not a Developer ID signature or notarization.
-
-## Installation contract
-
-Both the shell and PowerShell downloaders fetch the same executable that a person can download and double-click. The shell downloader uses HTTPS-only redirects and verifies the publisher-announced SHA-256 before execution. PowerShell likewise checks SHA-256 and explicitly checks every native process exit code.
-
-No executable release is currently configured as available. The downloaders fail with an explanation unless a release tag and an independently authenticated expected hash are supplied. For a future published artifact, terminal usage has this shape:
-
-```sh
-GREYBEARD_RELEASE_TAG='<published-tag>' GREYBEARD_RELEASE_SHA256='<authenticated-platform-hash>' sh install.sh
-```
-
-```powershell
-$env:GREYBEARD_RELEASE_TAG = '<published-tag>'
-$env:GREYBEARD_RELEASE_SHA256 = '<authenticated-platform-hash>'
-.\install.ps1
-```
-
-These are release-operator templates, not working public download instructions. A short public one-line installer must be generated with the actual platform hashes and authenticated distribution URL at release time. A checksum downloaded alongside an unsigned executable does not establish publisher identity by itself. Existing installations are preserved instead of silently overwritten by the initial installer.
-
-## Update trust and modes
-
-Notify is the default. Manual disables scheduled checks. Automatic opts into verified download and staging. A packaged long-running process checks after startup and then daily, using a shared last-check timestamp. An application that is closed does not run a scheduler. The checks never write to MCP stdout.
-
-Until a trusted feed is configured, `greybeard update` explains that delivery is unavailable and leaves the executable unchanged. Operators configure:
-
-- `GREYBEARD_UPDATE_MANIFEST_URL`: an HTTPS manifest URL, with its detached binary signature at the same URL plus `.sig`.
-- `GREYBEARD_UPDATE_PUBLIC_KEY_FILE`: an independently provisioned Ed25519 publisher public key file. The key is not obtained from the manifest or its server.
-
-The signed manifest covers schema, public version, monotonically increasing build sequence, expiry, OS, architecture, executable URL, byte size, and SHA-256. Downloads enforce HTTPS redirects, redirect count, timeout, and size bounds. Wrong signatures, expired metadata, repeated or older accepted sequences, wrong platforms, and corrupted artifacts fail closed. `greybeard update --stage` requests a download explicitly in Notify mode.
-
-Public copy remains version **0.1**. Build sequences distinguish executable revisions without inventing new product versions. The workspace package versions are developer dependency metadata and currently remain 0.1.1. Do not treat the unrelated historical Git tag as an executable build sequence.
-
-## Activation and recovery
-
-On POSIX packaged installations, a staged update activates at the next launch before opening SQLite or an MCP session. It rechecks the publisher signature, expiry, target, monotonic sequence, and artifact hash. Startup and activation share a short ownership lock; live peer processes defer activation. Dead-process session records are cleaned up. A stale activation lock is recovered when its owner is dead, or after a grace period when no owner record was written.
-
-The candidate must pass a startup check. The current executable is copied to `<executable>.previous`, then a same-directory candidate atomically replaces the installed executable. The new process starts with the user's original arguments. An invalid or unusable pending candidate leaves the current application available. Recovery retains the previous executable; an operator can close Greybeard and restore that file. Greybeard never restores or deletes the memory database as a side effect of executable recovery. Database schema downgrade compatibility remains a release requirement.
-
-Windows automatic replacement is not implemented because a running executable requires a separate replacement process and a verified Windows installation ownership/recovery design. Windows may check and stage; it must not claim activation on restart until that separately signed helper is implemented and validated. POSIX logic has passed local Linux fixtures; macOS replacement is not yet verified.
-
-## Release blockers
-
-- Establish protected Ed25519 release signing, key distribution/rotation, and an authenticated manifest feed. No vendor signing key or feed was fabricated.
-- Sign and notarize macOS distributions, and sign Windows executables and their eventual replacement helper with real publisher identities.
-- Validate runtime dependencies, file permissions/ACLs, uninstall behavior, simultaneous launches, and activation/recovery on clean target machines, including each advertised architecture.
-- Verify memory migration compatibility with the retained executable before advertising automatic rollback across schema changes.
-- Generate actual installer URLs, platform hashes, and release metadata only after signed artifacts exist.
-
-Production dependency audit currently reports zero vulnerabilities after compatible lockfile updates. Two moderate findings remain in the development-only Vitest toolchain and require a major-version upgrade decision; this work did not force that upgrade.
-
-Reference: [Node single-executable applications](https://nodejs.org/download/release/latest-v22.x/docs/api/single-executable-applications.html).
+[Node single-executable applications](https://nodejs.org/download/release/latest-v22.x/docs/api/single-executable-applications.html) explains why the native SQLite addon must be materialized before loading. [Release notes](release-notes.md) list the current product limits.
