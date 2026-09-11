@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Reasonable pilot-selection factors, but invents a numerical 1–5% or 10–30-device heuristic without knowing fleet size and excludes categories too broadly. Record as unsupported specificity, not a verified company rule.
 
+## Substantive response review
+
+concern: Useful pilot dimensions, but suggests a 1–5% or 10–30-device cohort and categorical exclusions without knowing fleet size or change type; no remembered benefit.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

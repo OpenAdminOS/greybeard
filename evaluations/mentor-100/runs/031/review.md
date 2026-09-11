@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Correctly returns the replacement 72-hour rule with ID2 and does not repeat the old duration. Demonstrates fresh-conversation correction lifecycle value.
 
+## Substantive response review
+
+pass: The confirmed correction supplies 72 hours and only ID2 is returned; the response does not resurrect the obsolete 48-hour rule or claim current deployment verification.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Confirmed correction prevents repeating obsolete guidance.

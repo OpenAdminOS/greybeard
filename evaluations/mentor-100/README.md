@@ -59,3 +59,7 @@ The initial 100 conversations reported 3,267,487 aggregate input tokens (2,475,2
 For the ten paired prompts, the Greybeard arm reported 327,063 input tokens (255,232 cached) and 3,565 output tokens; the no-memory arm reported 97,016 input tokens (27,008 cached) and 1,828 output tokens. The arms have different tool turns, context, and cache histories. The input-total ratio is not a monetary cost multiplier or the isolated cost of recalled memories.
 
 The most concrete observed contribution is in paired prompts 021, 023, and 031: Greybeard supplies the confirmed pilot duration and helpdesk checkpoint (including the corrected duration), while the baseline must ask the admin to provide those details. A fresh host session can therefore avoid asking again or repeating an obsolete local rule. Broader quality findings remain in the per-case and independent reviews.
+
+## Substantive reviews
+
+Every initial response has a separately saved substantive agent review: [001–050](manual-review-001-050.json) and [051–100](manual-review-051-100.json). Totals: 72 pass, 26 concern, 2 fail. The searchable HTML and per-case review files include these judgments alongside mechanical checks. These are agent editorial judgments, not external human adjudication. [Eight supplementary comparisons](manual-skill-rechecks.json) retain the original outcomes.

@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Accurately paraphrases the full returned pilot/helpdesk rule and cites ID1 while separating it from general advice and actual implementation state.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Makes the specific remembered contribution visible and understandable.

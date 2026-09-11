@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Separates the confirmed process rule from its unknown historical rationale, labeling the suggested motivation as likely. Strong handling of a why-question without inventing an incident.
 
+## Substantive response review
+
+pass: Excellent evidence distinction: retrieves the process requirement while labeling potential rationale as inference and admitting the actual motivation is missing.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Does not infer assignment scope from a name. Names ambiguity, absent connection and missing response evidence, then asks for policy identity and assignment data.
+
+Observed value: none
+
 ## Value to assess
 
 Clear evidence limits prevent false confidence.

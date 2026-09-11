@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Query failed to retrieve the generic preference. The answer then asks broad company-size/industry questions rather than a focused first administration lesson. This is a relevance and onboarding opportunity, not a tool execution failure.
 
+## Substantive response review
+
+pass: Reports no relevant recall, then requests company context. The broad business intake is general rather than tailored to device administration, but no remembered value is overstated.
+
+Observed value: none
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

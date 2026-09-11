@@ -15,6 +15,7 @@ def payload(call):
  return {}
 def main():
  cases=json.loads((OUT/'cases.json').read_text());reviews=[];usage=collections.Counter();baseusage=collections.Counter();paired=[]
+ substantive={r['id']:r for path in OUT.glob('manual-review-*.json') for r in json.loads(path.read_text())}
  for case in cases:
   directory=OUT/'runs'/case['id'];path=directory/'result.json'
   if not path.exists():continue
@@ -40,10 +41,13 @@ def main():
   record=dict(id=case['id'],category=case['category'],prompt=case['prompt'],expected=case['expected'],actualRecallStatuses=[r.get('recallStatus') for r in recalls],returnedMemory=returned,responseWordsIncludingCommentary=words,mechanicalFlags=flags,lexicalCues=hints,valueToAssess=case['valueExpected'],assessment='Needs review' if flags else 'Expected mechanics observed; semantic quality still requires review',humanReviewStatus='Not manually reviewed by a human',reviewMethod='Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.',response=response)
   note=OUT/'editorial-notes.json'
   if note.exists():record['agentEditorialReview']=json.loads(note.read_text()).get(case['id'])
+  if case['id'] in substantive:record['independentEditorialReview']=substantive[case['id']]
   (directory/'review.json').write_text(json.dumps(record,indent=2)+'\n')
   lines=[f"# {case['id']}: {case['category']}", '',case['prompt'],'','## Expected behavior','',case['expected'],'','## Observed evidence','',f"Host exit: {actual['exitCode']}. Recall status: {', '.join(record['actualRecallStatuses']) or 'none'}. Returned memory IDs: {', '.join(str(n['id']) for n in nodes) or 'none'}. Response words including commentary: {words}.",'','## Review','',record['assessment']+'. These are mechanical checks, not a quality score.']
   if flags:lines+=['']+['- '+flag for flag in flags]
   if record.get('agentEditorialReview'):lines+=['','Agent editorial assessment: '+record['agentEditorialReview']]
+  if record.get('independentEditorialReview'):
+   reviewed=record['independentEditorialReview'];lines+=['','## Substantive response review','',reviewed['verdict']+': '+reviewed['rationale'],'','Observed value: '+reviewed['valueAdded']]
   lines+=['','## Value to assess','',case['valueExpected'],'','## Actual response','',response,'']
   (directory/'review.md').write_text('\n'.join(line.rstrip() for line in '\n'.join(lines).splitlines())+'\n');reviews.append(record)
   for u in actual['usage']:usage.update(u)
@@ -57,6 +61,8 @@ def main():
  summary['skillRecheckCount']=len(rechecks)
  summary['skillRechecksWithRecall']=sum(any(c.get('status')=='completed' and c.get('tool')=='recall' for c in r['mcpCalls']) for r in rechecks)
  summary['mechanicalFlagCounts']=dict(collections.Counter(flag for r in reviews for flag in r['mechanicalFlags']))
+ summary['independentEditorialReviewsSaved']=len(substantive)
+ summary['independentEditorialVerdicts']=dict(collections.Counter(r['verdict'] for r in substantive.values()))
  summary['agentEditorialReviewsSaved']=sum(bool(r.get('agentEditorialReview')) for r in reviews)
  summary['pairedUsage']={
   'withGreybeard':dict(sum((collections.Counter(u) for pair in paired for u in pair['withUsage']),collections.Counter())),
@@ -66,7 +72,8 @@ def main():
  cards=[]
  for r in reviews:
   flags='; '.join(r['mechanicalFlags']) or 'Expected mechanics observed'
-  cards.append(f'<details><summary>{r["id"]} · {html.escape(r["category"])} · {html.escape(r["prompt"])}</summary><p><b>Expected:</b> {html.escape(r["expected"])}</p><p><b>Observed:</b> {html.escape(flags)}</p><p><b>Editorial review:</b> {html.escape(r.get("agentEditorialReview") or "Pending agent editorial review; not human adjudicated.")}</p><p><b>Value:</b> {html.escape(r["valueToAssess"])}</p><pre>{html.escape(r["response"])}</pre><a href="runs/{r["id"]}/review.md">Full saved review</a></details>')
+  reviewed=r.get('independentEditorialReview');editorial=(reviewed['verdict']+': '+reviewed['rationale']) if reviewed else r.get('agentEditorialReview') or 'Pending agent editorial review; not human adjudicated.'
+  cards.append(f'<details><summary>{r["id"]} · {html.escape(r["category"])} · {html.escape(r["prompt"])}</summary><p><b>Expected:</b> {html.escape(r["expected"])}</p><p><b>Observed:</b> {html.escape(flags)}</p><p><b>Editorial review:</b> {html.escape(editorial)}</p><p><b>Value:</b> {html.escape(r["valueToAssess"])}</p><pre>{html.escape(r["response"])}</pre><a href="runs/{r["id"]}/review.md">Full saved review</a></details>')
  document='''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Greybeard · 100 prompt review</title><style>body{max-width:1100px;margin:3rem auto;padding:0 1rem;background:#f7f5ed;color:#26352e;font:17px/1.6 system-ui}h1{font:700 42px Georgia}details{background:white;border:1px solid #bdc8bc;border-radius:8px;margin:12px 0;padding:18px}summary{cursor:pointer;font-weight:650}pre{white-space:pre-wrap;font:inherit}a{color:#335f49}input{padding:12px;font:inherit;width:95%;margin:16px 0}small{color:#566455}</style><h1>Greybeard: would an admin miss it?</h1>'''
  for pair in paired:
   cards.append(f'<details><summary>Paired baseline {pair["id"]} · {html.escape(pair["prompt"])}</summary><p>{html.escape(pair["interpretation"])}</p><h3>With Greybeard</h3><pre>{html.escape(pair["withGreybeard"])}</pre><h3>Without Greybeard</h3><pre>{html.escape(pair["withoutGreybeard"])}</pre><p>Usage with: {html.escape(json.dumps(pair["withUsage"]))}</p><p>Usage without: {html.escape(json.dumps(pair["withoutUsage"]))}</p></details>')

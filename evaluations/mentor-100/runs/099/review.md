@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Explains the continuity benefit with an actual returned rule and memory ID, conditions applicability on the current plan, and admits synthetic provenance. It demonstrates remembered context, not unique host incapability or live readiness.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Makes the specific remembered contribution visible and understandable.

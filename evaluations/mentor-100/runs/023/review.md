@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: The local checkpoint visibly shapes rollout gates. Good attribution and evidence limits; rollback assignment behavior remains a proposal requiring policy-specific verification.
 
+## Substantive response review
+
+concern: The brief is concretely shaped by the stored checkpoint, but turns review into approval and prescribes assignment removal/reversion without known policy behavior.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (206).
 
+## Substantive response review
+
+pass: Faithfully interprets the supplied dated lab sample: stale noncompliant records cannot establish current fleet failure, report-only application controls cannot prove access blocking, and a paged count is not a fleet total. Does not claim it performed reads.
+
+Observed value: none
+
 ## Value to assess
 
 Evidence freshness and exact control names prevent misleading operational conclusions.

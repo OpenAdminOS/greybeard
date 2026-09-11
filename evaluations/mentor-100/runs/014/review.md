@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Clearly separates a working preference from substantive planning knowledge and identifies the host as the author. Strong attribution behavior, though the repeated recall preamble is unnecessary.
 
+## Substantive response review
+
+pass: Clear attribution: Greybeard supplies a working preference while the host owns any specific recommendation; no phantom independent assessment.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

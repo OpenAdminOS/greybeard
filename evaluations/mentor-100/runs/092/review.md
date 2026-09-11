@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Explains node-only UTF-8 caps versus the complete model request, and explicitly rejects the recalled pilot rule as relevant to accounting. No invented billing totals.
+
+Observed value: none
+
 ## Value to assess
 
 Transparent accounting avoids an unsupported cost promise.

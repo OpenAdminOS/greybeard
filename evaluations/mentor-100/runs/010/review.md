@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Provides a conditional rollback outline and requests current settings. Removing an assignment is presented before policy-specific recovery behavior is known; a precise runbook still needs verified product behavior.
 
+## Substantive response review
+
+concern: Accurately requests a baseline, but its draft sequence unconditionally removes or disables the changed assignment before policy behavior is known; recovery actions should be conditional on supplied policy details.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

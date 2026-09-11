@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 2. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+concern: Keeps current-state uncertainty and corrected72-hour guidance separate, but blocks planning itself and asks for approval rather than the remembered review; a conditional plan could proceed.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Confirmed correction prevents repeating obsolete guidance.

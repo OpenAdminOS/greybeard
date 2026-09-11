@@ -27,5 +27,27 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll recall the requested Windows compliance context with the specified 1,800-token budget, then distinguish any cap from billing.\n\nThe requested `tokenBudget: 1800` was capped at **800**. Despite its name, `tokenBudget` is a deprecated alias for a **UTF-8 byte budget**, not model-token usage. The recall returned 229 serialized bytes, within that cap.\n\nThis is **not a bill**, invoice, charge, or measured model-token consumption.\n\nGreybeard memory **ID 1** contributed confirmed guidance: keep Windows compliance pilots running for 48 hours and require helpdesk review before expansion. This came from a synthetic evaluation fixture, not a live tenant read.\n\nNo live tenant connection or tenant compliance evidence was available, so I cannot confirm your actual Windows compliance state.",
-  "agentEditorialReview": null
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "094",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "Actual tool call accepts tokenBudget1800 without validation failure and returns byteBudget800 with229bytes. Host accurately describes the deprecated alias and rejects billing interpretation; the pre-call token label is corrected in the final explanation.",
+    "issueTags": [],
+    "shortQuote": "Despite its name, `tokenBudget` is a deprecated alias for a **UTF-8 byte budget**",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Windows compliance: explain whether requested recall budget was capped and whether it represents a bill",
+          "tokenBudget": 1800
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
 }

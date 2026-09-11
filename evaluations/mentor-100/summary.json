@@ -68,6 +68,12 @@
     "Response including commentary exceeded the requested 180 words (194).": 1,
     "Response including commentary exceeded the requested 180 words (215).": 1
   },
+  "independentEditorialReviewsSaved": 100,
+  "independentEditorialVerdicts": {
+    "concern": 26,
+    "pass": 72,
+    "fail": 2
+  },
   "agentEditorialReviewsSaved": 31,
   "pairedUsage": {
     "withGreybeard": {

@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Accurately reports no relevant confirmed experience and offers general assistance without claiming knowledge of the organization or live verification.
+
+Observed value: none
+
 ## Value to assess
 
 Restraint avoids distracting, unjustified personalization.

@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 2. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Uses the corrected duration while recognizing that a remembered rollout convention does not identify an actual policy version; handles the ambiguous question without inventing policy history.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Confirmed correction prevents repeating obsolete guidance.

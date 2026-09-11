@@ -29,5 +29,17 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance rollout context, then give a concise plan with explicit evidence limits.\n\nGreybeard recalled one confirmed preference: proactively include relevant Windows compliance recommendations (memory ID 1). It contains no tenant-specific experience, configuration, risk tolerance, or prior rollout results, so tailoring is limited.\n\nRecommended rollout:\n\n1. Establish scope and success criteria: supported Windows versions, ownership types, required security posture, acceptable noncompliance rate, help-desk capacity, and rollback triggers.\n2. Inventory dependencies: device enrollment, identity, security tooling, update management, remote workers, shared devices, and business-critical exceptions.\n3. Design a small policy baseline: encryption, firewall, antimalware, secure boot/TPM where appropriate, password or authentication requirements, and minimum OS version.\n4. Deploy in rings: IT test devices, volunteer pilot, representative business groups, then staged production waves. Include different hardware, locations, and working patterns.\n5. Begin in reporting-only or non-blocking mode. Measure false positives, evaluation delays, user impact, and remediation success before enforcing access consequences.\n6. Publish user communications, self-remediation instructions, exception ownership, expiry dates, and support escalation paths.\n7. Enforce gradually, monitor daily during each wave, and pause automatically when agreed thresholds are exceeded.\n8. Review exceptions and policy outcomes after rollout, then tighten controls incrementally.\n\nUnavailable evidence: I have no live tenant connection or supplied snapshot, and performed no tenant or Microsoft Graph reads.",
-  "agentEditorialReview": "Correctly distinguishes generic preference from tenant experience. The instruction to begin in reporting-only/non-blocking mode is ambiguous about which component supports that behavior; this needs a precise policy-type distinction before use. The memory affects tone, not a specific rollout decision."
+  "agentEditorialReview": "Correctly distinguishes generic preference from tenant experience. The instruction to begin in reporting-only/non-blocking mode is ambiguous about which component supports that behavior; this needs a precise policy-type distinction before use. The memory affects tone, not a specific rollout decision.",
+  "independentEditorialReview": {
+    "id": "011",
+    "verdict": "concern",
+    "valueAdded": "preference",
+    "issueTags": [
+      "unsupported-operational-mechanism"
+    ],
+    "rationale": "Accurately limits attribution to the generic preference, but proposes reporting-only/non-blocking operation and automatic pause without a defined available mechanism; concrete operational advice needs qualification.",
+    "evidence": "Begin in reporting-only or non-blocking mode.",
+    "source": "evaluations/mentor-100/runs/011/result.json",
+    "sourceSha256": "d5eb4de565c41b18e209a922d17d4d278a3611298a7915b9e06240f131a070a0"
+  }
 }

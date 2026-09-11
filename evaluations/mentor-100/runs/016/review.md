@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Recall query did not retrieve the generic preference. The answer correctly does not infer a deployment group; however, missing a semantically related preference shows the limits of lexical retrieval, not evidence that the profile contains no preferences.
 
+## Substantive response review
+
+concern: A query about the stored preference misses the existing preference entirely. The answer correctly cannot identify a deployment group, but turns an empty search into a claim about what all stored preferences identify.
+
+Observed value: none
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

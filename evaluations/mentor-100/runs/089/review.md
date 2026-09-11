@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (194).
 
+## Substantive response review
+
+pass: Accurately avoids assigning aggregate noncompliance states to the personal subset, distinguishes macOS policy existence from applicability, and attributes the dated sample to supplied observations.
+
+Observed value: none
+
 ## Value to assess
 
 Evidence freshness and exact control names prevent misleading operational conclusions.

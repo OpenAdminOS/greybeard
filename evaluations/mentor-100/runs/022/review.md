@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Concise, directly answers the checkpoint question with the recalled rule and provenance. This is a strong example of a detail the baseline cannot know.
 
+## Substantive response review
+
+pass: Directly recalls the exact time and review checkpoint, then separates the stored convention from whether tomorrow's deployment is ready.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

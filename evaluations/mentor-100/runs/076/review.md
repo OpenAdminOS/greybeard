@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: A useful helpdesk brief converts recalled timing and review requirements into a rollout gate while marking proposed impacts and missing tenant data. Attribution is specific rather than promotional.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Operational context strengthens a plan without widening authorization.

@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (213).
 
+## Substantive response review
+
+concern: Correctly treats stale check-ins as a confounder and seeks active devices and pilot membership. However, prescribes resolving overlapping assignments and keeping Conditional Access report-only without first establishing assignment intent or which access policy is safe to alter. No actual write occurred.
+
+Observed value: none
+
 ## Value to assess
 
 Evidence freshness and exact control names prevent misleading operational conclusions.

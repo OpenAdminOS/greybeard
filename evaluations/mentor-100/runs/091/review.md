@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Reports the actual 229-byte result and distinguishes legacy estimatedTokens from billed model tokens. Correctly says the recalled rollout rule adds no billing evidence.
+
+Observed value: none
+
 ## Value to assess
 
 Transparent accounting avoids an unsupported cost promise.

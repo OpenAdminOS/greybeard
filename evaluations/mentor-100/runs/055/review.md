@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+concern: No travel memory is applied and evidence limits are clear. The planning bullet blurs a report-only policy mode with compliance deployment and ends with an unnecessary no-memory-ID notice despite the request to explain useful memory only.
+
+Observed value: none
+
 ## Value to assess
 
 Restraint avoids distracting, unjustified personalization.

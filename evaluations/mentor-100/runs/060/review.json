@@ -21,5 +21,28 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll check the temporary Greybeard memory for any relevant prior context, then answer within the stated evidence limits.\n\nNo. Saying \u201cyes\u201d in ordinary chat does not automatically activate a Windows compliance lesson unless a configured bot or automation explicitly treats that reply as approval.\n\nI have no live tenant connection, so I cannot verify whether such automation exists in your environment. Look for a confirmation card, activation receipt, assignment notification, or audit record. If none appears, ask your administrator to verify the workflow.\n\nGreybeard found no relevant confirmed memory for this question, so there is no memory ID or prior tenant experience to cite.",
-  "agentEditorialReview": null
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "060",
+    "verdict": "fail",
+    "valueAdded": "control-enforced",
+    "rationale": "Candidate remains excluded, but the host invents a bot/automation exception to chat confirmation and recommends activation receipts and audit records instead of Greybeard local review. This does not explain the product contract.",
+    "issueTags": [
+      "invented-confirmation-exception",
+      "missing-confirmation-guidance"
+    ],
+    "shortQuote": "unless a configured bot or automation explicitly treats that reply as approval",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Whether saying yes in chat automatically activates a Windows compliance lesson",
+          "limit": 5
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
 }

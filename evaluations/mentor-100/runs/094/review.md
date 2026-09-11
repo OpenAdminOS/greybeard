@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Actual tool call accepts tokenBudget1800 without validation failure and returns byteBudget800 with229bytes. Host accurately describes the deprecated alias and rejects billing interpretation; the pre-call token label is corrected in the final explanation.
+
+Observed value: none
+
 ## Value to assess
 
 Transparent accounting avoids an unsupported cost promise.

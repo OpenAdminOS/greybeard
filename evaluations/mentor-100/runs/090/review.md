@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (215).
 
+## Substantive response review
+
+pass: Prioritizes useful read-only evidence: complete paging, current activity, assignments, pilot membership and actual access dependencies. Endpoint suggestions are expressly unverified and no reads are claimed.
+
+Observed value: none
+
 ## Value to assess
 
 Evidence freshness and exact control names prevent misleading operational conclusions.

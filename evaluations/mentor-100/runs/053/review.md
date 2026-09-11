@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - An unrelated fixture was retrieved; review whether the answer correctly rejects it.
 
+## Substantive response review
+
+concern: Recall of travel preference is legitimate because the prompt explicitly mentions it. The host rejects it as compliance evidence, but then stretches the packing preference into travel-control suggestions, introducing the irrelevant personalization the fixture was designed to avoid.
+
+Observed value: none
+
 ## Value to assess
 
 Restraint avoids distracting, unjustified personalization.

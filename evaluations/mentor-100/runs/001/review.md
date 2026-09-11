@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: The response accurately reports no recalled lesson and no live evidence. It nevertheless prematurely proposes All devices plus exclusions before target types and exceptions are known. Generic planning value is present, but Greybeard adds no remembered value here. The lengthy no-match/source preamble adds friction.
 
+## Substantive response review
+
+concern: Correctly discloses empty memory and missing live evidence, but proposes All devices targeting before establishing the setting, tenant or scope; the generic plan provides no remembered advantage.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

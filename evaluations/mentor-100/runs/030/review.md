@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Accurate concise recall and source attribution. Calling the specific fixture rule general guidance is imprecise; it is a local confirmed convention within this synthetic profile.
 
+## Substantive response review
+
+pass: Concise faithful restatement with memory ID, confirmed status and fixture source; clearly limits it to advice rather than verified rollout results.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

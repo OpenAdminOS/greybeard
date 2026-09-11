@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Empty recall correctly excludes the unrelated travel preference. The general staged plan names missing evidence and does not invent remembered experience; report-only wording is qualified by availability.
+
+Observed value: none
+
 ## Value to assess
 
 Restraint avoids distracting, unjustified personalization.

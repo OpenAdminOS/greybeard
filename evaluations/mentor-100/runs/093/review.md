@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Expected relevant fixture was not retrieved; inspect query relevance.
 
+## Substantive response review
+
+pass: Correctly explains that local retrieval can still add model input cost, latency and context use. No-match is appropriate for this accounting query despite a compliance fixture being seeded; does not invent billing from an empty recall.
+
+Observed value: none
+
 ## Value to assess
 
 Transparent accounting avoids an unsupported cost promise.

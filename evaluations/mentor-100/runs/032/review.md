@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (189).
 
+## Substantive response review
+
+concern: Correctly uses the confirmed 72-hour correction, but adds explicit helpdesk approval as though required by the stored review convention.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Confirmed correction prevents repeating obsolete guidance.

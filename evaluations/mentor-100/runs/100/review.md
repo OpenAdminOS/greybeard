@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Provides useful planning advice and one specific attribution carrying the48-hour/helpdeskcheckpoint. Report-only wording is connected to Conditional Access rather than explicitly asserted as a compliance-policy mode; limits and fixture provenance are clear.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Makes the specific remembered contribution visible and understandable.

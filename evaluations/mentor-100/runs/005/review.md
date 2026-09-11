@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Offers a reasonable first-change checklist and no fabricated tenant experience. The suggestion to save confirmed lessons omits the explicit candidate-then-local-confirmation distinction, which should remain clear in onboarding.
 
+## Substantive response review
+
+pass: Useful first-change basics and accurate empty-memory disclosure; no established experience or verified infrastructure is invented.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

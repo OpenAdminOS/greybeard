@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Applies the actual 48-hour/helpdesk rule and cites ID1, with no claimed tenant read. This is concrete memory value. The additional emergency-account/device exclusion suggestions still need policy-specific justification.
 
+## Substantive response review
+
+concern: Applies the specific 48-hour pilot and helpdesk checkpoint, but strengthens remembered review into explicit approval without identifying that addition as a proposal.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

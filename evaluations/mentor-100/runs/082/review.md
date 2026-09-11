@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Correctly limits the 403 conclusion to denied authorization, avoids claiming one exact missing permission or absent resource, and requests concrete sanitized evidence for diagnosis.
+
+Observed value: none
+
 ## Value to assess
 
 Clear evidence limits prevent false confidence.

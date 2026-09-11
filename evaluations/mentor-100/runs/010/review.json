@@ -23,5 +23,17 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll first check Greybeard memory for any confirmed context relevant to starting this rollback plan.\n\nGreybeard found no relevant confirmed memory, so there is no memory ID to apply. I also have no live tenant connection or supplied policy snapshot; current settings, dependencies, and recoverability remain unverified.\n\nStart by capturing:\n\n- Policy name, platform, scope, owner, and business purpose\n- Current settings and proposed changes\n- Assignments, exclusions, filters, and dependency policies\n- Known-good baseline, exported configuration, and timestamp\n- Success criteria and rollback triggers\n- Pilot group, monitoring window, and responsible approver\n\nDraft rollback sequence:\n\n1. Pause further rollout.\n2. Preserve logs and evidence.\n3. Remove or disable the changed assignment.\n4. Restore the known-good settings and original targeting.\n5. Force or await client synchronization as appropriate.\n6. Validate recovery against predefined tests.\n7. Monitor for recurrence and document the outcome.\n\nDo not deploy until restoration is proven in a non-production or pilot scope. Please provide a redacted export or screenshots of the policy settings, assignments, and intended change. I can then turn this into a precise rollback runbook, including validation checks and stop conditions.",
-  "agentEditorialReview": "Provides a conditional rollback outline and requests current settings. Removing an assignment is presented before policy-specific recovery behavior is known; a precise runbook still needs verified product behavior."
+  "agentEditorialReview": "Provides a conditional rollback outline and requests current settings. Removing an assignment is presented before policy-specific recovery behavior is known; a precise runbook still needs verified product behavior.",
+  "independentEditorialReview": {
+    "id": "010",
+    "verdict": "concern",
+    "valueAdded": "none",
+    "issueTags": [
+      "premature-recovery-action"
+    ],
+    "rationale": "Accurately requests a baseline, but its draft sequence unconditionally removes or disables the changed assignment before policy behavior is known; recovery actions should be conditional on supplied policy details.",
+    "evidence": "Remove or disable the changed assignment.",
+    "source": "evaluations/mentor-100/runs/010/result.json",
+    "sourceSha256": "3648e55c22e85f1a1ccb1fe1eca8d202a01f7e4792a2a3bed55e228dd7fcff79"
+  }
 }

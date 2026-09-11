@@ -14,6 +14,12 @@ Host exit: 0. Recall status: recalled. Returned memory IDs: 1. Response words in
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Identifies exactly which recommendation originated in returned ID1 and separates Codex presentation from stored Greybeard context; does not claim independent assessment or current tenant evidence.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Makes the specific remembered contribution visible and understandable.

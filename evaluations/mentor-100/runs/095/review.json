@@ -21,5 +21,25 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll perform the requested zero-budget Greybeard recall, then explain exactly what the empty response establishes.\n\nNo. The empty response means the zero budget excluded all recalled memory content.\n\nThe recall reported:\n\n- `recallStatus: \"budget-excluded\"`\n- `serializedBytes: 0`\n- `budgetUnit: \"utf8-bytes\"`\n- `estimatedTokens: 0`\n\nSo `tokenBudget: 0` is a deprecated alias for a **0-byte recalled-node budget**, not proof that Codex used zero model tokens overall. Tokens were still required to process the prompt and produce this answer.\n\nNo Greybeard memory contributed; no memory ID was returned. There is also no live tenant evidence available.",
-  "agentEditorialReview": null
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "095",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "rationale": "Actual zero-budget request returns budget-excluded rather than no-match. Host explains the difference and does not mistake empty returned nodes for zero conversation usage.",
+    "issueTags": [],
+    "shortQuote": "not proof that Codex used zero model tokens overall.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Windows compliance",
+          "tokenBudget": 0
+        },
+        "status": "budget-excluded",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
 }

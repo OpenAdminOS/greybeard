@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Useful requirements gathering with explicit evidence limits. The execution-authorization question is unnecessary for a planning-only isolated evaluation. Strong global Lokka policy affects this response, so it is not a clean measure of Greybeard alone.
 
+## Substantive response review
+
+pass: Asks for concrete settings, scope and impact evidence and identifies empty recall; useful intake checklist, with no personalization claimed.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

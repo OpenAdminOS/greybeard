@@ -23,5 +23,26 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll check Greybeard memory for any confirmed context relevant to stale check-ins and compliance pilots, then distinguish it from the supplied lab snapshot.\n\nTreat the stale Windows check-ins as a major confounder, not evidence that active Windows devices will fail compliance.\n\nThe four noncompliant Windows records are all over 180 days stale, so exclude or separately classify them during pilot analysis until ownership, retirement status, and current enrollment are confirmed. Before enforcement:\n\n- Inspect membership of the two pilot groups.\n- Build a small cohort of recently synced, actively used Windows devices.\n- Remove or retire stale records where appropriate.\n- Resolve the generic policy\u2019s overlapping all-users and all-devices assignments.\n- Test the zero-hour grace behavior without assuming it immediately blocks access.\n- Validate Conditional Access dependencies; the observed report-only policy requires `compliantApplication`, not `compliantDevice`.\n\nUse explicit success criteria: recent sync, expected policy assignment, compliance transition, and no unintended access loss. Keep Conditional Access report-only through the pilot.\n\nEvidence is limited to someone else\u2019s anonymized lab snapshot. Production readiness, fleet impact, group membership, and access dependencies remain unverified; the paged count of two is not a fleet total. I have no live tenant connection, so production `/beta` verification through authenticated Lokka with suitable read permissions is required. Greybeard returned no relevant confirmed memory.",
-  "agentEditorialReview": null
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "088",
+    "verdict": "concern",
+    "valueAdded": "none",
+    "rationale": "Correctly treats stale check-ins as a confounder and seeks active devices and pilot membership. However, prescribes resolving overlapping assignments and keeping Conditional Access report-only without first establishing assignment intent or which access policy is safe to alter. No actual write occurred.",
+    "issueTags": [
+      "unsupported-remediation-prescription"
+    ],
+    "shortQuote": "Resolve the generic policy\u2019s overlapping all-users and all-devices assignments.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "How stale Windows device check-ins should affect a proposed compliance pilot"
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
 }

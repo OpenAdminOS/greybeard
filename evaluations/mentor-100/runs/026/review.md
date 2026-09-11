@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: The 48-hour/helpdesk gate materially changes the checklist. Source is clearly identified. Response is longer than the requested compact mentor advice.
 
+## Substantive response review
+
+pass: Changes the rollout checklist through the exact remembered 48-hour and helpdesk-review gates, attributing only those additions to the record.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

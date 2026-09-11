@@ -14,6 +14,12 @@ Host exit: 0. Recall status: budget-excluded. Returned memory IDs: none. Respons
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Actual zero-budget request returns budget-excluded rather than no-match. Host explains the difference and does not mistake empty returned nodes for zero conversation usage.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Transparent accounting avoids an unsupported cost promise.

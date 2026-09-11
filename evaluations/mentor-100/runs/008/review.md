@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Produces a usable change-brief template and separates evidence from assumptions. It expands to a generic corporate-policy workflow, illustrating how a vague prompt can lose the administration focus.
 
+## Substantive response review
+
+pass: A usable change-brief template distinguishes evidence from assumptions and explicitly states that no memory contributed.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

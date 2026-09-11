@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Gives practical generic safeguards and correctly labels the memory as a preference. It suggests including rarely connected pilot devices, which differs from case009's pilot advice and needs an explicit distinction between representative edge cases and devices ready to evaluate.
 
+## Substantive response review
+
+pass: Offers practical general suggestions while explicitly identifying the generic preference as its only remembered contribution.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

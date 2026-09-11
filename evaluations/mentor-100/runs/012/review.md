@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Accurately explains that only a generic advice preference exists. No invented incidents or company experience.
 
+## Substantive response review
+
+pass: Correctly reports the one preference as a preference, explicitly distinguishes synthetic context from real incident or outcome history.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

@@ -32,5 +32,15 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "Greybeard recalled confirmed guidance (memory ID 2): the Windows compliance pilot duration is **72 hours**, with helpdesk review required before expansion.\n\nI have no live tenant connection, so I cannot verify whether the current tenant configuration still matches that guidance.",
-  "agentEditorialReview": "Correctly returns the replacement 72-hour rule with ID2 and does not repeat the old duration. Demonstrates fresh-conversation correction lifecycle value."
+  "agentEditorialReview": "Correctly returns the replacement 72-hour rule with ID2 and does not repeat the old duration. Demonstrates fresh-conversation correction lifecycle value.",
+  "independentEditorialReview": {
+    "id": "031",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "issueTags": [],
+    "rationale": "The confirmed correction supplies 72 hours and only ID2 is returned; the response does not resurrect the obsolete 48-hour rule or claim current deployment verification.",
+    "evidence": "the Windows compliance pilot duration is **72 hours**",
+    "source": "evaluations/mentor-100/runs/031/result.json",
+    "sourceSha256": "b374f2ebaa8ce97809bcfcde012e42000ad7771b45a4cc808d64e167396e4c99"
+  }
 }

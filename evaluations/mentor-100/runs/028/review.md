@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Clearly describes the two remembered details that would be lost and lists absent rationale/owner/outcome context. Calling them guardrails should not imply Greybeard enforces them.
 
+## Substantive response review
+
+concern: Accurately names the stored decision and missing rationale, but says forgetting loses guardrails; Greybeard supplies reminders, and deleting its memory does not itself remove organizational controls.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

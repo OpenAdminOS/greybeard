@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+pass: Does not transfer another profile's lesson blindly; suggests checking applicability and labels any transfer as a hypothesis rather than a confirmed finding.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Avoids applying another environment's operating assumptions.

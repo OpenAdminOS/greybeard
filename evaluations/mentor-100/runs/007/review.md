@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Correctly refuses to invent a previous rollout. Clear missing-history answer; no substantive personalized value in this empty profile.
 
+## Substantive response review
+
+pass: Does not manufacture previous rollout details after empty recall; asks for notes to reconstruct the missing history.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

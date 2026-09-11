@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Correctly distinguishes generic preference from tenant experience. The instruction to begin in reporting-only/non-blocking mode is ambiguous about which component supports that behavior; this needs a precise policy-type distinction before use. The memory affects tone, not a specific rollout decision.
 
+## Substantive response review
+
+concern: Accurately limits attribution to the generic preference, but proposes reporting-only/non-blocking operation and automatic pause without a defined available mechanism; concrete operational advice needs qualification.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

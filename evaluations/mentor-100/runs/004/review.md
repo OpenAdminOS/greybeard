@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Properly limits the review to a design assessment. The categorical phrase unsafe by default and prescribed exclusions are broader than the available evidence justifies. Useful caution should be framed around concrete unknowns rather than blanket claims.
 
+## Substantive response review
+
+concern: Separates offline review from tenant verification, but declares all-device deployment unsafe unless broad device-class exclusions exist; missing context does not justify those categorical rules.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Accurately reports the known advice preference and avoids environment claims. Suitable compact explanation of the current memory contribution.
 
+## Substantive response review
+
+pass: Directly answers how the admin wants help, using the confirmed preference and naming its source without treating it as device evidence.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

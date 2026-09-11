@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Explains how the preference shapes the draft review and asks for the missing draft. Useful structure, but no unique company lesson is involved.
 
+## Substantive response review
+
+pass: Asks for the missing draft and explains a plausible change in assistance style from the preference; does not manufacture company-specific settings.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

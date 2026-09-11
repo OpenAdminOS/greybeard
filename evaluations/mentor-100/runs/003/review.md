@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Correctly says the rollout conventions are unknown and requests a runbook. This is an appropriate cold start, but the introductory recall narration can be shortened.
 
+## Substantive response review
+
+pass: Directly admits no known rollout convention and offers to derive one from a supplied runbook; avoids fabricated organizational history.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.

@@ -39,5 +39,26 @@
   "humanReviewStatus": "Not manually reviewed by a human",
   "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
   "response": "I\u2019ll recall any relevant prior context first, then provide a read-only rollback outline with explicit evidence limits.\n\nGreybeard memory ID 1 contributes one applicable safeguard: retain a pilot for 48 hours and require helpdesk review before wider rollout.\n\nRead-only rollback outline:\n\n1. Define rollback triggers: enrollment failures, widespread noncompliance, access loss, or helpdesk volume exceeding an agreed threshold.\n2. Inventory the intended scope: Windows compliance policies, assignments, filters, Conditional Access dependencies, notifications, and grace periods.\n3. Capture a pre-change baseline: exported policy JSON, assignment lists, screenshots, timestamps, and known compliance/device counts.\n4. Document the restoration target for each proposed change: previous setting, assignment, exclusion, and dependency.\n5. Protect emergency access accounts and specify validation owners.\n6. Stage rollback order:\n   - Pause further rollout.\n   - Restore prior assignments/exclusions.\n   - Restore prior compliance settings.\n   - Re-evaluate Conditional Access dependencies.\n   - Validate pilot devices and authentication.\n7. Observe the pilot for 48 hours, then obtain helpdesk approval before expansion.\n8. Record success criteria, owners, communication steps, and escalation contacts.\n\nNo tenant objects were changed. I have no live tenant connection, so current policies, assignments, response shapes, paging, and errors were not verified through Lokka. A tenant-specific plan requires read-only Lokka access or administrator-supplied exports.",
-  "agentEditorialReview": null
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "075",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "rationale": "Provides concrete rollback triggers, recorded restoration targets and validation owners without executing changes. Uses ID1 for the later observation and expansion gate, not as proof restoration occurred.",
+    "issueTags": [],
+    "shortQuote": "Document the restoration target for each proposed change",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Windows compliance rollback outline, read-only, leave tenant objects unchanged"
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
 }

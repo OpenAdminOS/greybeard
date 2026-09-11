@@ -16,6 +16,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 - Response including commentary exceeded the requested 180 words (201).
 
+## Substantive response review
+
+pass: Correctly distinguishes the observed report-only application control from compliant-device enforcement, and identifies sign-in results plus policy scope as missing evidence. Explicitly attributes observations to someone else.
+
+Observed value: none
+
 ## Value to assess
 
 Evidence freshness and exact control names prevent misleading operational conclusions.

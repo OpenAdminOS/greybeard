@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Correctly rejects attribution to a specific incident and cites the actual preference ID. This directly answers the user's provenance concern.
 
+## Substantive response review
+
+pass: Rejects the suggestion that advice came from a past incident and cites exactly the generic record retrieved.
+
+Observed value: preference
+
 ## Value to assess
 
 Style preference can shape tone; cannot supply a rollout lesson.

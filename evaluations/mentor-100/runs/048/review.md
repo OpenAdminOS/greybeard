@@ -14,6 +14,12 @@ Host exit: 0. Recall status: no-match. Returned memory IDs: none. Response words
 
 Expected mechanics observed; semantic quality still requires review. These are mechanical checks, not a quality score.
 
+## Substantive response review
+
+concern: Isolation succeeds, but the answer asserts a local remembered pilot duration must be verified through Graph rather than reviewed in its owning memory profile; this misdirects onboarding.
+
+Observed value: control-enforced
+
 ## Value to assess
 
 Avoids applying another environment's operating assumptions.

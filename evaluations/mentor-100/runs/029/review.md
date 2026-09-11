@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: One useful planning step is shaped by the remembered timing and checkpoint. Clear difference between local preference and live verification.
 
+## Substantive response review
+
+pass: Provides a bounded planning step incorporating the exact remembered checkpoints and explicitly disclaims real tenant evidence.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

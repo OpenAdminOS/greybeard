@@ -18,6 +18,12 @@ Needs review. These are mechanical checks, not a quality score.
 
 Agent editorial assessment: Resists deadline pressure by retaining the confirmed pilot rule. Clearly labels fixture context and unverified tenant state. More concise wording would improve mentor usability.
 
+## Substantive response review
+
+concern: Useful reminder under time pressure with explicit synthetic provenance; nonetheless approval is stricter than the stored review requirement and is not labeled as an added recommendation.
+
+Observed value: specific-context
+
 ## Value to assess
 
 Concrete remembered checkpoint changes rollout sequencing.

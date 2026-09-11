@@ -16,6 +16,12 @@ Expected mechanics observed; semantic quality still requires review. These are m
 
 Agent editorial assessment: Concise and useful broad-change checklist; no remembered value was available. It should tailor group and policy terminology once a specific product is known.
 
+## Substantive response review
+
+pass: Provides an actionable generic checklist with explicit no-memory/no-live-evidence limits; the eleven bullets are somewhat longer than requested but do not misattribute value.
+
+Observed value: none
+
 ## Value to assess
 
 Planning structure only; no personal experience available.
