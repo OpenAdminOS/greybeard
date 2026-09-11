@@ -14,8 +14,15 @@ export async function withClientConfigLock<T>(path: string, operation: () => Pro
   while (!handle) {
     try { handle = await open(lockPath, "wx", 0o600); }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      if (Date.now() >= deadline) throw new Error(`Client configuration is busy: ${path}. If a previous setup crashed, close Greybeard processes before removing ${lockPath}.`);
+      const code = (error as NodeJS.ErrnoException).code;
+      // Windows can report access denied while another holder's unlinked lock
+      // is still pending deletion. Retry exclusive creation, never bypass it.
+      const pendingDeletion = process.platform === "win32" && (code === "EPERM" || code === "EACCES");
+      if (code !== "EEXIST" && !pendingDeletion) throw error;
+      if (Date.now() >= deadline) {
+        if (pendingDeletion) throw error; // Preserve permanent permission failures.
+        throw new Error(`Client configuration is busy: ${path}. If a previous setup crashed, close Greybeard processes before removing ${lockPath}.`);
+      }
       await delay(10 + Math.floor(Math.random() * 20));
     }
   }
