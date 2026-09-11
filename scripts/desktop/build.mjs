@@ -29,7 +29,12 @@ try {
   if (release && process.platform === 'win32') {
     for (const key of ['AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET']) if (!process.env[key]) throw new Error(`Missing ${key}. Signed releases have no unsigned fallback.`);
   }
-  if (!release) process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
+  if (!release) {
+    process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
+    // PR candidates still need the explicit ad-hoc Mac signature for launch.
+    // This enables identity '-' only; release secrets are absent from PR jobs.
+    process.env.CSC_FOR_PULL_REQUEST = 'true';
+  }
   // Artifacts are uploaded only after all platform jobs verify. Never let a build publish.
   await build({ config: join(root, 'desktop/electron-builder.cjs'), publish: 'never' });
   await verifyArtifacts({ root, release, finalizeMac: release });

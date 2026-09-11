@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
-import { artifactNames, verifyArtifacts } from './verify.mjs';
+import { artifactNames, verifyArtifacts, signatureDiagnostics } from './verify.mjs';
 const require = createRequire(import.meta.url);
 
 test('companion bundles the service at the paths used by installed launchers', () => {
@@ -75,4 +75,15 @@ test('Mac packaging preserves both executable payloads before signing without ca
     assert.match(await readFile(join(contents, 'Info.plist'), 'utf8'), /CFBundleExecutable<\/key><string>GreybeardCompanion/u);
     assert.notEqual('GreybeardCompanion'.toLowerCase(), 'greybeard'.toLowerCase());
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+
+test('signature failure diagnostics expose only controlled signer fields', () => {
+  const log = [
+    'arbitrary stderr with private paths or credentials must not be echoed',
+    'GREYBEARD_SIGNATURE_DIAGNOSTIC not-json',
+    'GREYBEARD_SIGNATURE_DIAGNOSTIC ' + JSON.stringify({code:'publisher-mismatch',file:'C:\\private\\Greybeard.exe',status:'Valid',publisher:'Other Publisher',timestamp:true,secret:'never-include'}),
+    'GREYBEARD_SIGNATURE_DIAGNOSTIC ' + JSON.stringify({code:'untrusted-freeform-code',file:'bad.exe'})
+  ].join('\n');
+  assert.deepEqual(signatureDiagnostics(log), [{code:'publisher-mismatch',file:'Greybeard.exe',status:'Valid',publisher:'Other Publisher',timestamp:true}]);
 });

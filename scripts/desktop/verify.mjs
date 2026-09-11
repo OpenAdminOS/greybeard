@@ -1,5 +1,5 @@
 import { readdir, readFile, writeFile, access, mkdtemp, mkdir, rm } from 'node:fs/promises';
-import { join, basename, resolve } from 'node:path';
+import { join, basename, resolve, win32 } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -8,9 +8,29 @@ import yaml from 'js-yaml';
 import { artifactNames } from './contracts.mjs';
 export { artifactNames } from './contracts.mjs';
 
+export function signatureDiagnostics(output) {
+  const records = [];
+  const codes = new Set(['inspected', 'missing-distribution-files', 'missing-sdk-signtool', 'invalid-authenticode', 'publisher-mismatch', 'missing-timestamp', 'signature-chain-failed', 'inspection-command-failed']);
+  const clean = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, '').slice(0, 180) : '';
+  for (const line of String(output).split(/\r?\n/u)) {
+    if (!line.startsWith('GREYBEARD_SIGNATURE_DIAGNOSTIC ')) continue;
+    try {
+      const record = JSON.parse(line.slice('GREYBEARD_SIGNATURE_DIAGNOSTIC '.length));
+      if (!codes.has(record.code)) continue;
+      records.push({ code: record.code, file: basename(win32.basename(clean(record.file))), status: clean(record.status), publisher: clean(record.publisher), timestamp: record.timestamp === true });
+    } catch { /* Ignore malformed diagnostic lines, never echo arbitrary process output. */ }
+  }
+  return records;
+}
+
 function run(command, args) {
   const result = spawnSync(command, args, { encoding: 'utf8', timeout: 40 * 60000 });
   // Arguments may include notary credential identifiers: do not log exec exceptions.
+  if (command === 'pwsh') {
+    const diagnostics = signatureDiagnostics(result.stdout);
+    for (const record of diagnostics) console.log(`Windows signature: ${JSON.stringify(record)}`);
+    if (result.status !== 0) throw new Error(`Windows signature verification failed (exit ${result.status ?? 'unknown'}): ${diagnostics.length ? JSON.stringify(diagnostics.at(-1)) : 'no controlled diagnostic was returned'}`);
+  }
   if (result.status !== 0) throw new Error(`${command} verification failed (exit ${result.status ?? 'unknown'}).`);
   return result.stdout;
 }
