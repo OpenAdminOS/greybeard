@@ -1,7 +1,58 @@
 import { createHash } from 'node:crypto';
-import { chmod, copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+
+async function verifyFinderLaunch(app, directory) {
+  const help = spawnSync('/usr/bin/open', ['-h'], { encoding: 'utf8' });
+  for (const option of ['--env', '--stdout', '--stderr']) {
+    if (!`${help.stdout}${help.stderr}`.includes(option)) throw new Error(`The runner open tool does not support ${option}.`);
+  }
+  const home = join(directory, 'finder-smoke'); await mkdir(home, { mode: 0o700 });
+  const data = join(home, 'data');
+  const stdout = join(home, 'stdout.log'); const stderr = join(home, 'stderr.log');
+  await writeFile(stdout, '', { mode: 0o600 }); await writeFile(stderr, '', { mode: 0o600 });
+  const child = spawn('/usr/bin/open', ['-n', '-W', '--env', `HOME=${home}`, '--env', `GREYBEARD_HOME=${home}`, '--env', `GREYBEARD_APP_DATA=${data}`, '--stdout', stdout, '--stderr', stderr, app], {
+    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: home }, stdio: 'ignore'
+  });
+  let completed = false; let exitCode;
+  child.once('error', () => { completed = true; exitCode = -1; });
+  child.once('close', code => { completed = true; exitCode = code; });
+  try {
+    let url;
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      const output = await readFile(stdout, 'utf8');
+      const match = output.match(/http:\/\/127\.0\.0\.1:\d+\/#([a-f0-9]{64})/);
+      if (match) { url = new URL(match[0]); break; }
+      if (completed) throw new Error('LaunchServices app exited before starting graphical setup.');
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    if (!url) throw new Error('LaunchServices app did not start graphical setup within 30 seconds.');
+    // Session URL remains in a private temporary file, never in CI output.
+    const response = await fetch(url.origin, { signal: AbortSignal.timeout(10_000) });
+    if (!response.ok || !(await response.text()).includes('Greybeard 0.1')) throw new Error('Finder launch did not serve the expected setup page.');
+    const closed = await fetch(`${url.origin}/close`, { method: 'POST', headers: { origin: url.origin, 'content-type': 'application/json', 'x-greybeard-session': url.hash.slice(1) }, body: '{}', signal: AbortSignal.timeout(10_000) });
+    if (!closed.ok || (await closed.json()).closed !== true) throw new Error('Finder setup could not close cleanly.');
+    const closeDeadline = Date.now() + 15_000;
+    while (!completed && Date.now() < closeDeadline) await new Promise(resolve => setTimeout(resolve, 200));
+    if (!completed || exitCode !== 0) throw new Error('LaunchServices did not report clean app termination.');
+    console.log('Finder LaunchServices opened the installed app with no arguments, served graphical setup and closed cleanly.');
+  } finally {
+    if (!completed) child.kill();
+    // Stop only this isolated check's core if startup/HTTP verification failed.
+    for (const name of await readdir(join(data, 'sessions')).catch(() => [])) {
+      const session = await readFile(join(data, 'sessions', name), 'utf8').then(JSON.parse).catch(error => {
+        if (error.code === 'ENOENT') return null;
+        throw error;
+      });
+      if (!session) continue;
+      if (session.executable === join(app, 'Contents/MacOS/greybeard') && Number.isSafeInteger(session.pid) && session.pid > 0) {
+        try { process.kill(session.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+      }
+    }
+  }
+}
 
 export async function packageMacDmg({ run, verify, notarize, directory, keychain, identity, binary }) {
   if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('DMG packaging requires Apple Silicon.');
@@ -88,9 +139,10 @@ export async function packageMacDmg({ run, verify, notarize, directory, keychain
   run('codesign', ['--verify', '--deep', '--strict', join(installerHome, 'Applications/Greybeard.app')]);
   const clientConfig = JSON.parse(await readFile(join(clientDirectory, 'claude_desktop_config.json'), 'utf8'));
   if (clientConfig.theme !== 'dark' || clientConfig.mcpServers?.['greybeard-memory']?.command !== join(installerHome, 'Applications/Greybeard.app/Contents/MacOS/greybeard')) throw new Error('Installer did not preserve client settings and register the installed bundle core.');
+  await verifyFinderLaunch(join(installerHome, 'Applications/Greybeard.app'), directory);
   console.log('Shell installer verified the final DMG, installed the app and completed setup in an isolated home.');
   const metadataName = `${name}.metadata.json`;
-  const metadata = JSON.stringify({ version: '0.1.0', publicVersion: '0.1', softwareSourceSha: source.sourceSha, packagingSourceSha, platform: 'darwin', architecture: 'arm64', artifact: name, bytes: artifact.length, sha256: digest, executableSha256: coreHash, bundleIdentifier: 'com.ugurlabs.greybeard', minimumMacOSVersion: '14.0', signing: { status: 'verified', ...identity, hardenedRuntime: true, notarized: true, stapled: true, appNotarizationId, dmgNotarizationId }, verification: { installedLauncher: true, sqlite: true, mountedReadOnlyLaunchBlocked: true, copiedBundleSignature: true, shellInstaller: true, appTicket: true, dmgTicket: true } }, null, 2) + '\n';
+  const metadata = JSON.stringify({ version: '0.1.0', publicVersion: '0.1', softwareSourceSha: source.sourceSha, packagingSourceSha, platform: 'darwin', architecture: 'arm64', artifact: name, bytes: artifact.length, sha256: digest, executableSha256: coreHash, bundleIdentifier: 'com.ugurlabs.greybeard', minimumMacOSVersion: '14.0', signing: { status: 'verified', ...identity, hardenedRuntime: true, notarized: true, stapled: true, appNotarizationId, dmgNotarizationId }, verification: { installedLauncher: true, finderLaunchServices: true, sqlite: true, mountedReadOnlyLaunchBlocked: true, copiedBundleSignature: true, shellInstaller: true, appTicket: true, dmgTicket: true } }, null, 2) + '\n';
   await writeFile(join(output, metadataName), metadata);
   await writeFile(`${dmg}.sha256`, `${digest}  ${name}\n`);
   await writeFile(join(output, 'SHA256SUMS-darwin-arm64-dmg.txt'), `${digest}  ${name}\n${hash(metadata)}  ${metadataName}\n`);

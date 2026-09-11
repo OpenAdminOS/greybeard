@@ -88,7 +88,7 @@ The default Windows destination is `%LOCALAPPDATA%\Greybeard\bin\greybeard.exe`.
 
 ## First run and local data
 
-Graphical setup uses a private session link on `127.0.0.1`. Keep that link private and close setup when finished. You can complete mentor-only setup without a Microsoft sign-in, app registration, or tenant permissions. Optional tenant access is separate.
+Graphical setup uses a private session link on `127.0.0.1`. Keep that link private and use **Close setup** when finished. Closing only the browser tab leaves setup running until its session expires. You can complete mentor-only setup without a Microsoft sign-in, app registration, or tenant permissions. Optional tenant access is separate.
 
 The application creates its data directory at:
 
