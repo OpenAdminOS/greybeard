@@ -117,6 +117,26 @@ Release assets are built for their actual OS and architecture with Node 22.23.2.
 
 The release includes checksums and per-platform metadata describing signing. macOS ad-hoc signing is distinct from Apple publisher signing and notarization. No feed signing key or publisher identity is embedded as a substitute for real release provisioning.
 
+### Maintainer signing setup
+
+Run the **Executable artifacts** workflow from the intended release commit with `release=true` and `macos-signing=developer-id` to require both Windows publisher signing and Apple notarization. Ordinary push builds produce candidates. A signing failure never falls back to an unsigned release artifact.
+
+Windows uses the repository secrets `GREYBEARD_SIGNING_TENANT_ID`, `GREYBEARD_SIGNING_CLIENT_ID`, and `GREYBEARD_SIGNING_CLIENT_SECRET` for the configured Azure signing account and certificate profile.
+
+Apple signing uses these repository secrets, matching the existing publisher's naming:
+
+| Secret | Value |
+| --- | --- |
+| `CSC_LINK` | Base64-encoded Developer ID Application certificate and private key exported as `.p12` |
+| `CSC_KEY_PASSWORD` | Password protecting that `.p12` |
+| `APPLE_API_KEY` | Original notarization API `.p8` private-key contents |
+| `APPLE_API_KEY_ID` | API key identifier |
+| `APPLE_API_ISSUER` | API issuer identifier |
+
+The workflow verifies Apple Team ID `D259ULY2B4`, signs the embedded SQLite library before packaging, signs the executable with hardened runtime, and requires notarization status `Accepted`. Temporary signing material is removed at job completion. The raw executable has no stapled ticket; macOS retrieves its notarization ticket online.
+
+Stored GitHub secret values cannot be read back through the API. Add the original values to this repository's Actions secrets; a secret stored in another repository is not automatically available here. Keep certificates, private keys, and passwords out of commits and release assets.
+
 For development only:
 
 ```sh

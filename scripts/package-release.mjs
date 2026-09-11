@@ -21,7 +21,11 @@ if (process.platform === 'win32' && release) {
   signing = { ...verification, notarized: false };
 } else if (process.platform === 'darwin') {
   execFileSync('codesign', ['--verify', '--strict', source], { stdio: 'inherit' });
-  signing = { status: 'ad-hoc', publisher: null, notarized: false };
+  if (release && process.env.GREYBEARD_MACOS_SIGNING === 'developer-id') {
+    const verification = JSON.parse(await readFile(join(root, 'dist/executable/macos-signature.json'), 'utf8'));
+    if (verification.status !== 'verified' || verification.notarized !== true || verification.hardenedRuntime !== true || verification.sha256 !== executableHash || verification.teamId !== process.env.APPLE_TEAM_ID || !verification.publisher?.startsWith('Developer ID Application: ')) throw new Error('Developer ID notarization evidence is missing or does not match this executable.');
+    signing = verification;
+  } else signing = { status: 'ad-hoc', publisher: null, notarized: false };
 }
 let name;
 if (process.platform === 'win32') {
