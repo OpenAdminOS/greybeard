@@ -73,3 +73,16 @@ Packaging follows the installed electron-builder 26 configuration and its
 [macOS signing](https://www.electron.build/v26/docs/mac/) and
 [Windows signing](https://www.electron.build/v26/docs/win/) contracts. Verification
 scripts check actual produced artifacts, not configuration alone.
+
+
+Windows publisher checks inspect actual PE `SignerInfo` records, including nested
+Authenticode signatures, rather than trusting arbitrary certificates in a CMS
+certificate collection. They require the Ugurlabs signer, SHA-256, and a valid
+RFC3161 timestamp bound to that signer. SignTool independently verifies every
+embedded signature, PE digest, trust chain and timestamp with `/pa /all /tw`.
+This avoids mistaking a preferred Microsoft catalog signature for the publisher
+of the embedded signature. Microsoft documents this
+[catalog preference](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature).
+Cryptographic fixture tests cover nested signers, decoy certificates, missing
+and reused timestamps, and PE bounds; only the Windows release check establishes
+actual Windows trust for the distributed files.

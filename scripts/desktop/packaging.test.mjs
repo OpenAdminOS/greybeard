@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { artifactNames, verifyArtifacts, signatureDiagnostics } from './verify.mjs';
 const require = createRequire(import.meta.url);
@@ -86,4 +87,14 @@ test('signature failure diagnostics expose only controlled signer fields', () =>
     'GREYBEARD_SIGNATURE_DIAGNOSTIC ' + JSON.stringify({code:'untrusted-freeform-code',file:'bad.exe'})
   ].join('\n');
   assert.deepEqual(signatureDiagnostics(log), [{code:'publisher-mismatch',file:'Greybeard.exe',status:'Valid',publisher:'Other Publisher',timestamp:true}]);
+});
+
+
+test('embedded Authenticode signer and timestamp regressions', t => {
+  const available = spawnSync('pwsh', ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'], { encoding: 'utf8' });
+  if (available.error?.code === 'ENOENT' && process.platform !== 'win32') { t.skip('PowerShell is unavailable; this required Windows regression runs on the Windows runner.'); return; }
+  assert.equal(available.status, 0, 'PowerShell must be available for Windows signature verification');
+  const result = spawnSync('pwsh', ['-NoProfile', '-File', 'scripts/desktop/authenticode-signers.test.ps1'], { encoding: 'utf8', timeout: 30000 });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /timestamp binding and PE bounds regressions passed/u);
 });

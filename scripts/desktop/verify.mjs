@@ -10,7 +10,7 @@ export { artifactNames } from './contracts.mjs';
 
 export function signatureDiagnostics(output) {
   const records = [];
-  const codes = new Set(['inspected', 'missing-distribution-files', 'missing-sdk-signtool', 'invalid-authenticode', 'publisher-mismatch', 'missing-timestamp', 'signature-chain-failed', 'inspection-command-failed']);
+  const codes = new Set(['inspected', 'embedded-signer-verified', 'missing-distribution-files', 'missing-sdk-signtool', 'invalid-authenticode', 'publisher-mismatch', 'missing-timestamp', 'signature-chain-failed', 'inspection-command-failed']);
   const clean = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, '').slice(0, 180) : '';
   for (const line of String(output).split(/\r?\n/u)) {
     if (!line.startsWith('GREYBEARD_SIGNATURE_DIAGNOSTIC ')) continue;

@@ -1,5 +1,6 @@
 param([Parameter(Mandatory)][string]$Directory)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'authenticode-signers.ps1')
 $publisherExpected = 'Ugurlabs UG (haftungsbeschränkt)'
 $diagnostic = @{ file = ''; status = 'not-inspected'; publisher = ''; timestamp = $false }
 function Stop-SignatureVerification([string]$Code) {
@@ -26,9 +27,19 @@ try {
     $diagnostic.timestamp = [bool]$signature.TimeStamperCertificate
     Write-Output ('GREYBEARD_SIGNATURE_DIAGNOSTIC ' + ((@{ code = 'inspected' } + $diagnostic) | ConvertTo-Json -Compress))
     if ($signature.Status -ne 'Valid') { Stop-SignatureVerification 'invalid-authenticode' }
-    if ($diagnostic.publisher -ne $publisherExpected) { Stop-SignatureVerification 'publisher-mismatch' }
-    if (-not $signature.TimeStamperCertificate) { Stop-SignatureVerification 'missing-timestamp' }
-    & $tool.FullName verify /pa /all /q $file.FullName
+    # Get-AuthenticodeSignature may prefer the original Microsoft catalog. The
+    # distributed bytes must carry our own actual, cryptographically valid signer.
+    $embedded = @(Get-EmbeddedSigners -Path $file.FullName)
+    $owned = @($embedded | Where-Object { $_.Publisher -eq $publisherExpected })
+    if (-not $owned.Count) { Stop-SignatureVerification 'publisher-mismatch' }
+    $current = @($owned | Where-Object { $_.Timestamp -and $_.Digest -eq '2.16.840.1.101.3.4.2.1' })
+    if (-not $current.Count) { Stop-SignatureVerification 'missing-timestamp' }
+    $diagnostic.publisher = $publisherExpected
+    $diagnostic.timestamp = $true
+    Write-Output ('GREYBEARD_SIGNATURE_DIAGNOSTIC ' + ((@{ code = 'embedded-signer-verified' } + $diagnostic) | ConvertTo-Json -Compress))
+    # No /a: verify embedded signatures rather than choosing a catalog. /tw fails
+    # on a missing timestamp; /all retains verification of every embedded signer.
+    & $tool.FullName verify /pa /all /tw /q $file.FullName
     if ($LASTEXITCODE -ne 0) { Stop-SignatureVerification 'signature-chain-failed' }
   }
   Write-Host "Verified publisher and trusted timestamps for $($files.Count) Windows executables and libraries."
