@@ -1,0 +1,69 @@
+{
+  "id": "02",
+  "fixture": "corrected",
+  "prompt": "We need to roll out Windows compliance changes. What sequence should I use? Do not make tenant changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_3",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Sequence for rolling out Windows compliance changes; tenant rollout rings, timing, review gates and rollback constraints. No tenant changes."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"d4645981-9338-4dda-b314-af1f6fd08dcf\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":2,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":324,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":324,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "d4645981-9338-4dda-b314-af1f6fd08dcf",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 2,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 324,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 324,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll check the relevant change-planning guidance and remembered tenant rules, then outline a rollout sequence. I won\u2019t make tenant changes.\n\nUse this sequence: **verify targeting \u2192 prepare rollback \u2192 pilot for 72 hours \u2192 helpdesk review \u2192 staged expansion**.\n\nGreybeard memory **#2** says: \u201cFor Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.\u201d That requires review; it does not grant rollout approval.\n\n1. **Define the change.** Record the Windows compliance settings, intended devices, expected impact, and success and stop criteria. Check how noncompliance could affect access through Conditional Access.\n2. **Verify existing assignments.** Inspect inclusions, exclusions, filters, actual membership, and overlapping policies. Editing an already broadly assigned policy affects that broad population; adding a pilot group does not contain it. Pilot feasibility remains unresolved until targeting is verified.\n3. **Prepare targeting and rollback.** Consider a separately targeted policy, accounting for the original policy still applying. Capture original settings and assignments so rollback can restore both.\n4. **Run the contained pilot for 72 hours.** Monitor check-ins, per-setting compliance failures, access problems, and helpdesk tickets. Use manual checkpoints; pause expansion if agreed stop criteria are met.\n5. **Require helpdesk review before expanding.** Review incidents and unresolved failures, then follow your existing change workflow for the expansion decision.\n6. **Expand in stages.** Verify targeting and review compliance and access outcomes after each stage. If rollback is needed, reverse the recorded setting and targeting changes, then verify recovery. Removing an assignment alone does not undo an in-place setting edit.\n\nNo tenant changes were made, and live assignments have not been inspected.\n\nWhich tenant, policies/settings, and device groups are involved, and what disruption and rollback constraints should the plan accommodate?",
+  "usage": [
+    {
+      "input_tokens": 55608,
+      "cached_input_tokens": 39424,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 642,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

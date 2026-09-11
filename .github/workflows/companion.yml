@@ -1,0 +1,194 @@
+name: Companion application
+
+on:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'cli/**'
+      - 'graph/**'
+      - 'memory/**'
+      - '.agents/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.github/workflows/companion.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'cli/**'
+      - 'graph/**'
+      - 'memory/**'
+      - '.agents/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.github/workflows/companion.yml'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Require verified publisher signing and macOS notarization
+        type: boolean
+        required: true
+        default: false
+      publish:
+        description: Publish a NEW release only after every platform verifies (requires release=true)
+        type: boolean
+        required: true
+        default: false
+      tag:
+        description: New version tag matching package.json, for example v0.1.1. Existing releases are never replaced.
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate explicit publication intent and new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REQUESTED: ${{ inputs.release }}
+          PUBLISH_REQUESTED: ${{ inputs.publish }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node scripts/desktop/publish.mjs preflight
+
+  build:
+    needs: preflight
+    name: Companion on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x64
+          - os: windows-latest
+            target: win32-x64
+          - os: macos-14
+            target: darwin-arm64
+    runs-on: ${{ matrix.os }}
+    env:
+      GREYBEARD_DESKTOP_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.release }}
+      APPLE_TEAM_ID: D259ULY2B4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+      - run: npm ci
+      - name: Validate source and packaging contracts
+        run: npm run ci
+      - name: Install Linux display dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64
+      - name: Prepare Apple Developer ID and sign embedded SQLite
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: node scripts/macos-signing.mjs prepare
+      - name: Build bundled CLI service
+        run: npm run build:executable
+      - name: Sign bundled Windows CLI as Ugurlabs
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch' && inputs.release
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.GREYBEARD_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.GREYBEARD_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.GREYBEARD_SIGNING_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net/
+          signing-account-name: signacc123
+          certificate-profile-name: openadminos-public
+          files: ${{ github.workspace }}\dist\executable\greybeard-win32-x64.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          append-signature: false
+          exclude-environment-credential: false
+          exclude-azure-cli-credential: true
+      - name: Sign bundled macOS CLI with hardened runtime
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release
+        run: node scripts/macos-signing.mjs sign
+      - name: Exercise bundled CLI outside checkout
+        run: npm run test:executable
+      - name: Exercise actual companion interactions on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:companion
+      - name: Exercise actual companion interactions on Windows and macOS
+        if: runner.os != 'Linux'
+        run: npm run test:companion
+      - name: Package candidate companion application
+        if: github.event_name != 'workflow_dispatch' || !inputs.release
+        run: node scripts/desktop/build.mjs
+      - name: Package and verify signed Mac companion
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: node scripts/desktop/build.mjs
+      - name: Package and verify signed Windows companion
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          AZURE_TENANT_ID: ${{ secrets.GREYBEARD_SIGNING_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.GREYBEARD_SIGNING_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.GREYBEARD_SIGNING_CLIENT_SECRET }}
+        run: node scripts/desktop/build.mjs
+      - name: Package and verify Linux release integrity
+        if: runner.os == 'Linux' && github.event_name == 'workflow_dispatch' && inputs.release
+        run: node scripts/desktop/build.mjs
+      - name: Verify packaged application on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node scripts/desktop/smoke-packaged.mjs
+      - name: Verify packaged application on Windows and macOS
+        if: runner.os != 'Linux'
+        run: node scripts/desktop/smoke-packaged.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: companion-${{ matrix.target }}
+          path: |
+            dist/companion/*.dmg
+            dist/companion/*.zip
+            dist/companion/*.exe
+            dist/companion/*.AppImage
+            dist/companion/*.blockmap
+            dist/companion/latest*.yml
+            dist/companion/verification-*.json
+            dist/companion/SHA256SUMS-*.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Remove Apple signing material
+        if: always() && runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release
+        run: node scripts/macos-signing.mjs cleanup
+
+  publish:
+    needs: [preflight, build]
+    if: github.event_name == 'workflow_dispatch' && inputs.release && inputs.publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: companion-*
+          path: dist/companion
+          merge-multiple: true
+      - name: Publish a new complete application release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REQUESTED: 'true'
+          PUBLISH_REQUESTED: 'true'
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: node scripts/desktop/publish.mjs publish

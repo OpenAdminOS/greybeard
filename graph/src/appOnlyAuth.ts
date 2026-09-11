@@ -1,3 +1,4 @@
+import { readWindowsProtectedKey } from "./windowsCredential.js";
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import { createPrivateKey, X509Certificate } from "node:crypto";
@@ -9,7 +10,8 @@ import type { AddScopeInput, AddScopeResult, AuthStatus, AuthToken, GraphAuthPro
 export const APPLICATION_CAPABILITIES = {
   users: { permission: "User.Read.All", path: "/users", select: "id,displayName,department,jobTitle", label: "User profiles and organizational attributes" },
   groups: { permission: "GroupMember.Read.All", path: "/groups", select: "id,displayName", label: "Basic groups and ordinary membership" },
-  devices: { permission: "DeviceManagementManagedDevices.Read.All", path: "/deviceManagement/managedDevices", select: "id,deviceName,operatingSystem,complianceState", label: "Intune inventory and current compliance" },
+  devices: { permission: "DeviceManagementManagedDevices.Read.All", path: "/deviceManagement/managedDevices", select: "id,deviceName,operatingSystem,complianceState,lastSyncDateTime", label: "Intune inventory and current compliance" },
+  compliance: { permission: "DeviceManagementConfiguration.Read.All", path: "/deviceManagement/deviceCompliancePolicies", select: "id,displayName,lastModifiedDateTime,version", label: "Intune compliance policies, assignments and noncompliance actions" },
   "conditional-access": { permission: "Policy.Read.ConditionalAccess", path: "/identity/conditionalAccess/policies", select: "id,displayName,state,conditions,grantControls", label: "Conditional Access policy review (minimal grant validation pending)" }
 } as const;
 export type ApplicationCapability = keyof typeof APPLICATION_CAPABILITIES;
@@ -48,12 +50,12 @@ export function inspectApplicationToken(accessToken: string, profile: AppOnlyPro
 }
 
 async function readCredentialFile(path: string, privateKey: boolean): Promise<string> {
+  if (privateKey && process.platform === "win32") return readWindowsProtectedKey(path);
   const handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
     const info = await handle.stat();
     if (!info.isFile() || info.size > 64 * 1024) throw new Error("Certificate credentials must be regular files no larger than 64 KiB.");
     if (privateKey) {
-      if (process.platform === "win32") throw new Error("Windows private-key protection has not been verified. Keep mentor-only mode until the protected certificate provider is available.");
       if ((info.mode & 0o077) !== 0 || info.uid !== process.getuid?.()) throw new Error("Private key must be owned by this user and accessible only to this user (mode 0600 or 0400).");
     }
     return await handle.readFile("utf8");
@@ -97,6 +99,7 @@ export class AppOnlyGraphAuthProvider implements GraphAuthProvider {
     const allowed = this.profile.capabilities.some((capability) => {
       const root = APPLICATION_CAPABILITIES[capability as ApplicationCapability].path;
       if (path === root || new RegExp(`^${root}/[0-9a-f-]{36}$`, "i").test(path)) return true;
+      if (capability === "compliance" && /^\/deviceManagement\/deviceCompliancePolicies\/[0-9a-f-]{36}\/(assignments|scheduledActionsForRule)$/i.test(path)) return true;
       return capability === "groups" && /^\/groups\/[0-9a-f-]{36}\/members$/i.test(path);
     });
     if (!allowed) throw new Error("This endpoint is outside the selected read capabilities. Configure a suitable capability locally; access is never escalated automatically.");

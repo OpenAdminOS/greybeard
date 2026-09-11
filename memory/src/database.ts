@@ -55,7 +55,7 @@ export function initializeMemoryDatabase(appDataPath: string, path = memoryDbPat
   db.close();
 }
 
-export const MEMORY_SCHEMA_VERSION = 3;
+export const MEMORY_SCHEMA_VERSION = 4;
 
 // This is the LIVE latest schema, shared by fresh creates and the rebuild
 // migration. A future schema version must either rebuild-to-latest again or
@@ -156,6 +156,18 @@ CREATE INDEX idx_edges_target ON edges(target);
       db.exec("ALTER TABLE nodes ADD COLUMN revision TEXT NOT NULL DEFAULT '';");
     }
     db.exec("UPDATE nodes SET revision=lower(hex(randomblob(16))) WHERE revision='';");
+    if (!columns.some(column => column.name === "evidence_kind")) {
+      db.exec(`ALTER TABLE nodes ADD COLUMN evidence_kind TEXT NOT NULL DEFAULT 'context';
+ALTER TABLE nodes ADD COLUMN observed_at INTEGER;
+ALTER TABLE nodes ADD COLUMN outcome TEXT;
+UPDATE nodes SET evidence_kind=CASE WHEN type IN ('preference','decision') THEN 'rule' WHEN type='fact' THEN 'observation' ELSE 'context' END;`);
+    }
+    db.exec(`CREATE TABLE IF NOT EXISTS advice_events (
+      id TEXT PRIMARY KEY, tenant TEXT NOT NULL, profile_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL, status TEXT NOT NULL, bytes INTEGER NOT NULL, node_ids TEXT NOT NULL DEFAULT '[]',
+      feedback TEXT CHECK(feedback IN ('accepted','ignored','irrelevant'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_advice_identity ON advice_events(tenant,profile_id,created_at);`);
     db.pragma(`user_version = ${MEMORY_SCHEMA_VERSION}`);
   })();
 }

@@ -16,7 +16,21 @@ import { runSkills } from "./skills.js";
 import { runUpdate } from "./update.js";
 
 export async function runCli(argv: string[], runtime: CliRuntime = createRuntime()): Promise<number> {
-  const args = parseArgs(argv.length ? argv : ["setup", "--ui"]);
+  const args = parseArgs(argv.length ? argv : ["app"]);
+  if (args.command === "companion-server") {
+    const { startSetupUi } = await import("./setupUi.js");
+    const { getGreybeardAppDataPath } = await import("@greybeard/graph");
+    const { flagValue } = await import("./args.js");
+    const appData = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+    const { server, url } = await startSetupUi(runtime, appData, { desktop: true });
+    writeLine(runtime.stdout, `GREYBEARD_COMPANION_READY ${url}`);
+    await new Promise<void>(resolve => server.once("close", resolve));
+    return 0;
+  }
+  if (args.command === "app") {
+    const { runCompanion } = await import("./companion.js");
+    return runCompanion(runtime);
+  }
   if (args.command === "mentor") return runMentor(args, runtime);
   if (args.command === "uninstall") return runUninstall(args, runtime);
   if (args.command === "connect") return runConnect(args, runtime);
@@ -82,13 +96,14 @@ function printHelp(runtime: CliRuntime): void {
   writeLine(runtime.stdout, "Greybeard 0.1 - An IT mentor that learns how you work.");
   writeLine(runtime.stdout, "");
   for (const command of [
+    "app",
     "setup [--ui] [--yes] [--client <name>] [--no-memory-hook] [--update-mode notify|automatic|manual]",
     "connect --help",
     "memory list|candidates|add|confirm|correct|export|pause|resume|forget",
     "doctor", "update", "skills pack [--out <directory>]", "uninstall"
   ]) writeLine(runtime.stdout, `  greybeard ${command}`);
   writeLine(runtime.stdout, "");
-  writeLine(runtime.stdout, "Launch without arguments to open local setup. Use --app-data to select your local store.");
+  writeLine(runtime.stdout, "Launch without arguments to open the desktop companion. Use --app-data to select your local store.");
 }
 
 function safeRealpath(path: string): string {

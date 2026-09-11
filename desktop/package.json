@@ -1,0 +1,10 @@
+{
+  "name": "greybeard-companion",
+  "productName": "Greybeard",
+  "version": "0.1.0",
+  "description": "Your local IT mentor companion",
+  "author": "Ugurlabs",
+  "license": "MIT",
+  "main": "main.cjs",
+  "dependencies": { "electron-updater": "6.8.9" }
+}

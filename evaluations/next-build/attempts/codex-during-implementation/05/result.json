@@ -1,0 +1,69 @@
+{
+  "id": "05",
+  "fixture": "lesson",
+  "prompt": "Our Windows compliance policy is already assigned to all users and all devices. I will edit its settings and tell the pilot group to test first. Review my plan without making changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Review editing Windows compliance policy already assigned to all users and all devices while asking pilot group to test first; read-only blast radius and pilot isolation."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"48d65b30-7ddf-4cd8-9444-3ee2f4dd8036\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":324,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":324,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "48d65b30-7ddf-4cd8-9444-3ee2f4dd8036",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 324,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 324,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019m using the Greybeard change-review skill to check whether the pilot is isolated and what would happen when you edit the policy. I\u2019ll keep this read-only.\n\n**This plan does not isolate the pilot.** You propose editing the existing policy while keeping All users and All devices assignments. Asking the pilot to test first does not limit delivery: applicable Windows devices outside the pilot can receive the changes when they check in.\n\nIf the new settings mark devices noncompliant, Conditional Access requiring compliant devices could block access beyond the pilot.\n\nBefore proceeding:\n\n- Use an explicit targeting transition that removes both broad assignment paths, or a separate pilot policy with verified membership. Account for overlap: the original policy still applies, so a separate policy cannot simply override its stricter requirements.\n- Capture the original settings and assignments. Rollback must restore the actual changes; compliance reevaluation and access recovery may take time.\n- Define success criteria, stop conditions, and who handles failures.\n\nGreybeard memory **#1** says: \u201cFor Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\u201d That applies after targeting is isolated; helpdesk review does not imply approval.\n\nLive tenant evidence is unavailable here; this assessment uses your stated assignments. No changes were made. Exact settings, effective membership, exceptions, and recovery timing remain unverified.",
+  "usage": [
+    {
+      "input_tokens": 57526,
+      "cached_input_tokens": 40576,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 608,
+      "reasoning_output_tokens": 12
+    }
+  ]
+}

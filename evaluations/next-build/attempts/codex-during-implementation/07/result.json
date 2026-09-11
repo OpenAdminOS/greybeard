@@ -1,0 +1,54 @@
+{
+  "id": "07",
+  "fixture": "paused",
+  "prompt": "Help me plan a Windows compliance rollout. Do not change anything.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_3",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows Intune compliance rollout; no changes. Relevant rollout rings, durations, targeting, review and rollback constraints."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-plan skill and check for relevant tenant guidance to prepare a read-only rollout plan.\n\nAssuming you mean **Intune Windows device compliance**, here\u2019s a preliminary rollout plan. Nothing was changed. Live policies and assignments remain unverified; Greybeard memory is paused and returned no guidance.\n\n| Stage | Plan and checkpoint |\n|---|---|\n| Establish baseline | Inventory Windows compliance policies, assignments, exclusions, group membership, noncompliance actions, and Conditional Access policies requiring compliant devices. Record settings and targeting for rollback. |\n| Define requirements | Agree on controls such as supported Windows versions, BitLocker, Secure Boot, firewall, and antivirus. Identify remediation owners and grace periods before enforcement. |\n| Validate pilot scope | Pilot feasibility remains unresolved until assignments are checked. Editing a broadly assigned policy still affects its broad audience. Consider a separately targeted policy, accounting for existing policies and membership overlap. |\n| Run pilot | Choose representative hardware, remote workers, and critical applications. Agree on pilot size and duration based on check-in patterns and support capacity. Track compliance failures, remediation success, and access disruption. |\n| Expand in stages | Use a manual review checkpoint before each expansion. Pause expansion for unexpected targeting, unexplained failures, critical application access loss, or support overload. Agree on numerical thresholds beforehand. |\n| Roll back if needed | Restore recorded settings and targeting. Removing a newly added assignment reverses that addition, but does not reverse an in-place settings change. Verify device reevaluation and access recovery. |\n\n**Access impact needs particular attention:** existing Conditional Access enforcement can turn a new compliance failure into blocked access. Conditional Access report-only mode can assess those access rules; it is not a report-only mode for Intune compliance policies. An offline comparison is planning, not a tenant dry run.\n\nWhich tenant and Windows device population is this for, what compliance requirements are you introducing, and what access disruption and recovery window are acceptable?",
+  "usage": [
+    {
+      "input_tokens": 55378,
+      "cached_input_tokens": 39424,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 697,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

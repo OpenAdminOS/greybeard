@@ -1,0 +1,24 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "06",
+  "fixture": "lesson",
+  "prompt": "Explain the difference between a list and a tuple in Python.",
+  "exitCode": 0,
+  "mcpCalls": [],
+  "response": "A **list** is mutable: you can add, remove, or replace its items. A **tuple** is immutable: its items cannot be added, removed, or replaced after creation.\n\n```python\n# List: square brackets\ncolors = [\"red\", \"blue\"]\ncolors[0] = \"green\"\ncolors.append(\"yellow\")\n\n# Tuple: parentheses\npoint = (10, 20)\n# point[0] = 30  # Raises TypeError\n```\n\nBoth are ordered, allow duplicates, and support indexing and slicing.\n\nUse a list for a collection that may change, such as a shopping list. Use a tuple for a fixed grouping, such as coordinates.\n\nTwo useful details:\n\n- A one-item tuple needs a comma: `(10,)`.\n- A tuple can contain mutable objects, such as lists; those objects can still change.",
+  "usage": [
+    {
+      "input_tokens": 12271,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 177,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

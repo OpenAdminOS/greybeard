@@ -45,6 +45,16 @@ export function classifyGraphFailure(params: {
   const messageText = graphErrorMessage(params.graphError);
   const codeText = graphErrorCode(params.graphError);
   const combined = `${codeText} ${messageText}`;
+  // App-only 403s do not establish missing user roles, licensing or a particular grant.
+  // Preserve Microsoft's exact diagnostic and never offer delegated consent escalation.
+  if (params.token.account.startsWith("application:")) {
+    return new GreybeardGraphError({
+      code: "graph-request-failed", httpStatus: params.status,
+      message: messageText || `Microsoft Graph returned HTTP ${params.status}.`,
+      guidance: "Review the selected application capability and this diagnostic in your existing Entra workflow. No permissions were requested or changed. A 403 alone does not establish its cause.",
+      details: { graphCode: codeText, graphMessage: messageText, path: params.path, retryState: params.retryState }
+    });
+  }
   const missingScope = scopeForRequest(params.path, params.query);
   const grantedScopes = new Set(params.token.grantedScopes.map((scope) => scope.toLowerCase()));
   const hasMappedScope = missingScope ? grantedScopes.has(missingScope.toLowerCase()) : false;

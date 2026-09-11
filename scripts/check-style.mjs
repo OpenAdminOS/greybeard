@@ -24,7 +24,7 @@ const recordedEvaluation = /^evaluations\/mentor-100\/(?:(?:runs|baselines|skill
 const failures = [];
 
 for (const file of tracked) {
-  if (recordedEvaluation.test(file)) continue;
+  if (recordedEvaluation.test(file) || /^evaluations\/next-build\/(?!README\.md$|cases\.json$|summary\.json$)/u.test(file)) continue;
   const contents = readFileSync(file);
   if (contents.includes(0)) {
     continue;

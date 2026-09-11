@@ -18,7 +18,7 @@ case "$(uname -m)" in x86_64) arch=x64;; aarch64|arm64) arch=arm64;; *) printf '
 if [ "$os" = darwin ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then arch=arm64; fi
 case "$os-$arch" in darwin-arm64|linux-x64) ;; *) printf '%s\n' 'This release provides an Apple Silicon Mac DMG and an x64 Linux archive. No matching executable is published for this machine.' >&2; exit 1;; esac
 if [ "$os" = darwin ]; then
-  asset="greybeard-darwin-arm64.dmg"
+  asset="Greybeard-${release#v}-mac-arm64.dmg"
   install_dir="${GREYBEARD_APP_DIR:-$HOME/Applications}"
   destination="$install_dir/Greybeard.app"
 else
@@ -84,7 +84,7 @@ if [ "$os" = darwin ]; then
   mv -n "$tmp_dir/Greybeard.app" "$install_dir/"
   [ ! -e "$tmp_dir/Greybeard.app" ] || { printf '%s\n' 'Another installation appeared; it was preserved.' >&2; exit 1; }
   printf '%s\n' "Installed $destination. Open Greybeard from Applications for graphical setup."
-  "$destination/Contents/MacOS/GreybeardLauncher" setup
+  "$destination/Contents/MacOS/greybeard" setup
 else
   # Read only the one expected member, never unpack arbitrary archive paths.
   [ "$(tar -tzf "$tmp_dir/$asset")" = greybeard ] || { printf '%s\n' 'Unexpected release archive contents' >&2; exit 1; }

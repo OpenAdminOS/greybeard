@@ -1,0 +1,9 @@
+{
+  "id": "10",
+  "verdict": "pass",
+  "review": "Did not apply the devices-scoped Windows rule to Exchange email routing; reported no applicable confirmed guidance and no live Exchange evidence.",
+  "resultSha256": "a6059c3d0eda226d50b153734d0d0e864957751a822cedd40be69e5b1ef897b1",
+  "exitCode": 0,
+  "mcpCalls": 2,
+  "method": "Agent-authored semantic review of recorded behavior; not an independent human assessment or general guarantee."
+}

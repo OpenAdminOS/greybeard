@@ -1,0 +1,9 @@
+{
+  "id": "02",
+  "verdict": "pass",
+  "review": "Used corrected memory #2 with 72 hours and did not resurrect the superseded 48-hour rule. Helpdesk review remained review.",
+  "resultSha256": "05a99c59c885f8a722413eeea0bfbfa929c5eac02f589faf1513adf52cb8f738",
+  "exitCode": 0,
+  "mcpCalls": 2,
+  "method": "Agent-authored semantic review of recorded behavior; not an independent human assessment or general guarantee."
+}

@@ -31,7 +31,7 @@ describe("greybeard memory", () => {
       // The CHECK constraint must stay in lockstep with MEMORY_TYPES; a type
       // added to the constant without a schema version bump fails here.
       expect(nodesSql).toContain(`type IN (${MEMORY_TYPES.map((type) => `'${type}'`).join(",")})`);
-      expect(db.pragma("user_version", { simple: true })).toBe(3);
+      expect(db.pragma("user_version", { simple: true })).toBe(4);
       expect(schemaSql(db, "nodes_fts")).toContain("tokenize='porter'");
       expect(schemaSql(db, "edges")).toContain("ON DELETE CASCADE");
       const triggerCount = db.prepare("SELECT COUNT(*) AS count FROM sqlite_master WHERE type = 'trigger' AND name IN ('nodes_ai','nodes_au','nodes_ad')")
@@ -203,7 +203,7 @@ INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on',
 
     const migrated = new Database(dbPath);
     try {
-      expect(migrated.pragma("user_version", { simple: true })).toBe(3);
+      expect(migrated.pragma("user_version", { simple: true })).toBe(4);
       expect(schemaSql(migrated, "nodes")).toContain("'decision'");
       const edge = migrated.prepare("SELECT COUNT(*) AS count FROM edges WHERE source = 2 AND target = 1").get() as { count: number };
       expect(edge.count).toBe(1);
@@ -422,7 +422,7 @@ INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on',
     await Promise.all([server.connect(serverTransport),client.connect(clientTransport)]);
     try {
       const available = await client.listTools();
-      expect(available.tools.map(tool => tool.name)).toEqual(["recall","remember","list","forget"]);
+      expect(available.tools.map(tool => tool.name)).toEqual(["recall","remember","list","forget","discover_scopes","propose_outcome"]);
       await client.callTool({ name:"remember", arguments:{ type:"preference", content:"Use concise reports.", status:"confirmed", source:"human" } });
       const nodes = (await service.list()).results;
       expect(nodes[0]).toMatchObject({ status:"candidate", source:"mcp-agent", confirmedAt:null });

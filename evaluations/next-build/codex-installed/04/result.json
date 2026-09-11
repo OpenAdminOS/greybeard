@@ -1,0 +1,88 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "04",
+  "fixture": "forgotten",
+  "prompt": "I forgot a Windows compliance rollout lesson in Greybeard. Can you bring its old rule back from memory?",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Recover forgotten Windows compliance rollout lesson old rule"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_6",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Recover forgotten Windows compliance rollout lesson and its old rule"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"e48f790b-5fc4-426a-87b2-8b5ae93a70c5\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "e48f790b-5fc4-426a-87b2-8b5ae93a70c5",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll check Greybeard memory for the Windows compliance rollout lesson and whether its old rule can be recovered.\n\n\nI\u2019m using the tenant-decisions skill to look up the recorded lesson. Discovery returned no scope labels, so I\u2019ll check the available global guidance.\n\n\nGreybeard found no matching confirmed guidance in the current profile. I can\u2019t recover the old rule through the available memory tools or reliably reconstruct its wording.\n\nWhat do you remember about the Windows compliance rollout lesson?",
+  "usage": [
+    {
+      "input_tokens": 55995,
+      "cached_input_tokens": 48640,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 393,
+      "reasoning_output_tokens": 13
+    }
+  ]
+}

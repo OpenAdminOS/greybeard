@@ -1,0 +1,102 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "05",
+  "fixture": "lesson",
+  "prompt": "Our Windows compliance policy is already assigned to all users and all devices. I will edit its settings and tell the pilot group to test first. Review my plan without making changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Review Windows compliance policy settings change assigned to all users and all devices with proposed pilot"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Review Windows compliance policy settings change assigned to all users and all devices; pilot testing does not limit existing assignment scope"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"d33783b7-2ba6-48c5-8849-8a7200e399f4\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":324,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":324,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "d33783b7-2ba6-48c5-8849-8a7200e399f4",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 324,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 324,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019m using the Greybeard change-review skill to check whether the proposed pilot actually limits the impact. I\u2019ll review the plan without changing tenant configuration.\n\nYour plan edits an existing Windows compliance policy while retaining its All users and All devices assignments. **That is a broad rollout immediately upon evaluation, not a pilot.** Asking the pilot group to test first does not stop other targeted Windows devices from receiving the settings. Devices that fail could lose access if Conditional Access requires compliance.\n\nRevise the plan before editing:\n\n- Use a separate pilot-targeted policy or an explicit assignment transition. Account for overlap: the existing policy still applies, so a separate, looser policy may not override its requirements.\n- Verify actual pilot membership and effective targeting before deployment.\n- Record the original settings for rollback. Restoring them requires device reevaluation; recovery is not instantaneous.\n\nGreybeard memory **#1** requires: \u201ckeep the pilot for 48 hours and require helpdesk review before expanding.\u201d Apply that after targeting is actually limited; helpdesk review is not approval.\n\nNo changes were made. Live tenant evidence was unavailable, so this assessment uses your stated assignments.\n\nWhich targeting approach will you use to ensure only the pilot receives the changed settings?",
+  "usage": [
+    {
+      "input_tokens": 56612,
+      "cached_input_tokens": 40064,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 548,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

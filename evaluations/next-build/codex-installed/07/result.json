@@ -1,0 +1,87 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "07",
+  "fixture": "paused",
+  "prompt": "Help me plan a Windows compliance rollout. Do not change anything.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Plan a Windows compliance rollout without changes"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":true,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": true,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows compliance rollout without changing anything; no applicable scope was returned by discovery."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-plan skill and check for relevant rollout guidance in memory. I\u2019ll keep this to planning and make no tenant changes.\n\nAssuming you mean **Intune Windows device compliance**, here is a provisional rollout plan. Nothing has been changed. Live tenant configuration is unverified; Greybeard memory is paused and returned no guidance.\n\n1. **Define the requirements.** Agree on checks such as BitLocker, Secure Boot, antivirus health, and minimum Windows version. Identify the intended devices, exceptions, remediation owners, and acceptable access impact.\n2. **Establish current exposure.** Review existing compliance settings, assignments, exclusions, filters, noncompliance actions, and Conditional Access policies requiring compliant devices. Record the original configuration for rollback.\n3. **Validate pilot containment.** Pilot feasibility remains unresolved until assignments and actual membership are checked. Adding a pilot group to a broadly assigned policy does not narrow its scope. A separately targeted policy is an option, but existing policies still apply.\n4. **Prepare remediation and support.** Document how users resolve each failure, support escalation, notifications, and proposed grace periods. Agree on pilot size and duration based on device diversity and check-in patterns.\n5. **Run a manual review checkpoint.** Before any future deployment, compare intended targeting offline. After an authorized pilot, verify per-setting compliance, assignment coverage, check-ins, and actual access effects. Offline comparison is planning, not a tenant dry run.\n6. **Expand only after review.** Pause expansion for unexpected targeting, unexplained failures, or unacceptable access disruption. Set measurable acceptance thresholds before starting.\n7. **Rollback precisely.** Reverse the recorded settings and targeting changes, then verify device status and access recovery. Removing an assignment does not undo an in-place settings edit.\n\nWhich tenant and Windows device population is this for, what compliance requirements are you introducing, and what access disruption or rollback constraints must the plan respect?",
+  "usage": [
+    {
+      "input_tokens": 57233,
+      "cached_input_tokens": 40448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 707,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

@@ -59,12 +59,18 @@ export type RecallInput = {
   tokenBudget?: number;
 };
 
+export type EvidenceKind = "rule" | "observation" | "inference" | "context";
+
 export type RememberInput = {
   type: MemoryType;
   content: string;
   links?: MemoryLinkInput[];
   source?: string;
   scope?: string;
+  evidenceKind?: EvidenceKind;
+  /** UTC epoch seconds when evidence was observed, not when recalled. */
+  observedAt?: number;
+  outcome?: string;
   /** Explicit correction target; the original remains until confirmation. */
   supersedes?: number;
 };
@@ -73,6 +79,8 @@ export type MemoryStatus = "candidate" | "confirmed";
 export type ConfirmInput = { id: number; expectedRevision: string; confirmationChannel?: "local-cli" | "local-ui" };
 
 export type ListInput = {
+  query?: string;
+  scope?: string;
   type?: MemoryType;
   status?: MemoryStatus;
   limit?: number;
@@ -101,10 +109,17 @@ export type MemoryNode = {
   confirmationChannel: string | null;
   supersedes: number | null;
   supersededAt: number | null;
+  evidenceKind?: EvidenceKind;
+  observedAt?: number | null;
+  outcome?: string | null;
 };
 
 /** Compact context; full timestamps and review metadata remain in list/export. */
 export type RecallResultNode = Pick<MemoryNode, "id" | "type" | "content" | "status" | "source" | "scope"> & {
+  evidenceKind: EvidenceKind;
+  observedAt: number | null;
+  verificationRequired: boolean;
+  evidenceAgeSeconds: number | null;
   matched: boolean;
   linkedFrom?: number;
   relation?: EdgeRelation;
@@ -112,6 +127,7 @@ export type RecallResultNode = Pick<MemoryNode, "id" | "type" | "content" | "sta
 
 export type RecallStatus = "recalled" | "no-match" | "budget-excluded" | "paused";
 export type RecallResult = {
+  recallId?: string;
   tenant: string;
   profileId: string;
   message: string;
@@ -201,3 +217,14 @@ export class GreybeardMemoryError extends Error {
 export function isGreybeardMemoryError(error: unknown): error is GreybeardMemoryError {
   return error instanceof GreybeardMemoryError;
 }
+
+export type DiscoverScopesInput = { query?: string; limit?: number; cursor?: string };
+export type DiscoverScopesResult = { tenant: string; profileId: string; scopes: Array<{ scope: string; confirmedCount: number }>; nextCursor?: string; paused: boolean; guidance: string };
+export type OutcomeInput = { lesson: string; outcome: string; source: string; scope?: string; observedAt?: number };
+export type AdviceFeedback = "accepted" | "ignored" | "irrelevant";
+export type AdviceEvent = { recallId: string; createdAt: number; serializedBytes: number; memoryIds: number[]; memories: Array<{ id: number; content: string | null }>; feedback: AdviceFeedback | null };
+export type AdviceMetrics = {
+  recalls: number; guidanceRecalls: number; recalledBytes: number; accepted: number; ignored: number; irrelevant: number;
+  rated: number; irrelevantRate: number | null; acceptedPerKiB: number | null;
+  measurement: "local-retrieval-and-explicit-feedback"; billing: "not-measured";
+};

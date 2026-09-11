@@ -54,6 +54,17 @@ describe.runIf(process.platform !== "win32")("protected local certificate provid
     expect(token).toMatchObject({ tenantId: profile.tenantId, clientId: profile.clientId, credentialMode: "read-only", writesConfigured: false });
   });
 
+  it("limits the compliance capability to policy reads and verified navigations", async () => {
+    const provider = await AppOnlyGraphAuthProvider.create({ ...profile, capabilities: ["compliance"] });
+    const policy = "11111111-2222-3333-4444-555555555555";
+    expect(() => provider.authorizeRead("/deviceManagement/deviceCompliancePolicies")).not.toThrow();
+    expect(() => provider.authorizeRead(`/deviceManagement/deviceCompliancePolicies/${policy}/assignments`)).not.toThrow();
+    expect(() => provider.authorizeRead(`/deviceManagement/deviceCompliancePolicies/${policy}/scheduledActionsForRule`)).not.toThrow();
+    expect(() => provider.authorizeRead("/deviceManagement/managedDevices")).toThrow("outside");
+    expect(() => provider.authorizeRead(`/deviceManagement/deviceCompliancePolicies/${policy}/assign`)).toThrow("outside");
+    expect(() => provider.authorizeRead("/applications")).toThrow("outside");
+  });
+
   it("discards an acquired token when the connection is removed during acquisition", async () => {
     let release!: (result: { accessToken: string }) => void;
     let entered!: () => void;

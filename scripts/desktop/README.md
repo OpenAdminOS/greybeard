@@ -1,0 +1,68 @@
+# Companion packaging and updates
+
+Build the bundled service first with `npm run build:executable`, then run
+`node scripts/desktop/build.mjs`. The default creates a local candidate without
+publisher-signing claims. The companion workflow builds and exercises Linux,
+Windows and Mac Silicon independently.
+
+The installed application is a complete Electron companion containing its own
+Node executable. SQLite remains inside that executable, avoiding an Electron
+native-addon ABI dependency. Mac uses `Greybeard.app/Contents/MacOS/Greybeard`
+for the window and `Contents/MacOS/greybeard` for existing terminal references.
+Windows and Linux bundle the service under `resources/bin`. No browser tab is
+opened by the desktop shell.
+
+## Distribution
+
+- Mac Silicon: a signed, notarized and stapled DMG for installation, plus a ZIP
+  containing the complete signed and stapled application for updates.
+- Windows: one NSIS setup executable with current-user installation. The
+  installer, application, bundled service and shipped DLLs are publisher signed
+  and checked for trusted timestamps in release mode.
+- Linux: one AppImage. SHA-256 checksums establish artifact integrity; they are
+  not an operating-system publisher signature.
+
+Explicit release builds use `GREYBEARD_DESKTOP_RELEASE=true`. The workflow
+imports the existing Apple certificate through `scripts/macos-signing.mjs`,
+signs SQLite before embedding and signs the embedded service. The packaging
+script converts the existing PEM `APPLE_API_KEY` secret into a temporary private
+file for notarization and removes it afterward. Windows reuses the Azure Trusted
+Signing application credentials through environment variables. Credentials are
+never packaged or written into update metadata. Missing signing credentials or
+failed notarization fail the release build instead of falling back unsigned.
+
+The workflow defaults to building artifacts. Publishing requires explicit
+`release=true`, `publish=true`, and a new `tag` matching both package versions.
+All three platforms must verify first. A draft release is uploaded completely
+before becoming visible. An existing tag or release, including v0.1.0, is rejected;
+these scripts cannot silently replace the previous downloads.
+
+## Complete application updates and recovery
+
+The update feed contains `latest.yml`, `latest-mac.yml`, `latest-linux.yml` and
+associated archives/blockmaps. Mac needs its ZIP even though users download the
+DMG. Checksums are refreshed after DMG stapling, then checked again before
+publication. Electron's Windows updater validates the configured publisher and
+macOS validates its signed application. Candidate artifacts are not a substitute
+for release signing verification.
+
+The GitHub feed has no embedded token. While the repository is private, a user
+without release access cannot use that public feed anonymously; the companion
+reports the error and offers manual installation. A public distribution location
+is required for anonymous automatic updates. Do not put a shared repository
+credential into the app to bypass this restriction.
+
+Before applying a complete update, the companion saves the previous complete
+application under its local `application-recovery/previous` folder. Close
+Greybeard and AI clients before restoring it. On Mac, copy the saved `.app` back
+to Applications; on Windows, restore the saved application directory while its
+processes are closed; on Linux, use the saved AppImage. Preserve the existing
+memory/configuration directory. Memory is not rolled back: a previous version
+must support its schema, and a newer schema deliberately blocks an incompatible
+older runtime. This is an explicit manual recovery copy, not an automatic
+rollback guarantee.
+
+Packaging follows the installed electron-builder 26 configuration and its
+[macOS signing](https://www.electron.build/v26/docs/mac/) and
+[Windows signing](https://www.electron.build/v26/docs/win/) contracts. Verification
+scripts check actual produced artifacts, not configuration alone.

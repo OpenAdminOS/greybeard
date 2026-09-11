@@ -1,5 +1,6 @@
+import { getConnectionPreview } from "./connectionPreview.js";
 import { resolve } from "node:path";
-import { APPLICATION_CAPABILITIES, AppOnlyGraphAuthProvider, GraphService, expectedApplicationRoles, getGreybeardAppDataPath, readGreybeardConfig, updateGreybeardConfig, type AppOnlyProfile } from "@greybeard/graph";
+import { APPLICATION_CAPABILITIES, AppOnlyGraphAuthProvider, GraphService, previewCapabilities, expectedApplicationRoles, getGreybeardAppDataPath, updateGreybeardConfig, type AppOnlyProfile } from "@greybeard/graph";
 import { flagValue, flagValues, type ParsedArgs } from "./args.js";
 import { writeLine, type CliRuntime } from "./runtime.js";
 
@@ -12,8 +13,7 @@ export async function runConnect(args: ParsedArgs, runtime: CliRuntime): Promise
       return 0;
     }
     if (args.positionals[0] === "status") {
-      const profile = (await readGreybeardConfig(appDataPath)).appOnlyProfile;
-      writeLine(runtime.stdout, JSON.stringify(profile ? { configured: true, tenantId: profile.tenantId, clientId: profile.clientId, capabilities: profile.capabilities, verifiedNow: false } : { configured: false, mentorAvailable: true }, null, 2));
+      writeLine(runtime.stdout, JSON.stringify(await getConnectionPreview(appDataPath, { verify: args.flags.has("verify"), fetcher: runtime.fetcher }), null, 2));
       return 0;
     }
     if (args.positionals[0] === "capabilities" || !flagValue(args, "tenant")) {
@@ -21,7 +21,7 @@ export async function runConnect(args: ParsedArgs, runtime: CliRuntime): Promise
       writeLine(runtime.stdout, "greybeard connect --tenant <id> --client-id <id> --certificate <public.pem> --private-key <private.pem> --capability <name>");
       writeLine(runtime.stdout, "Provision the certificate and selected Application permissions in Entra, grant admin consent, and protect the private key locally. Greybeard never creates registrations or grants consent.");
       for (const [name, capability] of Object.entries(APPLICATION_CAPABILITIES)) writeLine(runtime.stdout, `${name}: ${capability.permission} - ${capability.label}`);
-      writeLine(runtime.stdout, "These are candidate permission mappings; isolated minimum-grant verification remains pending. Successful probes do not certify least privilege. Private-key file protection is currently checked on POSIX; Windows tenant connection is unavailable until its protected provider is verified.");
+      writeLine(runtime.stdout, "These are candidate permission mappings; isolated minimum-grant verification remains pending. Successful probes do not certify least privilege. Private-key ownership and permissions are checked on POSIX and Windows. Windows also permits SYSTEM and local Administrators as the OS recovery boundary.");
       return 0;
     }
     const profile: AppOnlyProfile = {
@@ -36,12 +36,9 @@ export async function runConnect(args: ParsedArgs, runtime: CliRuntime): Promise
     await auth.getToken([]);
     const service = new GraphService({ auth, fetcher: runtime.fetcher, appDataPath });
     try {
-      for (const key of profile.capabilities) {
-        const capability = APPLICATION_CAPABILITIES[key as keyof typeof APPLICATION_CAPABILITIES];
-        const result = await service.graph({ apiVersion: "beta", path: capability.path, query: { "$select": capability.select, "$top": 1 }, fetchAll: false });
-        if (!result.data || typeof result.data !== "object" || !Array.isArray((result.data as Record<string, unknown>).value)) throw new Error(`Unexpected response shape for ${key}. Connection remains inactive.`);
-        writeLine(runtime.stdout, `${key}: selected read probe succeeded.`);
-      }
+      const preview = await previewCapabilities(profile, service);
+      writeLine(runtime.stdout, JSON.stringify(preview, null, 2));
+      if (preview.capabilities.some((item) => item.selected && item.state !== "ready")) throw new Error("One or more selected read probes failed. Connection remains inactive; see the endpoint diagnostics above.");
     } finally { await service.close(); }
     await updateGreybeardConfig(appDataPath, (current) => ({ ...current, appOnlyProfile: profile, activeTenantId: profile.tenantId }));
     writeLine(runtime.stdout, "Customer application connected for selected reads. These probes do not certify minimum grants. Run greybeard setup to add the tenant MCP entry, then reconnect your AI client. Production writes are disabled.");

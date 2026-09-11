@@ -16,6 +16,14 @@ Greybeard keeps the decisions and lessons you confirm, brings relevant context i
 
 Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
+## Desktop companion (current branch)
+
+The companion now opens in its own application window. Manage memory, review exact proposals, add lessons from outcomes, inspect connections, rate recalled advice, and configure application updates without a browser tab. It keeps your existing local database.
+
+The new delivery is a Windows setup executable, an Apple Silicon DMG containing Greybeard.app, and a Linux AppImage. The CLI and MCP servers are bundled inside. [Companion application and installation flow](docs/0.1/companion.md) · [Implementation coverage](docs/0.1/reviews/implementation-coverage.md).
+
+These source changes are not yet in the published 0.1 assets described below. The Companion application workflow builds downloadable installer candidates; signed publication is a separate explicit workflow operation. Whole-app update code is implemented, but anonymous updates require an accessible feed. The repository is currently private.
+
 ## Install Greybeard 0.1
 
 Download the assets from the [private 0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**.
@@ -109,7 +117,7 @@ greybeard connect disconnect
 
 No permissions are preselected. The connection command lists each candidate Application permission and its purpose. Configure and consent only the selected capabilities in Entra; Greybeard never creates the registration, grants permissions, or silently escalates access. Its app-only provider checks the returned application's identity and exact role selection and leaves unsuitable connections inactive. These checks do not prove minimum permissions.
 
-The implemented certificate-file provider checks ownership and private-key permissions on POSIX systems. Windows tenant connection remains unavailable until its protected credential provider is implemented and verified. Mentor-only setup remains available independently. Exact permission validation and certificate lifecycle requirements are tracked in [the implementation plan](docs/0.1/implementation-plan.md).
+The current source checks private-key ownership and permissions on POSIX and Windows. Windows checks the same file handle it reads and permits the current user plus SYSTEM and local Administrators as the OS recovery boundary. The previously published 0.1 build still has its earlier Windows limitation. Mentor-only setup remains available independently. Exact permission validation and certificate lifecycle requirements are tracked in [the implementation plan](docs/0.1/implementation-plan.md).
 
 Tenant tools use explicit Microsoft Graph `/beta` reads. **Production tenant writes, approval tools, and delegated permission mutation are disabled in 0.1.** Change planning skills prepare a reviewable brief for your existing execution workflow.
 

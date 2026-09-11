@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a091ba-8cf1-7e01-9770-0175fe59ac8b"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I can’t confirm it for you through the CLI. Your AGENTS.md requires human confirmation: “Never perform this human confirmation for them or invent a chat/automation exception.”\n\nReview the exact candidate in the Greybeard companion, or run this in your own terminal:\n\n```bash\ngreybeard memory confirm --id <id>\n```"}}
+{"type":"turn.completed","usage":{"input_tokens":12242,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":72,"reasoning_output_tokens":0}}

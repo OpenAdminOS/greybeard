@@ -21,6 +21,7 @@ import { parseArgs } from "./args.js";
 import { runApprove } from "./approve.js";
 import {
   codexAuthPath,
+  claudeFallbackPath,
   codexConfigPath,
   codexFallbackPath,
   claudeDesktopConfigPath,
@@ -43,6 +44,7 @@ import {
   repoSkillsDir,
   wireClaudeSkills,
   writeClaudeMcpConfig,
+  writeClaudeSkillFallback,
   writeClaudeDesktopMcpConfig,
   writeClaudeMemoryHook,
   writeCodexMcpConfig,
@@ -558,7 +560,12 @@ describe("greybeard CLI", () => {
 
     expect(cursor.detected).toBe(true);
     expect(cursor.binaryPath).toBeNull();
-    expect(cursor.userConfigPath).toBe(join(paths.home, "Programs", "cursor"));
+    expect(cursor.userConfigPath).toBe(cursorMcpConfigPath(paths.home));
+    expect(cursor.detectionDetail).toContain(join(paths.home, "Programs", "cursor"));
+    await writeCursorMcpConfig(runtime);
+    expect(await runCli(["uninstall", "--client", "Cursor"], runtime)).toBe(0);
+    const config = JSON.parse(await readFile(cursorMcpConfigPath(paths.home), "utf8"));
+    expect(config.mcpServers["greybeard-memory"]).toBeUndefined();
   });
 
   it("skips Gemini setup writes when only the shared Gemini directory exists", async () => {
@@ -755,6 +762,8 @@ describe("greybeard CLI", () => {
     await mkdir(join(paths.home, ".codex"), { recursive: true });
     await mkdir(join(paths.home, ".gemini"), { recursive: true });
     await mkdir(join(paths.home, ".copilot"), { recursive: true });
+    await mkdir(join(paths.home, ".claude"), { recursive: true });
+    await writeFile(claudeFallbackPath(paths.home), "Existing Claude notes\n", "utf8");
     await writeFile(cursorFallbackPath(paths.home), "Existing Cursor rule\n", "utf8");
     await writeFile(codexFallbackPath(paths.home), "Existing Codex notes\n", "utf8");
     await writeFile(geminiFallbackPath(paths.home), "Existing Gemini notes\n", "utf8");
@@ -768,6 +777,13 @@ describe("greybeard CLI", () => {
     await writeGeminiSkillFallback(runtime);
     await writeCopilotSkillFallback(runtime);
     await writeCopilotSkillFallback(runtime);
+    await writeClaudeSkillFallback(runtime);
+    const again = await writeClaudeSkillFallback(runtime);
+    expect(again.status).toBe("already-configured");
+    const claude = await readFile(claudeFallbackPath(paths.home), "utf8");
+    expect(claude).toContain("Existing Claude notes");
+    expect(countOccurrences(claude, "<!-- GREYBEARD SKILLS START -->")).toBe(1);
+    expect(claude).toContain("Never perform this human confirmation");
 
     const cursor = await readFile(cursorFallbackPath(paths.home), "utf8");
     const codex = await readFile(codexFallbackPath(paths.home), "utf8");
@@ -791,6 +807,39 @@ describe("greybeard CLI", () => {
     expect(cursor.startsWith("---\n")).toBe(true);
     expect(cursor).toContain("alwaysApply: true");
     expect(countOccurrences(cursor, "alwaysApply:")).toBe(1);
+  });
+
+  it("installs MCP and context in custom host configuration directories", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    runtime.env.CLAUDE_CONFIG_DIR = join(paths.home, "claude-work");
+    runtime.env.CODEX_HOME = join(paths.home, "codex-work");
+    await writeClaudeMcpConfig(runtime);
+    await writeClaudeSkillFallback(runtime);
+    await writeCodexMcpConfig(runtime);
+    await writeCodexSkillFallback(runtime);
+    const claude = JSON.parse(await readFile(join(runtime.env.CLAUDE_CONFIG_DIR, ".claude.json"), "utf8"));
+    expect(claude.mcpServers["greybeard-memory"]).toBeDefined();
+    expect(await readFile(join(runtime.env.CLAUDE_CONFIG_DIR, "CLAUDE.md"), "utf8")).toContain("Greybeard Memory");
+    expect(await readFile(join(runtime.env.CODEX_HOME, "config.toml"), "utf8")).toContain("[mcp_servers.greybeard-memory]");
+    expect(await readFile(join(runtime.env.CODEX_HOME, "AGENTS.md"), "utf8")).toContain("Greybeard Memory");
+    expect(await pathExists(join(paths.home, ".claude.json"))).toBe(false);
+    expect(await pathExists(join(paths.home, ".codex", "AGENTS.md"))).toBe(false);
+  });
+
+  it("uninstalls Codex MCP configuration without touching account authentication", async () => {
+    const paths = await tempPaths();
+    const runtime = createMockRuntime(paths);
+    await mkdir(join(paths.home, ".codex"), { recursive: true });
+    const auth = JSON.stringify({ fixture: "not-a-real-credential" });
+    await writeFile(codexAuthPath(paths.home), auth);
+    await writeCodexMcpConfig(runtime);
+    const detected = await detectCodexCli(runtime);
+    expect(detected.userConfigPath).toBe(codexConfigPath(paths.home));
+    expect(detected.detected).toBe(true);
+    expect(await runCli(["uninstall", "--client", "Codex CLI"], runtime)).toBe(0);
+    expect(await readFile(codexConfigPath(paths.home), "utf8")).not.toContain("mcp_servers.greybeard-memory");
+    expect(await readFile(codexAuthPath(paths.home), "utf8")).toBe(auth);
   });
 
   it("upgrades an old-format context block in place", async () => {

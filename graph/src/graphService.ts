@@ -138,6 +138,7 @@ export class GraphService {
         headers: requestHeaders(token.accessToken, normalized.headers, false)
       }, meta, token);
       const data = await parseResponseData(response);
+      if (isObject(data) && typeof data["@odata.nextLink"] === "string") meta.truncated = true;
       meta.pages += 1;
       this.session.pages += 1;
       meta.session = this.getSessionMetadata();
@@ -154,7 +155,7 @@ export class GraphService {
       const continuation = new URL(nextUrl);
       if (continuation.origin !== GRAPH_ROOT || continuation.username || continuation.password || continuation.hash || continuation.pathname !== new URL(firstUrl).pathname) throw new Error("Untrusted Graph continuation URL; no credential was forwarded.");
       if (visited.has(nextUrl)) throw new Error("Graph paging repeated a continuation URL.");
-      if (meta.pages >= MAX_PAGES) { meta.truncated = true; break; }
+      if (meta.pages >= normalized.maxPages) { meta.truncated = true; break; }
       visited.add(nextUrl);
       const response = await this.fetchWithRetry(nextUrl, {
         method: "GET",
@@ -318,12 +319,18 @@ function uniqueScopes(scopes: readonly string[]): string[] {
   });
 }
 
-type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVersion" | "path" | "fetchAll" | "maxItems">> & {
+type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVersion" | "path" | "fetchAll" | "maxItems" | "maxPages">> & {
   query: NonNullable<GraphToolInput["query"]>;
   headers: NonNullable<GraphToolInput["headers"]>;
   body: unknown;
   apiVersionExplicitlySet: boolean;
 };
+
+function validPageLimit(value: number | undefined): number {
+  if (value === undefined) return MAX_PAGES;
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PAGES) throw new Error("maxPages must be an integer from 1 to 50.");
+  return value;
+}
 
 function normalizeInput(input: GraphToolInput): NormalizedGraphToolInput {
   if (input.apiVersion && input.apiVersion !== "beta") throw new Error("Greybeard uses the Microsoft Graph beta endpoint.");
@@ -338,6 +345,7 @@ function normalizeInput(input: GraphToolInput): NormalizedGraphToolInput {
     body: method === "POST" && path === "/$batch" ? parseBatchBody(input.body) : input.body,
     fetchAll: input.fetchAll ?? false,
     maxItems: input.maxItems ?? DEFAULT_MAX_ITEMS,
+    maxPages: validPageLimit(input.maxPages),
     apiVersionExplicitlySet: input.apiVersion !== undefined
   };
 }

@@ -8,6 +8,7 @@ import {
   type ConfirmInput, type EdgeRelation, type ForgetInput, type ForgetResult,
   type ListInput, type ListResult, type MemoryExport, type MemoryLinkInput,
   type MemoryNode, type MemoryStatus, type MemoryType, type RecallInput,
+  type EvidenceKind, type DiscoverScopesInput, type DiscoverScopesResult, type OutcomeInput, type AdviceFeedback, type AdviceMetrics, type AdviceEvent,
   type RecallResult, type RecallStatus, type RecallResultNode, type RememberInput, type RememberResult
 } from "./types.js";
 
@@ -36,6 +37,7 @@ type NodeRow = {
   id: number; revision: string; type: MemoryType; content: string; tenant: string;
   created_at: number; last_used_at: number; profile_id: string;
   status: MemoryStatus; source: string; scope: string; confirmed_at: number | null;
+  evidence_kind: EvidenceKind; observed_at: number | null; outcome: string | null;
   confirmed_by: string | null; supersedes: number | null; superseded_at: number | null;
 };
 type MatchRow = NodeRow & { rank: number };
@@ -86,7 +88,7 @@ export class MemoryService {
     const now = this.nowSeconds();
     this.expireQueries(now);
     const matches = this.searchMatches(query, scope, limit);
-    const matched = matches.map(row => ({ ...toRecallMemory(row), matched: true }));
+    const matched = matches.map(row => ({ ...toRecallMemory(row, this.nowSeconds()), matched: true }));
     const expanded = this.expandOneHop(matched, scope);
     const results: RecallResultNode[] = [];
     let serializedBytes = 0;
@@ -119,7 +121,15 @@ export class MemoryService {
       "budget-excluded": "Matching confirmed guidance did not fit the recall byte budget. No remembered guidance was returned.",
       paused: "Greybeard learning and advice are paused. No remembered guidance was returned."
     };
+    const recallId = randomUUID();
+    if (recallStatus !== "paused") {
+      this.db.prepare("INSERT INTO advice_events(id,tenant,profile_id,created_at,status,bytes,node_ids) VALUES(@id,@tenant,@profile,@now,@status,@bytes,@nodeIds)")
+        .run({ ...this.identity(), id: recallId, now: this.nowSeconds(), status: recallStatus, bytes: serializedBytes, nodeIds: JSON.stringify(results.map(node=>({id:node.id,revision:this.requireNode(node.id).revision}))) });
+      // Bound local aggregate history; never persist prompts or model responses.
+      this.db.prepare("DELETE FROM advice_events WHERE tenant=@tenant AND profile_id=@profile AND id NOT IN (SELECT id FROM advice_events WHERE tenant=@tenant AND profile_id=@profile ORDER BY created_at DESC,rowid DESC LIMIT 10000)").run(this.identity());
+    }
     return {
+      ...(recallStatus !== "paused" ? { recallId } : {}),
       tenant: this.tenant, profileId: this.profileId,
       message: recallStatus === "recalled" ? "memory recalled" : recallStatus === "no-match" ? "no memory for this yet" : recallStatus === "paused" ? "advice paused" : "no guidance fits byte budget",
       results, recallStatus,
@@ -141,7 +151,12 @@ export class MemoryService {
     validateLabel(scope, "scope");
     enforcePrivacy(source);
     enforcePrivacy(scope);
+    const evidenceKind = input.evidenceKind ?? (input.type === "preference" || input.type === "decision" ? "rule" : input.type === "fact" ? "observation" : "context");
+    if (!["rule", "observation", "inference", "context"].includes(evidenceKind)) throw invalid("Invalid evidence kind.");
     const now = this.nowSeconds();
+    if (input.observedAt !== undefined && (!Number.isSafeInteger(input.observedAt) || input.observedAt < 0 || input.observedAt > now)) throw invalid("observedAt must be UTC epoch seconds in the past or present.");
+    if (input.outcome !== undefined && (!input.outcome.trim() || Buffer.byteLength(input.outcome,"utf8") > 2048)) throw invalid("Outcome must be between 1 and 2048 UTF-8 bytes.");
+    if (input.outcome) enforcePrivacy(input.outcome);
     return this.db.transaction(() => {
       if (input.supersedes !== undefined) {
         const original = this.requireNode(input.supersedes);
@@ -150,9 +165,9 @@ export class MemoryService {
         }
       }
       const result = this.db.prepare(`INSERT INTO nodes
-        (type,content,tenant,profile_id,created_at,last_used_at,status,source,scope,supersedes,revision)
-        VALUES (@type,@content,@tenant,@profile,@now,@now,'candidate',@source,@scope,@supersedes,@revision)`)
-        .run({ type: input.type, content, ...this.identity(), now, source, scope, supersedes: input.supersedes ?? null, revision: randomUUID() });
+        (type,content,tenant,profile_id,created_at,last_used_at,status,source,scope,supersedes,revision,evidence_kind,observed_at,outcome)
+        VALUES (@type,@content,@tenant,@profile,@now,@now,'candidate',@source,@scope,@supersedes,@revision,@evidenceKind,@observedAt,@outcome)`)
+        .run({ type: input.type, content, ...this.identity(), now, source, scope, supersedes: input.supersedes ?? null, revision: randomUUID(), evidenceKind, observedAt: input.observedAt ?? null, outcome: input.outcome?.trim() ?? null });
       const id = Number(result.lastInsertRowid);
       const linked = this.writeLinks(id, input.links ?? []);
       this.evictCandidates(now, id);
@@ -198,10 +213,13 @@ export class MemoryService {
     const limit = normalizeLimit(input.limit, MAX_LIMIT);
     if (input.cursor !== undefined && (!Number.isSafeInteger(input.cursor) || input.cursor < 1)) throw invalid("Invalid list cursor.");
     if (input.status !== undefined && !["candidate", "confirmed"].includes(input.status)) throw invalid("Invalid memory status.");
+    if (input.query !== undefined && Buffer.byteLength(input.query,"utf8") > 512) throw invalid("Search query is too long.");
+    if (input.scope !== undefined) validateLabel(input.scope,"scope");
     const rows = this.db.prepare(`SELECT * FROM nodes WHERE tenant = @tenant AND profile_id = @profile
       AND (@type IS NULL OR type = @type) AND (@status IS NULL OR status = @status)
+      AND (@query IS NULL OR instr(lower(content),lower(@query)) > 0) AND (@scope IS NULL OR scope=@scope)
       AND (@cursor IS NULL OR id < @cursor) ORDER BY id DESC LIMIT @limit`)
-      .all({ ...this.identity(), type: input.type ?? null, status: input.status ?? null, cursor: input.cursor ?? null, limit: limit + 1 }) as NodeRow[];
+      .all({ ...this.identity(), type: input.type ?? null, status: input.status ?? null, cursor: input.cursor ?? null, query: input.query?.trim() || null, scope: input.scope ?? null, limit: limit + 1 }) as NodeRow[];
     const page = rows.slice(0, limit);
     return { tenant: this.tenant, results: page.map(toMemoryNode), ...(rows.length > limit ? { nextCursor: page.at(-1)!.id } : {}) };
   }
@@ -236,6 +254,70 @@ export class MemoryService {
     return { tenant: this.tenant, deleted };
   }
 
+  /** Discovery reveals bounded scope labels, never scoped content or automatic applicability. */
+  async discoverScopes(input: DiscoverScopesInput = {}): Promise<DiscoverScopesResult> {
+    if (input.query !== undefined && Buffer.byteLength(input.query,"utf8") > 512) throw invalid("Scope query is too long.");
+    if (input.cursor !== undefined) validateLabel(input.cursor,"cursor");
+    const paused = readLocalConfig(this.appDataPath).learningEnabled === false;
+    const limit = Math.min(20, normalizeLimit(input.limit, 10));
+    const queryTokens = tokenizeForSearch(input.query ?? "");
+    const match = ftsAnyQuery([...new Set(queryTokens.flatMap(token => SEARCH_SYNONYMS[token] ?? [token]))]);
+    const rows = paused ? [] : this.db.prepare(`SELECT n.scope,COUNT(*) AS confirmedCount FROM nodes n
+      WHERE ${applicableSql().replace("AND (n.scope='global' OR n.scope=@scope)", "")}
+      AND n.scope!='global' AND (@cursor IS NULL OR n.scope>@cursor)
+      AND (@match IS NULL OR n.id IN (SELECT rowid FROM nodes_fts WHERE nodes_fts MATCH @match) OR instr(lower(n.scope),lower(@query))>0)
+      GROUP BY n.scope ORDER BY n.scope LIMIT @limit`)
+      .all({ ...this.identity(), cursor: input.cursor ?? null, query: input.query?.trim() || null, match, limit: limit+1 }) as Array<{scope:string;confirmedCount:number}>;
+    return { tenant:this.tenant, profileId:this.profileId, scopes:rows.slice(0,limit),
+      ...(rows.length>limit ? {nextCursor:rows[limit-1]!.scope} : {}), paused,
+      guidance:"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable." };
+  }
+
+  async proposeOutcome(input: OutcomeInput): Promise<RememberResult> {
+    if (!input.outcome?.trim() || !input.source?.trim()) throw invalid("An outcome and its source are required.");
+    return this.remember({ type:"decision", content:input.lesson, outcome:input.outcome, source:input.source,
+      scope:input.scope, evidenceKind:"rule", observedAt:input.observedAt });
+  }
+
+  /** Human feedback through local controls only; not an MCP tool. */
+  async recordAdviceFeedback(input: {recallId:string;feedback:AdviceFeedback}): Promise<void> {
+    if (!["accepted","ignored","irrelevant"].includes(input.feedback)) throw invalid("Invalid advice feedback.");
+    const changed = this.db.prepare("UPDATE advice_events SET feedback=@feedback WHERE id=@id AND tenant=@tenant AND profile_id=@profile AND status='recalled'")
+      .run({...this.identity(),id:input.recallId,feedback:input.feedback}).changes;
+    if (!changed) throw invalid("No recalled advice event was found in this profile.");
+  }
+
+  async adviceMetrics(): Promise<AdviceMetrics> {
+    const row = this.db.prepare(`SELECT COUNT(*) AS recalls, COALESCE(SUM(status='recalled'),0) AS guidanceRecalls,
+      COALESCE(SUM(bytes),0) AS recalledBytes, COALESCE(SUM(feedback='accepted'),0) AS accepted,
+      COALESCE(SUM(feedback='ignored'),0) AS ignored, COALESCE(SUM(feedback='irrelevant'),0) AS irrelevant
+      FROM advice_events WHERE tenant=@tenant AND profile_id=@profile`).get(this.identity()) as
+      Pick<AdviceMetrics,"recalls"|"guidanceRecalls"|"recalledBytes"|"accepted"|"ignored"|"irrelevant">;
+    const rated=row.accepted+row.ignored+row.irrelevant;
+    return {...row,rated,irrelevantRate:rated ? row.irrelevant/rated : null,
+      acceptedPerKiB:row.recalledBytes ? row.accepted/(row.recalledBytes/1024) : null,
+      measurement:"local-retrieval-and-explicit-feedback",billing:"not-measured"};
+  }
+
+  async adviceHistory(limit = 20): Promise<AdviceEvent[]> {
+    const rows = this.db.prepare(`SELECT id AS recallId,created_at AS createdAt,bytes AS serializedBytes,node_ids AS nodeIds,feedback
+      FROM advice_events WHERE tenant=@tenant AND profile_id=@profile AND status='recalled'
+      ORDER BY created_at DESC,rowid DESC LIMIT @limit`).all({...this.identity(),limit:normalizeLimit(limit,20)}) as Array<Omit<AdviceEvent,"memoryIds"|"memories"> & {nodeIds:string}>;
+    return rows.map(({nodeIds,...row})=>{
+      const refs=JSON.parse(nodeIds) as Array<{id:number;revision:string}>;
+      const memories=refs.map(ref=>{
+        const node=this.db.prepare("SELECT content FROM nodes WHERE id=@id AND revision=@revision AND tenant=@tenant AND profile_id=@profile")
+          .get({...this.identity(),id:ref.id,revision:ref.revision}) as {content:string}|undefined;
+        return {id:ref.id,content:node?.content ?? null};
+      });
+      return {...row,memoryIds:refs.map(ref=>ref.id),memories};
+    });
+  }
+
+  async clearAdviceMetrics(): Promise<void> {
+    this.db.prepare("DELETE FROM advice_events WHERE tenant=@tenant AND profile_id=@profile").run(this.identity());
+  }
+
   private identity() { return { tenant: this.tenant, profile: this.profileId }; }
   private nowSeconds(): number {
     const value = this.nowProvider();
@@ -266,20 +348,16 @@ export class MemoryService {
   }
   private searchMatches(query: string, scope: string, limit: number): MatchRow[] {
     const tokens = tokenizeForSearch(query);
-    const all = ftsAllQuery(tokens);
-    if (!all) return [];
-    const exact = this.runFtsSearch(all, scope, limit);
-    if (exact.length || tokens.length <= 1) return exact;
-    return this.runFtsSearch(ftsAnyQuery(tokens)!, scope, limit);
-  }
-  private runFtsSearch(match: string, scope: string, limit: number): MatchRow[] {
+    if (!tokens.length) return [];
+    const expanded = [...new Set(tokens.flatMap(token => SEARCH_SYNONYMS[token] ?? [token]))];
     const rows = this.db.prepare(`SELECT n.*,bm25(nodes_fts) AS rank FROM nodes_fts
       JOIN nodes n ON n.id=nodes_fts.rowid WHERE nodes_fts MATCH @match AND ${applicableSql()}
-      ORDER BY rank ASC LIMIT @limit`).all({ ...this.identity(), match, scope, limit: limit * 3 }) as MatchRow[];
-    return rows.sort((a,b) => this.scoreMatch(b,this.nowSeconds()) - this.scoreMatch(a,this.nowSeconds())).slice(0,limit);
-  }
-  private scoreMatch(row: MatchRow, now: number): number {
-    return -Number(row.rank) + memoryTypePolicy(row.type).recallBoost + Math.max(0,30-(now-row.last_used_at)/SECONDS_PER_DAY);
+      ORDER BY rank ASC LIMIT 150`).all({ ...this.identity(), match: ftsAnyQuery(expanded), scope }) as MatchRow[];
+    return rows.filter(row => !isGenericAdvice(row.content) || /(?:advice|preference|style|mentor)/iu.test(query))
+      .map(row => ({ row, relevance: relevanceScore(tokens, row.content) }))
+      .filter(item => item.relevance >= (tokens.length === 1 ? 1 : 0.5))
+      .sort((a,b) => b.relevance-a.relevance || memoryTypePolicy(b.row.type).recallBoost-memoryTypePolicy(a.row.type).recallBoost || a.row.rank-b.row.rank)
+      .slice(0,limit).map(item => item.row);
   }
   private expandOneHop(matched: RecallResultNode[], scope: string): RecallResultNode[] {
     const seen = new Set(matched.map(n => n.id));
@@ -294,7 +372,7 @@ export class MemoryService {
         if (row.relation === "exception_to" && row.edge_source !== row.id) continue;
         if (seen.has(row.id) && row.relation !== "exception_to") continue;
         seen.add(row.id);
-        expanded.push({ ...toRecallMemory(row), matched: false, linkedFrom: node.id, relation: row.relation });
+        expanded.push({ ...toRecallMemory(row, this.nowSeconds()), matched: false, linkedFrom: node.id, relation: row.relation });
       }
     }
     return expanded;
@@ -352,10 +430,13 @@ function normalizeBudget(value: number | undefined): number {
 function toMemoryNode(row: NodeRow): MemoryNode {
   return { id: row.id,revision: row.revision,type: row.type,content: row.content,tenant: row.tenant,createdAt: row.created_at,lastUsedAt: row.last_used_at,
     profileId: row.profile_id,status: row.status,source: row.source,scope: row.scope,confirmedAt: row.confirmed_at,
-    confirmationChannel: row.confirmed_by,supersedes: row.supersedes,supersededAt: row.superseded_at };
+    confirmationChannel: row.confirmed_by,supersedes: row.supersedes,supersededAt: row.superseded_at,
+    evidenceKind: row.evidence_kind, observedAt: row.observed_at, outcome: row.outcome };
 }
-function toRecallMemory(row: NodeRow): Omit<RecallResultNode, "matched"> {
-  return { id: row.id, type: row.type, content: row.content, status: row.status, source: row.source, scope: row.scope };
+function toRecallMemory(row: NodeRow, now: number): Omit<RecallResultNode, "matched"> {
+  return { id: row.id, type: row.type, content: row.content, status: row.status, source: row.source, scope: row.scope,
+    evidenceKind: row.evidence_kind, observedAt: row.observed_at, verificationRequired: row.evidence_kind === "observation" || row.evidence_kind === "inference",
+    evidenceAgeSeconds: row.observed_at === null ? null : Math.max(0,now-row.observed_at) };
 }
 
 export function enforcePrivacy(content: string, type?: MemoryType): void {
@@ -447,14 +528,6 @@ function uniqueTokens(value: string): string[] {
   return [...new Set(tokens.filter((token) => token.length >= 2))];
 }
 
-function ftsAllQuery(tokens: string[]): string | null {
-  if (tokens.length === 0) {
-    return null;
-  }
-
-  return tokens.map(quoteFtsToken).join(" ");
-}
-
 function ftsAnyQuery(tokens: string[]): string | null {
   if (tokens.length === 0) {
     return null;
@@ -465,4 +538,25 @@ function ftsAnyQuery(tokens: string[]): string | null {
 
 function quoteFtsToken(token: string): string {
   return `"${token.replaceAll("\"", "\"\"")}"`;
+}
+
+// Small transparent vocabulary expansion; no model call or claim of semantic completeness.
+const SEARCH_SYNONYMS: Record<string,string[]> = {};
+for (const group of [
+  ["pilot","ring","staged","canary"], ["helpdesk","support","service-desk"],
+  ["rollout","deployment","deploy","rollouts"], ["device","devices","endpoint","endpoints"],
+  ["compliance","compliant"], ["user","users","account","accounts"],
+  ["delete","remove","cleanup","retire"], ["review","check","assess"],
+  ["retain","keep","retention"], ["change","changes","changing"], ["policy","policies"]
+]) for (const token of group) SEARCH_SYNONYMS[token]=group;
+function relevanceScore(tokens: string[], content: string): number {
+  const words=new Set(uniqueTokens(content));
+  const matched=tokens.filter(token => (SEARCH_SYNONYMS[token] ?? [token]).some(word => words.has(word) || words.has(word.replace(/s$/u,""))));
+  if (!matched.length) return 0;
+  // Two task concepts or a strong single-term query; long natural questions are tolerated.
+  return matched.length >= 2 ? 1 + matched.length/tokens.length : 1/tokens.length;
+}
+function isGenericAdvice(content: string): boolean {
+  return /(?:proactively provide|provide relevant recommendations|give helpful advice|informed by confirmed|be (?:helpful|careful|proactive))/iu.test(content)
+    && !/\d|unless|except|before|after|must|required|require|because/iu.test(content);
 }

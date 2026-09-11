@@ -1,0 +1,102 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "01",
+  "fixture": "lesson",
+  "prompt": "I am planning to change an Intune compliance policy for all Windows devices. Help me plan it. Do not make tenant changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Plan an Intune compliance policy change for all Windows devices; no tenant changes."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan an Intune compliance policy change for all Windows devices; no tenant changes."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"a1f64dca-aef1-4918-a9de-47f66f4efa2b\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":324,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":324,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "a1f64dca-aef1-4918-a9de-47f66f4efa2b",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 324,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 324,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-planning skill and check relevant local guidance to build a rollout and rollback plan. I won\u2019t make tenant changes.\n\nWe can prepare the plan without making tenant changes. Current settings and assignments are unverified, so pilot containment remains unresolved.\n\nGreybeard memory **#1** says: \u201ckeep the pilot for 48 hours and require helpdesk review before expanding.\u201d I\u2019ll include that checkpoint; helpdesk review does not itself authorize expansion.\n\nThe draft plan is:\n\n1. **Define the change:** Record the policy ID, exact current and proposed settings, intended outcome, affected Windows devices, and acceptable disruption.\n2. **Capture the baseline:** Export settings, assignments, exclusions, filters, and scheduled actions for noncompliance. Check overlapping policies and Conditional Access dependencies that could turn noncompliance into blocked access.\n3. **Establish pilot targeting:** Editing an existing broadly assigned policy exposes its entire assigned population. Consider a separately targeted policy or an explicit targeting transition only after checking memberships, overlap, and how the original policy would still apply.\n4. **Review before rollout:** Compare the proposed settings and targeting offline, identify likely affected devices, and document recovery steps. This is planning, not a tenant dry run.\n5. **Evaluate the pilot:** Keep it for **48 hours**, checking device check-ins, setting-level compliance, access failures, and support incidents. Require helpdesk review before expansion, with manual stop checkpoints for unexpected impact or insufficient evidence.\n6. **Expand and verify:** Use agreed stages through your existing change workflow. At each checkpoint, verify compliance and access against the baseline.\n7. **Roll back if needed:** Restore the recorded settings and reverse targeting changes, then verify device reevaluation and access recovery. Removing an assignment does not undo an in-place setting change.\n\nWhich tenant and policy are involved, what setting values do you want to change, and what disruption or rollback constraints must the plan accommodate?",
+  "usage": [
+    {
+      "input_tokens": 57453,
+      "cached_input_tokens": 40576,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 700,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

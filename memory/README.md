@@ -37,3 +37,68 @@ conversation when checking that a correction or deletion changes advice.
 ## Scope selection
 
 Omitting `scope` searches global guidance only. To recall a lesson stored under `devices`, explicitly pass `scope: "devices"`; that also includes applicable global guidance. A matching task summary alone does not select a named scope. Reliable scope selection by the host remains a client integration requirement.
+
+`discover_scopes` makes scope selection explicit: it returns up to 20 labels and
+matching confirmed counts in the bound tenant/profile, with a lexical cursor for
+further pages. An optional short task query uses bounded vocabulary expansion.
+No scoped content is returned, no scope is automatically applied, and paused
+advice returns no discovered labels. The host must select a scope that actually
+applies, then pass its exact label to `recall`. Exceptions remain scoped and can
+suppress a general rule when only the exception fits the byte budget.
+
+## Relevance and evidence
+
+Retrieval uses FTS plus a small transparent vocabulary for common admin terms
+(such as pilot/ring, rollout/deployment and device/endpoint). Task concept overlap
+ranks ahead of type preference. Generic mentoring boilerplate is suppressed for
+operational queries, while explicit style/preference queries can still retrieve
+it. This is bounded lexical matching, not a semantic model or a guarantee that
+every paraphrase will match. No continuous model call is introduced.
+
+Records distinguish `rule`, `observation`, `inference` and `context` evidence.
+Preferences and decisions default to rules; facts default to observations.
+`observedAt` is UTC epoch seconds when the evidence was observed, or null when
+unknown. It is never inferred from creation or confirmation and never refreshed
+by recall. Recall includes the evidence kind, timestamp and age in seconds.
+Observations and inferences always set `verificationRequired: true`; confirmation
+means an admin accepted the local record, not that old inventory became current
+or an inferred explanation became proven. These fields count within the byte cap.
+
+Schema 4 preserves existing records, revisions, confirmations, links and scopes.
+Historical facts receive observation kind with unknown observation time, so an
+upgrade does not manufacture evidence of freshness.
+
+## Learning from an outcome
+
+`propose_outcome` accepts one concise reusable `lesson`, a separate reported
+`outcome`, its `source`, and optional scope and observation timestamp. It creates
+a decision candidate, never confirmed guidance. The companion can display the
+reported outcome beside the lesson before exact-record local confirmation.
+Corrections use the existing `remember({ supersedes })` lifecycle and remain
+candidates until reviewed. Neither chat assent nor an automated tool can confirm
+memory. Local memory actions do not activate or change tenant policies.
+
+## Local feedback and context measurement
+
+Each non-paused recall gets a `recallId`. A local bounded history stores its
+status, date, returned memory IDs and revisions, serialized bytes and optional human feedback.
+It never stores the query, provider credentials, model response or another copy
+of memory content. History is limited to the most recent 10,000 recall events in
+each tenant/profile. Paused recall does not add an event.
+
+`adviceHistory()` supplies recent recalled events to local controls, resolving
+content only when the original ID and revision still exist. Forgotten memory
+content is not retained in the history and a reused ID cannot substitute new text.
+`recordAdviceFeedback({ recallId, feedback })` accepts `accepted`, `ignored` or
+`irrelevant`, with one editable rating per event. These controls are deliberately
+absent from MCP so an agent cannot grade its own usefulness. `adviceMetrics()`
+reports recall counts, returned bytes, explicit ratings, irrelevant share among
+rated events and accepted ratings per KiB of recalled context. Retrieval is not
+an interruption or proof that advice was displayed: unrated events remain
+unrated. The metrics report `billing: "not-measured"`; the host/provider must
+supply actual token usage and billing separately. `clearAdviceMetrics()` deletes
+this profile's history without deleting its lessons. These aggregates describe
+the bounded local history, not lifetime totals.
+
+Local `list` supports literal content search plus exact scope, type and status
+filters before pagination. Export continues to include all records and evidence.

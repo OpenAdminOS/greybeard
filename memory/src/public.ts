@@ -14,6 +14,13 @@ export {
   isGreybeardMemoryError
 } from "./types.js";
 export type {
+  EvidenceKind,
+  DiscoverScopesInput,
+  DiscoverScopesResult,
+  OutcomeInput,
+  AdviceFeedback,
+  AdviceEvent,
+  AdviceMetrics,
   ConfirmInput,
   MemoryExport,
   MemoryStatus,

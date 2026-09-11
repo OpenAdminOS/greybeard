@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { getGreybeardAppDataPath, type ServerPackageSource, type ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime, runtimeCommand } from "./runtime.js";
+import { HOST_MEMORY_GUIDANCE } from "./hostGuidance.js";
 import {
   enabledCatalogServers,
   findCatalogServer,
@@ -117,7 +118,7 @@ type StdioServerDefinition = {
 };
 
 export async function detectClaudeCode(runtime: CliRuntime): Promise<ClaudeDetection> {
-  const configPath = claudeConfigPath(runtime.homeDir);
+  const configPath = claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
   const [binaryPath, configSignal] = await Promise.all([
     runtime.findExecutable("claude"),
     claudeConfigDetectionSignal(configPath)
@@ -133,16 +134,19 @@ export async function detectClaudeCode(runtime: CliRuntime): Promise<ClaudeDetec
 
 export async function detectCursor(runtime: CliRuntime): Promise<ClientDetection> {
   const appPath = cursorAppPath(runtime);
-  const [binaryPath, appExists] = await Promise.all([
+  const configPath = cursorMcpConfigPath(runtime.homeDir);
+  const [binaryPath, appExists, configExists] = await Promise.all([
     runtime.findExecutable("cursor"),
-    appPath ? fileExists(appPath) : Promise.resolve(false)
+    appPath ? fileExists(appPath) : Promise.resolve(false),
+    fileExists(configPath)
   ]);
   return {
     name: "Cursor",
     detected: Boolean(binaryPath || appExists),
     binaryPath,
-    userConfigPath: appPath ?? cursorMcpConfigPath(runtime.homeDir),
-    userConfigExists: appExists
+    userConfigPath: configPath,
+    userConfigExists: configExists,
+    ...(appExists ? { detectionDetail: `installed app at ${appPath}` } : {})
   };
 }
 
@@ -173,17 +177,20 @@ export async function detectClaudeDesktop(runtime: CliRuntime): Promise<ClientDe
 }
 
 export async function detectCodexCli(runtime: CliRuntime): Promise<ClientDetection> {
-  const authPath = codexAuthPath(runtime.homeDir);
-  const [binaryPath, authExists] = await Promise.all([
+  const authPath = codexAuthPath(runtime.homeDir, runtime.env.CODEX_HOME);
+  const configPath = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
+  const [binaryPath, authExists, configExists] = await Promise.all([
     runtime.findExecutable("codex"),
-    fileExists(authPath)
+    fileExists(authPath),
+    fileExists(configPath)
   ]);
   return {
     name: "Codex CLI",
     detected: Boolean(binaryPath || authExists),
     binaryPath,
-    userConfigPath: authPath,
-    userConfigExists: authExists
+    userConfigPath: configPath,
+    userConfigExists: configExists,
+    ...(authExists ? { detectionDetail: "Codex account configuration present" } : {})
   };
 }
 
@@ -223,12 +230,12 @@ export async function detectAllClients(
   return Promise.all(clientNames().map((client) => CLIENT_ADAPTERS[client].detect(runtime, options)));
 }
 
-export function claudeConfigPath(homeDir: string): string {
-  return join(homeDir, ".claude.json");
+export function claudeConfigPath(homeDir: string, configDir?: string): string {
+  return configDir ? join(configDir, ".claude.json") : join(homeDir, ".claude.json");
 }
 
-export function claudeSettingsPath(homeDir: string): string {
-  return join(homeDir, ".claude", "settings.json");
+export function claudeSettingsPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "settings.json");
 }
 
 export function claudeDesktopConfigPath(runtime: Pick<CliRuntime, "env" | "homeDir" | "platform">): string {
@@ -242,8 +249,12 @@ export function claudeDesktopConfigPath(runtime: Pick<CliRuntime, "env" | "homeD
   return join(runtime.homeDir, "Library", "Application Support", "Claude", "claude_desktop_config.json");
 }
 
-export function claudeSkillsDir(homeDir: string): string {
-  return join(homeDir, ".claude", "skills");
+export function claudeSkillsDir(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "skills");
+}
+
+export function claudeFallbackPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "CLAUDE.md");
 }
 
 export function cursorMcpConfigPath(homeDir: string): string {
@@ -258,20 +269,20 @@ export function cursorFallbackPath(homeDir: string): string {
   return join(homeDir, ".cursor", "rules", "greybeard.mdc");
 }
 
-export function codexConfigPath(homeDir: string): string {
-  return join(homeDir, ".codex", "config.toml");
+export function codexConfigPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "config.toml");
 }
 
-export function codexAuthPath(homeDir: string): string {
-  return join(homeDir, ".codex", "auth.json");
+export function codexAuthPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "auth.json");
 }
 
 export function codexSkillsDir(homeDir: string): string {
   return join(homeDir, ".agents", "skills");
 }
 
-export function codexFallbackPath(homeDir: string): string {
-  return join(homeDir, ".codex", "AGENTS.md");
+export function codexFallbackPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "AGENTS.md");
 }
 
 export function geminiSettingsPath(homeDir: string): string {
@@ -309,7 +320,7 @@ export async function writeClaudeMcpConfig(
   const result = await writeJsonMcpConfig({
     runtime,
     client: "Claude Code",
-    configPath: claudeConfigPath(runtime.homeDir),
+    configPath: claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR),
     shape: "stdio",
     options
   });
@@ -320,7 +331,7 @@ export async function inspectClaudeMcpConfig(
   runtime: CliRuntime,
   options: InspectServerOptions = {}
 ): Promise<ClaudeMcpConfigResult> {
-  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir), options);
+  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR), options);
   return withoutClient(result);
 }
 
@@ -408,7 +419,7 @@ export async function writeCodexMcpConfig(
   runtime: CliRuntime,
   options: ServerConfigOptions = {}
 ): Promise<ClientMcpConfigResult> {
-  const configPath = codexConfigPath(runtime.homeDir);
+  const configPath = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
   const servers = await enabledServerDefinitions(runtime, options);
   return withClientConfigLock(configPath, async () => {
   const current = await readTextFile(configPath);
@@ -448,7 +459,7 @@ export async function inspectCodexMcpConfig(
   runtime: CliRuntime,
   options: InspectServerOptions = {}
 ): Promise<ClientMcpConfigResult> {
-  const path = codexConfigPath(runtime.homeDir);
+  const path = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
   try {
     const text = await readTextFile(path);
     const missing = enabledCatalogServers(options.serverToggles)
@@ -500,7 +511,7 @@ function pruneClaudeMemoryHooks(root: Record<string, unknown>, runtime: CliRunti
 }
 
 export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void> {
-  const path = claudeSettingsPath(runtime.homeDir);
+  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
   try { await lstat(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
   await withClientConfigLock(path, async () => {
     const root = await readJsonObject(path);
@@ -510,7 +521,7 @@ export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void>
 }
 
 export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
-  const path = claudeSettingsPath(runtime.homeDir);
+  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
   return withClientConfigLock(path, async () => {
   const root = await readJsonObject(path);
   pruneClaudeMemoryHooks(root, runtime);
@@ -529,7 +540,7 @@ export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<Claude
 }
 
 export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
-  const path = claudeSettingsPath(runtime.homeDir);
+  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
   try {
     const root = await readJsonObject(path);
     const hooks = isObject(root.hooks) ? root.hooks : {};
@@ -549,11 +560,11 @@ export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<Clau
 }
 
 export async function wireClaudeSkills(runtime: CliRuntime): Promise<SkillWireResult> {
-  return wireSkillsToDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir));
+  return wireSkillsToDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function inspectClaudeSkillWiring(runtime: CliRuntime): Promise<SkillWireResult> {
-  return inspectSkillsInDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir));
+  return inspectSkillsInDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function wireClaudeDesktopSkills(runtime: CliRuntime): Promise<SkillWireResult> {
@@ -608,11 +619,19 @@ export async function wireClientSkills(runtime: CliRuntime, client: KnownClientN
 }
 
 export async function writeCodexSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return writeSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir), repoSkillsDir(runtime.repoRoot));
+  return writeSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir, runtime.env.CODEX_HOME), repoSkillsDir(runtime.repoRoot));
+}
+
+export async function writeClaudeSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
+  return writeSkillFallbackBlock("Claude Code", claudeFallbackPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR), repoSkillsDir(runtime.repoRoot));
+}
+
+export async function inspectClaudeSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
+  return inspectSkillFallbackBlock("Claude Code", claudeFallbackPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function inspectCodexSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return inspectSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir));
+  return inspectSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir, runtime.env.CODEX_HOME));
 }
 
 export async function writeGeminiSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
@@ -672,8 +691,8 @@ export const CLIENT_ADAPTERS: Record<KnownClientName, ClientAdapter> = {
     }),
     wireSkills: wireClaudeSkills,
     inspectSkills: inspectClaudeSkillWiring,
-    writeFallback: null,
-    inspectFallback: null,
+    writeFallback: writeClaudeSkillFallback,
+    inspectFallback: inspectClaudeSkillFallback,
     ambientChannel: "memory-hook"
   },
   "Claude Desktop": {
@@ -1330,9 +1349,8 @@ function greybeardFallbackBlock(skillsPath: string): string {
     "## Greybeard Memory",
     "",
     "Greybeard ships a local memory server, `greybeard-memory`, shared across every configured client.",
-    "Before starting any Microsoft 365, Intune, or Entra task, call its `recall` tool with a one-line task summary and apply what it returns.",
-    "When the admin confirms a correction, a preference, a working query or script, or a durable fact about the environment, call `remember` with the reusable intent only. Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
-    "Call `recall` before `remember` and skip storing when an equivalent memory already exists.",
+    HOST_MEMORY_GUIDANCE,
+    "Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
     GREYBEARD_BLOCK_END
   ].join("\n");
 }

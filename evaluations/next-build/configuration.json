@@ -1,0 +1,7 @@
+{
+  "date": "2026-09-11T18:35:15.320603+00:00",
+  "cliVersion": "codex-cli 0.154.0",
+  "method": "Normal generated global AGENTS.md, MCP config and installed skill links; plain user prompts. Isolated home, ephemeral workspace and synthetic memories. No forced recall, no ignored rules or disabled skill discovery. Only recall and discover_scopes exposed for model calls; no tenant tools. Existing account auth referenced.",
+  "limitations": "Model behavior varies. This proves observations in Codex on this machine, not every supported host or OS. No production tenant access.",
+  "model": "Installed Codex default for a fresh isolated home; model was not explicitly pinned."
+}

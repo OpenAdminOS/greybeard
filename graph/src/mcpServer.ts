@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { GreybeardGraphError, isGreybeardGraphError } from "./errors.js";
+import { READ_RECIPES, runReadRecipe } from "./readRecipes.js";
 import { GraphService } from "./graphService.js";
 
 const queryValueSchema = z.union([
@@ -19,6 +20,7 @@ const graphInputSchema = {
   headers: z.record(z.string(), z.string()).optional(),
   body: z.unknown().optional(),
   fetchAll: z.boolean().optional().default(false),
+  maxPages: z.number().int().min(1).max(50).optional().default(5),
   maxItems: z.number().int().positive().optional().default(1000)
 };
 
@@ -40,6 +42,13 @@ export function createGreybeardGraphMcpServer(service: GraphService): McpServer 
     },
     async (input) => withMcpErrors(() => service.graph(input))
   );
+
+  server.registerTool("read-recipe", {
+    title: "Verified bounded tenant read recipes",
+    description: "Read Intune compliance settings, actual assignments, noncompliance actions, device freshness, groups or Conditional Access with explicit beta recipes. Returns dated evidence and completeness; no tenant writes or permission escalation. Supply the exact policy ID for policy-specific recipes.",
+    inputSchema: { recipe: z.enum(READ_RECIPES), policyId: z.string().optional(), maxItems: z.number().int().min(1).max(5000).optional(), maxPages: z.number().int().min(1).max(50).optional() },
+    outputSchema: structuredOutputSchema
+  }, async (input) => withMcpErrors(() => runReadRecipe(service, input)));
 
   server.registerTool(
     "get-auth-status",

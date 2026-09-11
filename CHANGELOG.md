@@ -2,6 +2,12 @@
 
 ## Unreleased improvements to 0.1
 
+- Add a desktop companion for memory, connections, advice activity and settings, with native file dialogs and no browser launch.
+- Add full-application update staging and previous-app recovery, with Windows setup, Mac DMG/ZIP and Linux AppImage packaging.
+- Improve natural client discovery, scoped recall, relevance, evidence dating, outcome proposals and explicit usefulness feedback.
+- Add bounded Graph read recipes and capability diagnostics, plus protected Windows certificate reading.
+- Preserve remembered rule wording and local confirmation boundaries in installed client guidance.
+
 - Accept oversized recall budgets without an avoidable MCP retry, retaining the 800-byte effective cap and documenting legacy budget names.
 - Return compact memory context with explicit byte accounting and truthful retrieval attribution.
 - Honor paused learning and advice during memory recall, and preserve the original source of linked lessons.

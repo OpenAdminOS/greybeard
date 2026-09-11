@@ -1,0 +1,55 @@
+{
+  "id": "03",
+  "fixture": "candidate",
+  "prompt": "Why is my Greybeard lesson still a candidate after I said yes in chat? Does it affect the Intune policy?",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_3",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Why a Greybeard lesson remains a candidate after chat agreement; local human confirmation and separation from Intune policy configuration."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"4c39fcd9-e171-4a24-812d-5d042074ce97\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "4c39fcd9-e171-4a24-812d-5d042074ce97",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll check Greybeard\u2019s memory guidance to explain what chat agreement changes and whether it affects Intune.\n\nYour lesson stays a **candidate** because saying \u201cyes\u201d in chat doesn\u2019t confirm Greybeard memories. Your AGENTS.md requires you to review the exact content in the Greybeard companion or confirm it yourself in your terminal:\n\n```sh\ngreybeard memory confirm --id <id>\n```\n\nI can\u2019t perform that confirmation for you.\n\n**It does not affect the Intune policy.** Memory status controls local guidance for future advice. Creating, confirming, correcting, or forgetting a lesson does not edit, activate, or restore an Intune policy; that requires a separate tenant change.",
+  "usage": [
+    {
+      "input_tokens": 51681,
+      "cached_input_tokens": 33920,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 345,
+      "reasoning_output_tokens": 12
+    }
+  ]
+}

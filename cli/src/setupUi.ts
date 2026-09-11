@@ -3,8 +3,9 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig, updateGreybeardConfig } from "@greybeard/graph";
+import { companionPage } from "./companionUi.js";
 import { MemoryService } from "@greybeard/memory";
-import { detectAllClients } from "./clients.js";
+import { detectAllClients, getClientAdapter } from "./clients.js";
 import { flagValue, parseArgs, type ParsedArgs } from "./args.js";
 import { readBoundedInput } from "./mentor.js";
 import { type CliRuntime, writeLine } from "./runtime.js";
@@ -14,7 +15,7 @@ function sameSecret(actual: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Promise<{ server: Server; url: string }> {
+export async function startSetupUi(runtime: CliRuntime, appDataPath: string, options: { desktop?: boolean } = {}): Promise<{ server: Server; url: string }> {
   const session = randomBytes(32).toString("hex");
   const nonce = randomBytes(24).toString("base64");
   let origin = "";
@@ -27,7 +28,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Pr
     if (request.headers.host !== new URL(origin).host) return fail(403, "Invalid host.");
     const path = new URL(request.url || "/", origin).pathname;
     if (request.method === "GET" && path === "/") {
-      response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); response.end(page(nonce)); return;
+      response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }); response.end(options.desktop ? companionPage(nonce) : page(nonce)); return;
     }
     if (request.method === "GET" && path === "/favicon.ico") { response.writeHead(204); response.end(); return; }
     if (request.method === "GET" && path === "/logo.png") {
@@ -43,7 +44,16 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Pr
       let result: unknown;
       if (path === "/state") {
         const config = await readGreybeardConfig(appDataPath);
-        result = { clients: (await detectAllClients(runtime)).filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: runtime.platform !== "win32", capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+        const detectedClients = (await detectAllClients(runtime)).filter(c => c.detected);
+        const configuredClients = (await Promise.all(detectedClients.map(async c => ({ name: c.name, configured: (await getClientAdapter(c.name).inspectMcpConfig(runtime)).configured })))).filter(c => c.configured).map(c => c.name);
+        result = { configuredClients, clients: (await detectAllClients(runtime)).filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+      } else if (path === "/diagnostics") {
+        const { assembleDoctorFindings } = await import("./doctor.js");
+        result = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", appDataPath]), runtime);
+      } else if (path === "/settings") {
+        if (!["automatic", "notify", "manual"].includes(String(body.updateMode))) return fail(400, "Choose an update mode.");
+        await updateGreybeardConfig(appDataPath, current => ({ ...current, updateMode: body.updateMode as "automatic" | "notify" | "manual" }));
+        result = { saved: true };
       } else if (path === "/setup") {
         if (!Array.isArray(body.clients) || body.clients.some(name => typeof name !== "string")) return fail(400, "Select clients.");
         if (!["automatic", "notify", "manual"].includes(String(body.updateMode))) return fail(400, "Choose an update mode.");
@@ -63,6 +73,9 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Pr
         const code = await runConnect(parseArgs(["connect", "--app-data", appDataPath, "--tenant", body.tenant as string, "--client-id", body.clientId as string, "--certificate", body.certificate as string, "--private-key", body.privateKey as string, ...(body.capabilities as string[]).flatMap(key => ["--capability", key])]), { ...runtime, stdout: sink, stderr: sink });
         if (code !== 0) return fail(400, output.trim());
         result = { connected: true, message: output.trim() };
+      } else if (path === "/capability-preview") {
+        const { getConnectionPreview } = await import("./connectionPreview.js");
+        result = await getConnectionPreview(appDataPath, { verify: body.live === true, fetcher: runtime.fetcher });
       } else if (path === "/disconnect") {
         const { runConnect } = await import("./connect.js");
         await runConnect(parseArgs(["connect", "disconnect", "--app-data", appDataPath]), runtime);
@@ -75,21 +88,44 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Pr
         result = { closed: true }; setTimeout(() => server.close(), 100);
       } else {
         // Confirmation lives only in this authenticated local UI; never exposed through MCP.
-        service = new MemoryService({ appDataPath });
-        if (path === "/memories") result = await service.list({ limit: 50, ...(typeof body.cursor === "number" ? { cursor: body.cursor } : {}) });
-        else if (path === "/confirm") {
+        const memoryConfig = await readGreybeardConfig(appDataPath);
+        const currentTenant = memoryConfig.activeTenantId ?? "local";
+        const tenantId = typeof body.memoryTenant === "string" ? body.memoryTenant : currentTenant;
+        if (tenantId !== "local" && tenantId !== currentTenant) return fail(400, "Select local memory or the configured tenant.");
+        service = new MemoryService({ appDataPath, profileId: memoryConfig.profileId ?? "local", tenantId });
+        if (path === "/memories") result = await service.list({ limit: 50, ...(typeof body.cursor === "number" ? { cursor: body.cursor } : {}), ...(typeof body.query === "string" && body.query ? { query: body.query } : {}), ...(typeof body.scope === "string" && body.scope ? { scope: body.scope } : {}), ...(["query", "preference", "script", "fact", "scope", "decision"].includes(String(body.type)) ? { type: body.type as "fact" } : {}), ...(["candidate", "confirmed"].includes(String(body.status)) ? { status: body.status as "candidate" } : {}) });
+        else if (path === "/add") {
+          if (!["query", "preference", "script", "fact", "scope", "decision"].includes(String(body.type)) || typeof body.content !== "string" || !body.content.trim()) return fail(400, "Choose a type and write a memory.");
+          result = await service.remember({ type: body.type as "fact", content: body.content, scope: typeof body.scope === "string" ? body.scope : "global", source: "local-ui", ...(typeof body.evidenceKind === "string" ? { evidenceKind: body.evidenceKind as "rule" } : {}), ...(typeof body.observedAt === "number" ? { observedAt: body.observedAt } : {}) });
+        }
+        else if (path === "/summary") {
+          const nodes = (await service.export()).nodes.filter(node => node.supersededAt === null);
+          result = { active: nodes.length, confirmed: nodes.filter(node => node.status === "confirmed").length, candidates: nodes.filter(node => node.status === "candidate").length };
+        } else if (path === "/metrics") result = { ...(await service.adviceMetrics()), recent: await service.adviceHistory() };
+        else if (path === "/clear-metrics") { await service.clearAdviceMetrics(); result = { cleared: true }; }
+        else if (path === "/feedback") {
+          if (typeof body.recallId !== "string" || !["accepted", "ignored", "irrelevant"].includes(String(body.feedback))) return fail(400, "Select an advice event and rating.");
+          result = await service.recordAdviceFeedback({ recallId: body.recallId, feedback: body.feedback as "accepted" });
+        } else if (path === "/outcome") {
+          if (typeof body.lesson !== "string" || typeof body.outcome !== "string") return fail(400, "Describe the lesson and outcome.");
+          result = await service.proposeOutcome({ lesson: body.lesson, outcome: body.outcome, source: "local-ui", scope: typeof body.scope === "string" ? body.scope : "global", ...(typeof body.observedAt === "number" ? { observedAt: body.observedAt } : {}) });
+        } else if (path === "/confirm") {
           if (!Number.isSafeInteger(body.id) || typeof body.content !== "string" || typeof body.revision !== "string") return fail(400, "Preview the candidate first.");
           const node = (await service.export()).nodes.find(n => n.id === body.id);
           if (!node || node.status !== "candidate" || node.content !== body.content || node.revision !== body.revision) return fail(409, "Candidate changed. Refresh and review again.");
           result = await service.confirm({ id: body.id as number, expectedRevision: body.revision as string, confirmationChannel: "local-ui" });
         } else if (path === "/forget") {
           if (!Number.isSafeInteger(body.id)) return fail(400, "Choose a memory.");
+          if (options.desktop) {
+            const node = (await service.export()).nodes.find(n => n.id === body.id);
+            if (!node || node.revision !== body.revision || node.content !== body.content) return fail(409, "Memory changed. Refresh and review again before forgetting.");
+          }
           result = await service.forget({ id: body.id as number });
         } else if (path === "/correct") {
           if (!Number.isSafeInteger(body.id) || typeof body.content !== "string" || !body.content.trim()) return fail(400, "Choose a memory and provide replacement text.");
           const node = (await service.export()).nodes.find(n => n.id === body.id);
           if (!node || node.status !== "confirmed" || node.supersededAt !== null) return fail(409, "Correct a current confirmed memory.");
-          result = await service.remember({ type: node.type, scope: node.scope, content: body.content, supersedes: node.id, source: "local-ui" });
+          result = await service.remember({ type: node.type, scope: node.scope, content: body.content, supersedes: node.id, source: "local-ui", evidenceKind: node.evidenceKind, ...(node.observedAt !== null && node.observedAt !== undefined ? { observedAt: node.observedAt } : {}), ...(node.outcome ? { outcome: node.outcome } : {}) });
         } else if (path === "/export") result = await service.export();
         else return fail(404, "Unknown action.");
       }
@@ -101,20 +137,16 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string): Pr
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("Cannot start local setup.");
   origin = `http://127.0.0.1:${address.port}`;
-  const timer = setTimeout(() => server.close(), 30 * 60_000); timer.unref();
-  server.on("close", () => clearTimeout(timer));
+  if (!options.desktop) {
+    const timer = setTimeout(() => server.close(), 30 * 60_000); timer.unref();
+    server.on("close", () => clearTimeout(timer));
+  }
   return { server, url: `${origin}/#${session}` };
 }
 
 export async function runSetupUi(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
-  const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
-  const { server, url } = await startSetupUi(runtime, appDataPath);
-  writeLine(runtime.stdout, `Greybeard 0.1 local setup: ${url}`);
-  writeLine(runtime.stdout, "Keep this link private. The setup closes after 30 minutes or when you choose Close setup.");
-  const command = runtime.platform === "darwin" ? "open" : runtime.platform === "win32" ? "rundll32" : "xdg-open";
-  void runtime.runCommand(command, runtime.platform === "win32" ? ["url.dll,FileProtocolHandler", url] : [url]).catch(() => {});
-  await new Promise<void>(resolve => server.once("close", resolve));
-  return 0;
+  const { runCompanion } = await import("./companion.js");
+  return runCompanion({ ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() } });
 }
 
 function page(nonce: string): string {
@@ -126,7 +158,7 @@ function page(nonce: string): string {
 <section><h2>2. Make it yours</h2><label><input type="checkbox" id="mentor" checked>Offer relevant advice in Claude Code</label><label for="updates">Updates</label><select id="updates"><option value="notify">Notify me before installing</option><option value="automatic">Stage verified updates; activate on a supported next launch</option><option value="manual">Only when I ask</option></select><p class="note">Your AI client supplies the model. Recalled context can add tokens. Local memory may be sent to that model when used in a conversation. Proposed lessons need your confirmation.</p><div class="actions"><button class="primary" id="setup">Set up Greybeard</button></div></section>
 <p id="status" role="status" aria-live="polite"></p>
 <section><h2>Your memory</h2><p>Review each proposal before confirming it. Only confirmed preferences and lessons inform mentor advice.</p><div class="actions"><button id="refresh">Review memory</button><button id="pause">Pause learning and advice</button><button id="export">Export memory</button></div><div id="memories"><h3 id="preferences-heading">Mentor preferences</h3><p class="note">How you want to work, from advice style to specific rollout rules.</p><div id="preferences" role="region" aria-labelledby="preferences-heading"></div><p id="preferences-empty" class="note">Review memory to see your preferences.</p><h3 id="lessons-heading">Lessons and decisions</h3><p class="note">Reusable facts, decisions, and lessons from your work. Memories describe what you confirmed; they do not verify current tenant state.</p><div id="lessons" role="region" aria-labelledby="lessons-heading"></div><p id="lessons-empty" class="note">Review memory to see your lessons and decisions.</p></div><button id="more" hidden>Load more</button><p class="note">Memory belongs to this local profile. Processes running as your account can access the same files.</p></section>
-<section><h2>Connect your infrastructure later</h2><p>Keep using Greybeard without a tenant connection. When you choose to connect, use an app registration owned by your company.</p><details><summary>Connect with your own app registration</summary><p class="note">Provision your certificate and grant the selected Application permissions in Entra first. Greybeard does not create registrations or grant consent. Application access can cover the tenant, and the feature selection does not narrow permissions already granted to an app. Use a dedicated app. Candidate permission mappings below still require isolated minimum-grant verification.</p><p id="tenant-status" role="status"></p><label>Tenant ID<input id="tenant" type="text" autocomplete="off" spellcheck="false"></label><label>Application (client) ID<input id="clientId" type="text" autocomplete="off" spellcheck="false"></label><label>Public certificate file path (PEM)<input id="certificate" type="text" autocomplete="off" spellcheck="false"></label><label>Private-key file path (PEM)<input id="privateKey" type="text" autocomplete="off" spellcheck="false"></label><p class="note">File paths stay local. Never paste private-key contents. POSIX private-key file protection is checked; Windows tenant connection is unavailable until its protected provider is verified.</p><div id="capabilities"></div><div class="actions"><button id="connect">Check and connect</button><button id="disconnect">Disconnect tenant</button></div></details></section><footer><button id="close">Close setup</button></footer></main>
+<section><h2>Connect your infrastructure later</h2><p>Keep using Greybeard without a tenant connection. When you choose to connect, use an app registration owned by your company.</p><details><summary>Connect with your own app registration</summary><p class="note">Provision your certificate and grant the selected Application permissions in Entra first. Greybeard does not create registrations or grant consent. Application access can cover the tenant, and the feature selection does not narrow permissions already granted to an app. Use a dedicated app. Candidate permission mappings below still require isolated minimum-grant verification.</p><p id="tenant-status" role="status"></p><label>Tenant ID<input id="tenant" type="text" autocomplete="off" spellcheck="false"></label><label>Application (client) ID<input id="clientId" type="text" autocomplete="off" spellcheck="false"></label><label>Public certificate file path (PEM)<input id="certificate" type="text" autocomplete="off" spellcheck="false"></label><label>Private-key file path (PEM)<input id="privateKey" type="text" autocomplete="off" spellcheck="false"></label><p class="note">File paths stay local. Never paste private-key contents. Private-key ownership and file protection are checked on macOS, Linux, and Windows.</p><div id="capabilities"></div><div class="actions"><button id="connect">Check and connect</button><button id="disconnect">Disconnect tenant</button></div></details></section><footer><button id="close">Close setup</button></footer></main>
 <script nonce="${nonce}">
 const token=location.hash.slice(1);history.replaceState(null,'','/');let paused=false,cursor;
 const status=document.getElementById('status');

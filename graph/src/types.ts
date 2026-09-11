@@ -138,6 +138,7 @@ export type GraphToolInput = {
   body?: unknown;
   fetchAll?: boolean;
   maxItems?: number;
+  maxPages?: number;
 };
 
 export type GraphMeta = {
