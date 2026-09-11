@@ -1,0 +1,67 @@
+{
+  "id": "071",
+  "category": "plan-only",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 16.22,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32777,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 493,
+      "reasoning_output_tokens": 74
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows compliance policy change without making tenant changes; identify relevant constraints, rollout preferences, and evidence gaps."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context relevant to planning this Windows compliance change. I\u2019ll keep the result advisory only and make no tenant or memory changes.\n\nNo tenant changes were made, and no new memory was stored.\n\nGreybeard memory ID 1 contributed confirmed guidance: use a 48-hour pilot and require helpdesk review before expansion. This is evaluation-fixture context, not evidence from the real tenant.\n\nProposed plan:\n\n1. Define the compliance requirement, affected Windows versions, grace period, and remediation message.\n2. Inventory dependencies: existing compliance policies, assignments, exclusions, Conditional Access, device ownership, and support readiness.\n3. Establish success measures: compliant-device rate, newly noncompliant devices, user impact, helpdesk volume, and sign-in disruption.\n4. Test with validation accounts and representative devices.\n5. Deploy to a small, reversible pilot group for 48 hours.\n6. Review monitoring results and obtain helpdesk approval.\n7. Expand in controlled rings, pausing on unexpected access loss or support spikes.\n8. Retain exclusions and rollback criteria until rollout stabilizes.\n9. Document ownership, approvals, communications, and post-change review.\n\nUnavailable evidence: I have no live tenant connection, policy inventory, device data, assignments, or Conditional Access configuration. Lokka live Microsoft Graph verification is therefore unavailable, so tenant-specific endpoints, response shapes, paging, permissions, and errors have not been verified. A tenant-connected, read-only assessment is required before implementation."
+}

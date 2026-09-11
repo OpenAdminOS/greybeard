@@ -1,0 +1,1 @@
+I can’t determine Profile B’s Windows compliance rollout rule from the available evidence. This session has no Greybeard memory or live tenant connection, and no snapshot containing that rule was supplied. Please provide the Profile B policy snapshot or rollout documentation.

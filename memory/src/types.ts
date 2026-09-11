@@ -53,7 +53,9 @@ export type RecallInput = {
   limit?: number;
   /** Only global and this exact scope are applicable. */
   scope?: string;
-  /** Conservative UTF-8 byte budget; actual model tokenization varies. */
+  /** UTF-8 byte budget for recalled nodes, capped at 800; excludes the envelope. */
+  byteBudget?: number;
+  /** @deprecated Alias for byteBudget. This is not a model token count. */
   tokenBudget?: number;
 };
 
@@ -101,20 +103,29 @@ export type MemoryNode = {
   supersededAt: number | null;
 };
 
-export type RecallResultNode = Omit<MemoryNode, "revision" | "confirmationChannel" | "supersedes" | "supersededAt"> & {
+/** Compact context; full timestamps and review metadata remain in list/export. */
+export type RecallResultNode = Pick<MemoryNode, "id" | "type" | "content" | "status" | "source" | "scope"> & {
   matched: boolean;
-  score: number;
   linkedFrom?: number;
   relation?: EdgeRelation;
-  edgeWeight?: number;
 };
 
+export type RecallStatus = "recalled" | "no-match" | "budget-excluded" | "paused";
 export type RecallResult = {
   tenant: string;
+  profileId: string;
   message: string;
   results: RecallResultNode[];
-  /** Upper bound for serialized recalled nodes only, excludes the response envelope. */
+  recallStatus: RecallStatus;
+  /** Describes retrieval, not whether the host applied advice or assessed a tenant. */
+  attribution: { kind: "confirmed-guidance" | "none"; statement: string };
+  /** Sum of compact node JSON bytes plus one separator byte per node; excludes the envelope. */
+  serializedBytes: number;
+  byteBudget: number;
+  budgetUnit: "utf8-bytes";
+  /** @deprecated Alias for serializedBytes; not measured or estimated model billing. */
   estimatedTokens: number;
+  /** @deprecated Alias for byteBudget; not a model token count. */
   tokenBudget: number;
   budgetScope: "serialized-recalled-nodes";
 };

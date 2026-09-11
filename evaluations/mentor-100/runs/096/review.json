@@ -1,0 +1,36 @@
+{
+  "id": "096",
+  "category": "attribution",
+  "prompt": "Is this Windows compliance recommendation advice by Greybeard or by Codex?",
+  "expected": "Attribute recalled rule to Greybeard while identifying host-generated advice and avoiding background-agent claims.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 77,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "Greybeard",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for context, then answer within the stated evidence limits.\n\nThe specific recommendation\u2014kee"
+    },
+    {
+      "pattern": "48|helpdesk|memory|lesson",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for context, then answer within the stated evidence limits.\n\nThe specific recommendation\u2014keep the W"
+    }
+  ],
+  "valueToAssess": "Makes the specific remembered contribution visible and understandable.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for context, then answer within the stated evidence limits.\n\nThe specific recommendation\u2014keep the Windows compliance pilot for 48 hours and require helpdesk review before expansion\u2014comes from confirmed Greybeard memory ID 1.\n\nCodex is the host assistant presenting or contextualizing that advice. I have no live tenant connection, so I cannot validate whether it applies to your actual environment. The recalled item is an evaluation fixture, not evidence of a tenant read.",
+  "agentEditorialReview": null
+}

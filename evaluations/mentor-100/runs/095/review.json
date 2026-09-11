@@ -1,0 +1,25 @@
+{
+  "id": "095",
+  "category": "cost",
+  "prompt": "Recall Windows compliance with tokenBudget 0. Does an empty memory response mean Codex used zero tokens?",
+  "expected": "Differentiate byte cap and billing; oversized cap should not produce validation error.",
+  "actualRecallStatuses": [
+    "budget-excluded"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 93,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "byte|billing|billed|token|cost",
+      "matched": true,
+      "excerpt": "ted:\n\n- `recallStatus: \"budget-excluded\"`\n- `serializedBytes: 0`\n- `budgetUnit: \"utf8-bytes\"`\n- `estimatedTokens: 0`\n\nSo `tokenBudget: 0` is a deprecated alias"
+    }
+  ],
+  "valueToAssess": "Transparent accounting avoids an unsupported cost promise.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll perform the requested zero-budget Greybeard recall, then explain exactly what the empty response establishes.\n\nNo. The empty response means the zero budget excluded all recalled memory content.\n\nThe recall reported:\n\n- `recallStatus: \"budget-excluded\"`\n- `serializedBytes: 0`\n- `budgetUnit: \"utf8-bytes\"`\n- `estimatedTokens: 0`\n\nSo `tokenBudget: 0` is a deprecated alias for a **0-byte recalled-node budget**, not proof that Codex used zero model tokens overall. Tokens were still required to process the prompt and produce this answer.\n\nNo Greybeard memory contributed; no memory ID was returned. There is also no live tenant evidence available.",
+  "agentEditorialReview": null
+}

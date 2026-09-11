@@ -1,0 +1,57 @@
+{
+  "id": "045",
+  "category": "pause",
+  "fixture": "paused",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 15.95,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32351,
+      "cached_input_tokens": 27136,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 294,
+      "reasoning_output_tokens": 45
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Explain why Windows compliance guidance is not recalled while Greybeard is paused"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard\u2019s recalled context for the pause behavior, without making any tenant changes.\n\nNo Windows compliance guidance is being recalled because Greybeard advice is paused. The recall response explicitly returned:\n\n- `recallStatus: \"paused\"`\n- `results: []`\n- \u201cGreybeard learning and advice are paused. No remembered guidance was returned.\u201d\n\nTherefore, there is no useful remembered contribution or memory ID to cite. This only explains the recall behavior; I have no live tenant connection and cannot verify your actual Windows compliance configuration or policies. Resume Greybeard advice to allow confirmed memories to be returned."
+}

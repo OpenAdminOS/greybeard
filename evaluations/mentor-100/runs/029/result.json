@@ -1,0 +1,68 @@
+{
+  "id": "029",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 14.07,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32661,
+      "cached_input_tokens": 18816,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 307,
+      "reasoning_output_tokens": 39
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Next safe planning step for a Windows compliance rollout",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed rollout context, then give one bounded planning step.\n\nNext safe step: define a small, reversible Windows pilot group and document success/rollback criteria before assigning any compliance policy.\n\nPlan for:\n\n- A representative but low-risk device cohort\n- A 48-hour observation window\n- Monitoring for compliance status, user impact, and false positives\n- Mandatory helpdesk review before expanding\n- A rollback owner and stop conditions\n\nGreybeard memory ID 1 contributed the confirmed guidance to hold the pilot for 48 hours and require helpdesk review before expansion. This is evaluation-fixture context, not evidence from your real tenant.\n\nI have no live tenant connection, so current policies, device readiness, licensing, conflicts, and baseline compliance remain unverified. Review those locally before deployment."
+}

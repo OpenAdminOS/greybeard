@@ -125,7 +125,7 @@ function page(nonce: string): string {
 <section><h2>1. Choose your AI tools</h2><div id="clients">Looking for installed clients…</div><p class="note">Greybeard supplies advisory context for supported Claude Code commands. It does not pause execution, so advice may appear afterward. Other clients can recall lessons when asked. Greybeard does not monitor your desktop.</p></section>
 <section><h2>2. Make it yours</h2><label><input type="checkbox" id="mentor" checked>Offer relevant advice in Claude Code</label><label for="updates">Updates</label><select id="updates"><option value="notify">Notify me before installing</option><option value="automatic">Stage verified updates; activate on a supported next launch</option><option value="manual">Only when I ask</option></select><p class="note">Your AI client supplies the model. Recalled context can add tokens. Local memory may be sent to that model when used in a conversation. Proposed lessons need your confirmation.</p><div class="actions"><button class="primary" id="setup">Set up Greybeard</button></div></section>
 <p id="status" role="status" aria-live="polite"></p>
-<section><h2>Your lessons</h2><p>Review each proposed lesson before confirming it. Only confirmed lessons inform mentor advice.</p><div class="actions"><button id="refresh">Review memory</button><button id="pause">Pause learning and advice</button><button id="export">Export memory</button></div><div id="memories"></div><button id="more" hidden>Load more</button><p class="note">Memory belongs to this local profile. Processes running as your account can access the same files.</p></section>
+<section><h2>Your memory</h2><p>Review each proposal before confirming it. Only confirmed preferences and lessons inform mentor advice.</p><div class="actions"><button id="refresh">Review memory</button><button id="pause">Pause learning and advice</button><button id="export">Export memory</button></div><div id="memories"><h3 id="preferences-heading">Mentor preferences</h3><p class="note">How you want to work, from advice style to specific rollout rules.</p><div id="preferences" role="region" aria-labelledby="preferences-heading"></div><p id="preferences-empty" class="note">Review memory to see your preferences.</p><h3 id="lessons-heading">Lessons and decisions</h3><p class="note">Reusable facts, decisions, and lessons from your work. Memories describe what you confirmed; they do not verify current tenant state.</p><div id="lessons" role="region" aria-labelledby="lessons-heading"></div><p id="lessons-empty" class="note">Review memory to see your lessons and decisions.</p></div><button id="more" hidden>Load more</button><p class="note">Memory belongs to this local profile. Processes running as your account can access the same files.</p></section>
 <section><h2>Connect your infrastructure later</h2><p>Keep using Greybeard without a tenant connection. When you choose to connect, use an app registration owned by your company.</p><details><summary>Connect with your own app registration</summary><p class="note">Provision your certificate and grant the selected Application permissions in Entra first. Greybeard does not create registrations or grant consent. Application access can cover the tenant, and the feature selection does not narrow permissions already granted to an app. Use a dedicated app. Candidate permission mappings below still require isolated minimum-grant verification.</p><p id="tenant-status" role="status"></p><label>Tenant ID<input id="tenant" type="text" autocomplete="off" spellcheck="false"></label><label>Application (client) ID<input id="clientId" type="text" autocomplete="off" spellcheck="false"></label><label>Public certificate file path (PEM)<input id="certificate" type="text" autocomplete="off" spellcheck="false"></label><label>Private-key file path (PEM)<input id="privateKey" type="text" autocomplete="off" spellcheck="false"></label><p class="note">File paths stay local. Never paste private-key contents. POSIX private-key file protection is checked; Windows tenant connection is unavailable until its protected provider is verified.</p><div id="capabilities"></div><div class="actions"><button id="connect">Check and connect</button><button id="disconnect">Disconnect tenant</button></div></details></section><footer><button id="close">Close setup</button></footer></main>
 <script nonce="${nonce}">
 const token=location.hash.slice(1);history.replaceState(null,'','/');let paused=false,cursor;
@@ -135,7 +135,48 @@ function message(text,error=false){status.textContent=text;status.className=erro
 function act(id,fn){document.getElementById(id).onclick=async()=>{const b=document.getElementById(id);b.disabled=true;try{await fn();}catch(e){message(e.message,true);}finally{b.disabled=false;}};}
 api('/state').then(s=>{const box=document.getElementById('clients');box.replaceChildren();for(const name of s.clients){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.value=name;input.checked=true;label.append(input,document.createTextNode(name));box.append(label);}if(!s.clients.length)box.textContent='No installed client detected. You can still set up local memory and add a client later.';document.getElementById('updates').value=s.updateMode;paused=!s.learningEnabled;pauseLabel();document.getElementById('tenant-status').textContent=s.tenantConfigured?'Tenant connection configured.':'Tenant disconnected. Mentor mode is available.';document.getElementById('connect').disabled=!s.connectionSupported;for(const cap of s.capabilities){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.value=cap.id;label.append(input,document.createTextNode(cap.label+' - '+cap.permission));document.getElementById('capabilities').append(label);}}).catch(e=>message(e.message,true));
 act('setup',async()=>{const clients=[...document.querySelectorAll('#clients input:checked')].map(x=>x.value);const r=await api('/setup',{clients,mentor:document.getElementById('mentor').checked,updateMode:document.getElementById('updates').value});message(r.configured?'Greybeard is ready. Restart your selected client, then ask it to remember an operating preference.':'Some client setup failed. Check your terminal for details.',!r.configured);});
-async function memories(append=false){const result=await api('/memories',append?{cursor}:{});const box=document.getElementById('memories');if(!append)box.replaceChildren();for(const node of result.results){const article=document.createElement('article'),meta=document.createElement('small'),p=document.createElement('p');meta.textContent=(node.supersededAt!==null?'superseded':node.status)+' · '+node.type+' · '+node.scope;p.textContent=node.content;article.append(meta,p);if(node.status==='candidate'){const b=document.createElement('button');b.textContent='Confirm this lesson';b.onclick=async()=>{if(!confirm('Confirm this exact lesson?\\n\\n'+node.content))return;b.disabled=true;try{await api('/confirm',{id:node.id,content:node.content,revision:node.revision});await memories();message('Lesson confirmed.');}catch(e){message(e.message,true);b.disabled=false;}};article.append(b);}const forget=document.createElement('button');forget.textContent='Forget';forget.onclick=async()=>{if(!confirm('Forget this memory?'))return;try{await api('/forget',{id:node.id});await memories();message('Memory removed.');}catch(e){message(e.message,true);}};article.append(forget);if(node.status==='confirmed'&&node.supersededAt===null){const correct=document.createElement('button');correct.textContent='Correct';correct.onclick=async()=>{const content=prompt('Propose replacement text. It will require separate confirmation.',node.content);if(!content)return;try{await api('/correct',{id:node.id,content});await memories();message('Correction saved as a candidate. The previous lesson remains active until you confirm its replacement.');}catch(e){message(e.message,true);}};article.append(correct);}box.append(article);}if(!result.results.length&&!append)box.textContent='No memories yet. Ask your AI client to propose a durable lesson, then review it here.';cursor=result.nextCursor;document.getElementById('more').hidden=!cursor;}
+async function memories(append=false){
+  const result=await api('/memories',append?{cursor}:{});
+  const preferences=document.getElementById('preferences'),lessons=document.getElementById('lessons');
+  if(!append){preferences.replaceChildren();lessons.replaceChildren();}
+  for(const node of result.results){
+    const isPreference=node.type==='preference',kind=isPreference?'preference':'lesson';
+    const article=document.createElement('article'),meta=document.createElement('small'),p=document.createElement('p'),actions=document.createElement('div');
+    actions.className='actions';
+    meta.textContent=(node.supersededAt!==null?'superseded':node.status)+' · '+node.type+' · '+node.scope+' · #'+node.id;
+    p.textContent=node.content;article.append(meta,p);
+    if(node.status==='candidate'){
+      const b=document.createElement('button');b.textContent='Confirm this '+kind;
+      b.onclick=async()=>{
+        if(!confirm('Confirm this exact '+kind+'?\\n\\n'+node.content))return;
+        b.disabled=true;
+        try{await api('/confirm',{id:node.id,content:node.content,revision:node.revision});await memories();message(isPreference?'Preference confirmed.':'Lesson confirmed.');}
+        catch(e){message(e.message,true);b.disabled=false;}
+      };
+      actions.append(b);
+    }
+    const forget=document.createElement('button');forget.textContent='Forget';
+    forget.onclick=async()=>{
+      if(!confirm('Forget this memory?'))return;
+      try{await api('/forget',{id:node.id});await memories();message('Memory removed.');}catch(e){message(e.message,true);}
+    };
+    actions.append(forget);
+    if(node.status==='confirmed'&&node.supersededAt===null){
+      const correct=document.createElement('button');correct.textContent='Correct';
+      correct.onclick=async()=>{
+        const content=prompt('Propose replacement text. It will require separate confirmation.',node.content);if(!content)return;
+        try{await api('/correct',{id:node.id,content});await memories();message('Correction saved as a candidate. The previous memory remains active until you confirm its replacement.');}catch(e){message(e.message,true);}
+      };
+      actions.append(correct);
+    }
+    article.append(actions);(isPreference?preferences:lessons).append(article);
+  }
+  cursor=result.nextCursor;document.getElementById('more').hidden=!cursor;
+  for(const group of ['preferences','lessons']){
+    const empty=document.getElementById(group+'-empty');empty.hidden=document.getElementById(group).childElementCount>0;
+    empty.textContent=cursor?'None in the loaded memories. Load more to check older entries.':group==='preferences'?'No preferences yet. Ask your AI client to propose how you want to work, then confirm it here.':'No lessons or decisions yet. Ask your AI client to propose a reusable lesson from your work, then confirm it here.';
+  }
+}
 act('refresh',()=>memories());act('more',()=>memories(true));
 function pauseLabel(){document.getElementById('pause').textContent=paused?'Resume learning and advice':'Pause learning and advice';}
 act('pause',async()=>{await api('/pause',{paused:!paused});paused=!paused;pauseLabel();message(paused?'Learning and mentor advice paused.':'Learning and mentor advice resumed.');});

@@ -1,0 +1,25 @@
+{
+  "id": "007",
+  "category": "cold-start",
+  "prompt": "What can you remember about our previous compliance rollout?",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 87,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "t would require live tenant evidence.\n\nGreybeard found no matching confirmed memory of your previous compliance rollout, so there is no memory ID or remembere"
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for a concise summary of the prior compliance rollout, then separate remembered context from anything that would require live tenant evidence.\n\nGreybeard found no matching confirmed memory of your previous compliance rollout, so there is no memory ID or remembered contribution to cite.\n\nI also have no live tenant connection or supplied snapshot, so I cannot verify the rollout\u2019s scope, policies, participants, outcomes, or blockers. If you provide notes, tickets, or a rollout summary, I can reconstruct a concise timeline and lessons learned.",
+  "agentEditorialReview": "Correctly refuses to invent a previous rollout. Clear missing-history answer; no substantive personalized value in this empty profile."
+}

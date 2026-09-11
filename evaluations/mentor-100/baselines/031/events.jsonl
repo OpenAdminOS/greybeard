@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a09172-dc98-7132-be78-a8797658ad19"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I can’t determine the current Windows compliance pilot duration from the available evidence. No tenant snapshot or policy details were supplied, and I have no live Microsoft Graph connection to verify the relevant `/beta` policy configuration.\n\nPlease provide the policy name/export or enable authenticated, read-only Lokka Microsoft Graph access."}}
+{"type":"turn.completed","usage":{"input_tokens":9688,"cached_input_tokens":1920,"cache_write_input_tokens":0,"output_tokens":64,"reasoning_output_tokens":0}}

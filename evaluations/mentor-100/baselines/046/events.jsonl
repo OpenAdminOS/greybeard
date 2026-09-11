@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"01a09173-0b23-74b0-9f82-27671f1ab3f9"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"I can’t determine Profile B’s Windows compliance rollout rule from the available evidence. This session has no Greybeard memory or live tenant connection, and no snapshot containing that rule was supplied. Please provide the Profile B policy snapshot or rollout documentation."}}
+{"type":"turn.completed","usage":{"input_tokens":9698,"cached_input_tokens":0,"cache_write_input_tokens":0,"output_tokens":99,"reasoning_output_tokens":44}}

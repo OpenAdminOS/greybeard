@@ -1,0 +1,57 @@
+{
+  "id": "043",
+  "category": "pause",
+  "fixture": "paused",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 17.55,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32656,
+      "cached_input_tokens": 21120,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 512,
+      "reasoning_output_tokens": 84
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows compliance rollout while Greybeard learning and advice are paused."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll first check the paused Greybeard memory for any confirmed, applicable rollout context, then provide a plan that clearly separates remembered guidance from unavailable tenant evidence.\n\nGreybeard recall was paused and returned no guidance, so there is no memory ID or remembered contribution to apply. I also have no live tenant connection; current policies, device inventory, licensing, ownership, and compliance results remain unverified.\n\nProposed Windows compliance rollout:\n\n1. **Discover:** inventory Windows versions, enrollment methods, ownership, critical apps, BitLocker/TPM capability, and current Conditional Access dependencies.\n2. **Define:** agree minimum requirements for supported OS, Secure Boot, TPM, BitLocker, firewall, antivirus/Defender health, password controls, and acceptable grace periods.\n3. **Prepare:** create exception, break-glass, support, communications, rollback, and remediation processes. Avoid immediately blocking access.\n4. **Pilot:** assign audit-only policies to IT and representative users/devices. Validate evaluation timing, false positives, conflicts, and remediation instructions.\n5. **Expand:** deploy in staged rings, such as 5%, 20%, 50%, then 100%, with explicit success and pause thresholds.\n6. **Enforce:** connect compliance to Conditional Access only after stable reporting. Exclude emergency accounts and phase from reporting to user notification, then blocking.\n7. **Operate:** monitor compliance trends, exemption expiry, unsupported OS versions, helpdesk volume, and policy drift.\n\nBefore implementation, obtain tenant exports/screenshots for Intune compliance policies, device populations, assignment groups, and Conditional Access policies."
+}

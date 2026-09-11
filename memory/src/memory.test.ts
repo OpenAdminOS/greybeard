@@ -125,7 +125,8 @@ describe("greybeard memory", () => {
         id: preference.id,
         matched: false,
         linkedFrom: query.id,
-        relation: "prefers"
+        relation: "prefers",
+        source: "agent-proposal"
       }));
     } finally {
       service.close();
@@ -435,6 +436,67 @@ INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on',
     } finally { await client.close(); await server.close(); service.close(); }
   });
 
+  it("accepts an oversized MCP budget once and caps output without treating bytes as model tokens", async () => {
+    const appDataPath = await tempAppData("tenant-a");
+    const service = new MemoryService({ appDataPath });
+    const server = createGreybeardMemoryMcpServer(service);
+    const client = new Client({ name: "recall-budget-regression", version: "0.1" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    try {
+      const record = await rememberConfirmed(service, { type: "preference", content: "Review the compliance pilot with the helpdesk." });
+      for (const budget of [{ tokenBudget: 1800 }, { byteBudget: 1800 }, {}]) {
+        const response = await client.callTool({ name: "recall", arguments: { query: "compliance pilot", ...budget } });
+        expect(response.isError).toBe(false);
+        expect(response.structuredContent).toMatchObject({
+          byteBudget: 800, tokenBudget: 800, budgetUnit: "utf8-bytes", recallStatus: "recalled",
+          attribution: { kind: "confirmed-guidance" }, results: [{ id: record.id, type: "preference", status: "confirmed" }]
+        });
+        const result = response.structuredContent as unknown as import("./types.js").RecallResult;
+        expect(result.serializedBytes).toBe(result.estimatedTokens);
+        expect(result.serializedBytes).toBeLessThanOrEqual(800);
+        expect(result.results[0]).not.toHaveProperty("score");
+        expect(result.results[0]).not.toHaveProperty("createdAt");
+        expect(result.results[0]).not.toHaveProperty("profileId");
+        expect(result.profileId).toBe("tenant-a");
+      }
+      for (const value of [-1, 1.5, "1800"]) {
+        const response = await client.callTool({ name: "recall", arguments: { query: "compliance pilot", tokenBudget: value } });
+        expect(response.isError).toBe(true);
+      }
+      expect((await client.callTool({ name: "recall", arguments: { query: "compliance pilot", byteBudget: 400, tokenBudget: 800 } })).isError).toBe(true);
+      expect((await service.recall({ query: "compliance pilot", byteBudget: 0 }))).toMatchObject({ recallStatus: "budget-excluded", results: [], attribution: { kind: "none" } });
+      for (const value of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+        await expect(service.recall({ query: "compliance pilot", byteBudget: value })).rejects.toMatchObject({ code: "invalid-input" });
+      }
+    } finally { await client.close(); await server.close(); service.close(); }
+  });
+
+  it("carries reviewed guidance across fresh sessions through correction, pause, isolation, and forgetting", async () => {
+    const appDataPath = await tempAppData("tenant-a");
+    const withSession = async <T>(run: (service: MemoryService) => Promise<T>, tenantId = "tenant-a", profileId = "work") => {
+      const service = new MemoryService({ appDataPath, tenantId, profileId });
+      try { return await run(service); } finally { service.close(); }
+    };
+    const original = await withSession(service => service.remember({ type: "preference", content: "Compliance rollout requires helpdesk review before broad deployment." }));
+    expect(await withSession(service => service.recall({ query: "compliance rollout" }))).toMatchObject({ recallStatus: "no-match", results: [] });
+    await withSession(service => confirmReviewed(service, original.id));
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }))).results.map(node => node.id)).toEqual([original.id]);
+    const correction = await withSession(service => service.remember({ type: "preference", content: "Compliance rollout requires both helpdesk and change-owner review.", supersedes: original.id }));
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }))).results.map(node => node.id)).toEqual([original.id]);
+    await withSession(service => confirmReviewed(service, correction.id));
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }))).results.map(node => node.id)).toEqual([correction.id]);
+    expect(await withSession(service => service.recall({ query: "orchid watering" }))).toMatchObject({ recallStatus: "no-match", attribution: { kind: "none" } });
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }), "tenant-b")).results).toEqual([]);
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }), "tenant-a", "personal")).results).toEqual([]);
+    await writeGreybeardConfig(appDataPath, { learningEnabled: false });
+    expect(await withSession(service => service.recall({ query: "compliance rollout" }))).toMatchObject({ recallStatus: "paused", results: [], attribution: { kind: "none" } });
+    await writeGreybeardConfig(appDataPath, { learningEnabled: true });
+    expect((await withSession(service => service.recall({ query: "compliance rollout" }))).results.map(node => node.id)).toEqual([correction.id]);
+    await withSession(service => service.forget({ id: correction.id }));
+    expect(await withSession(service => service.recall({ query: "compliance rollout" }))).toMatchObject({ recallStatus: "no-match", results: [] });
+  });
+
   it("rejects a stale confirmation after SQLite reuses a deleted candidate ID", async () => {
     const appDataPath = await tempAppData("tenant-a");
     const service = new MemoryService({ appDataPath });
@@ -600,7 +662,7 @@ INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on',
     } finally { service.close(); }
   });
 
-  it("honors paused learning immediately while existing guidance stays readable", async () => {
+  it("honors paused learning and advice immediately while records remain locally reviewable", async () => {
     const appDataPath = await tempAppData("tenant-a");
     const service = new MemoryService({ appDataPath });
     try {
@@ -609,7 +671,8 @@ INSERT INTO edges (source, target, relation, weight) VALUES (2, 1, 'depends_on',
       await writeGreybeardConfig(appDataPath, { activeTenantId: "tenant-b", learningEnabled: false });
       await expect(service.remember({ type: "fact", content: "No capture" })).rejects.toMatchObject({ code: "learning-disabled" });
       await expect(confirmReviewed(service, pending.id)).rejects.toMatchObject({ code: "learning-disabled" });
-      expect((await service.recall({ query: "concise reporting" })).results).toHaveLength(1);
+      expect(await service.recall({ query: "concise reporting" })).toMatchObject({ results: [], recallStatus: "paused" });
+      expect((await service.list({ status: "confirmed" })).results).toHaveLength(1);
       expect(service.tenant).toBe("tenant-a");
     } finally { service.close(); }
   });

@@ -1,0 +1,41 @@
+{
+  "id": "027",
+  "category": "specific-lesson",
+  "prompt": "Why does our Windows compliance rollout include a helpdesk review?",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 126,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": "ecision: keep the Windows compliance pilot running for 48 hours and require helpdesk review before expanding.\n\nThe review likely checks whether the pilot cau"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "onale, then answer within the available evidence.\n\nThe helpdesk review is a rollout safety gate. Greybeard memory ID 1 records a confirmed rollout decision: keep t"
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for context relevant to this rollout rationale, then answer within the available evidence.\n\n"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for context relevant to this rollout rationale, then answer within the available evidence.\n\nThe helpdesk review is a rollout safety gate. Greybeard memory ID 1 records a confirmed rollout decision: keep the Windows compliance pilot running for 48 hours and require helpdesk review before expanding.\n\nThe review likely checks whether the pilot caused user-impacting issues such as unexpected noncompliance, access blocks, enrollment failures, or increased support volume. That gives the team a chance to adjust policy settings, documentation, and support procedures before affecting more users.\n\nI have no live tenant connection, incident data, policy configuration, or helpdesk metrics, so I cannot verify which specific problem originally motivated the decision. The recalled item confirms the process requirement, not its detailed rationale.",
+  "agentEditorialReview": "Separates the confirmed process rule from its unknown historical rationale, labeling the suggested motivation as likely. Strong handling of a why-question without inventing an incident."
+}

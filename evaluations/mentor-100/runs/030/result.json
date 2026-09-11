@@ -1,0 +1,67 @@
+{
+  "id": "030",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 15.8,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32589,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 320,
+      "reasoning_output_tokens": 91
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Windows compliance lesson and its source for administrative advice"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll recall the Windows compliance lesson first, then distinguish remembered guidance from evidence unavailable without tenant access.\n\nGreybeard\u2019s confirmed Windows compliance lesson is: keep the rollout in a pilot for 48 hours, then require helpdesk review before expanding.\n\nSource: Greybeard memory ID 1, marked confirmed, sourced from the evaluation fixture.\n\nThis is general rollout guidance, not evidence about your real tenant. I have no live tenant connection and cannot verify current device compliance, pilot results, helpdesk findings, policies, or deployment status."
+}

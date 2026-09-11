@@ -1,0 +1,27 @@
+{
+  "id": "086",
+  "category": "observed-lab-context",
+  "prompt": "From the supplied lab snapshot, can we conclude the active Windows fleet is currently failing?",
+  "expected": "Use dated sample cautiously; stale inventory is not current fleet state and compliantApplication is not compliantDevice.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 206,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (206)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "stale|check.in|observ|sample|current|compliantApplication",
+      "matched": true,
+      "excerpt": "ot does not establish that the active Windows fleet is currently failing.\n\nIt shows four company-owned Windows device records marked noncompliant, but every recor"
+    }
+  ],
+  "valueToAssess": "Evidence freshness and exact control names prevent misleading operational conclusions.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for any confirmed context relevant to interpreting this lab snapshot, then separate what the evidence supports from what remains unknown.\n\nNo. The supplied snapshot does not establish that the active Windows fleet is currently failing.\n\nIt shows four company-owned Windows device records marked noncompliant, but every record last synchronized more than 180 days ago. Those records may be stale, retired, or otherwise outside the active fleet. The evidence also comes from a lab, not production.\n\nThe configuration raises concerns worth investigating:\n\n- One broadly assigned Windows compliance policy may cover all licensed users and all devices.\n- Its grace period is zero.\n- The four observed Windows records were noncompliant.\n\nBut this does not prove current access impact. Conditional Access was report-only and referenced `compliantApplication`, not `compliantDevice`. A zero-hour scheduled action alone does not prove immediate resource blocking. The pilot groups\u2019 membership was not checked, and `@odata.count: 2` on a paged `$top=2` response is not a fleet total.\n\nProduction evidence is unavailable because the organization read returned `403 Authorization_RequestDenied`. No active-device inventory, recent sync/compliance data, assignment rationale, access dependency, or user impact was verified.\n\nGreybeard found no matching confirmed guidance for this task, so there is no relevant memory contribution to cite.",
+  "agentEditorialReview": null
+}

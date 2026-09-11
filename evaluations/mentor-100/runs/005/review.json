@@ -1,0 +1,27 @@
+{
+  "id": "005",
+  "category": "cold-start",
+  "prompt": "I have installed Greybeard for the first time. What useful advice can you give before my first change?",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 183,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (183)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "Greybeard recall found no matching confirmed guidance for this profile, so there is no Greybeard memory ID to attribute. I als"
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "Greybeard recall found no matching confirmed guidance for this profile, so there is no Greybeard memory ID to attribute. I also have no live tenant connection, so I cannot verify your current configuration or baseline.\n\nBefore your first change:\n\n- Start with a small, reversible, low-impact change.\n- Record the current state, intended outcome, affected users, and rollback steps.\n- Confirm your account, scope, target tenant, and permissions before execution.\n- Use dry-run or read-only preview features where available.\n- Test with a pilot user or group before broad rollout.\n- Avoid combining unrelated changes; make one controlled change at a time.\n- Define success signals and monitor audit logs, errors, and user impact afterward.\n- Preserve exported configuration or another recovery artifact.\n- For Microsoft Graph work, verify the exact `/beta` endpoint, required fields, paging, and error behavior through authenticated Lokka before proceeding. That live verification is unavailable here, so no Graph behavior has been confirmed.\n\nTreat recalled memories as context, not proof. After a successful change, save only confirmed, reusable lessons with enough detail to distinguish tenant-specific experience from general preference.",
+  "agentEditorialReview": "Offers a reasonable first-change checklist and no fabricated tenant experience. The suggestion to save confirmed lessons omits the explicit candidate-then-local-confirmation distinction, which should remain clear in onboarding."
+}

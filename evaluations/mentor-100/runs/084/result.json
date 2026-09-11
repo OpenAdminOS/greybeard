@@ -1,0 +1,58 @@
+{
+  "id": "084",
+  "category": "missing-tenant",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 12.57,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32647,
+      "cached_input_tokens": 19200,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 253,
+      "reasoning_output_tokens": 42
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Whether a compliance impact assessment can be marked verified without live tenant evidence",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant context, then answer within the stated evidence limits.\n\nNo. Without live tenant evidence, the compliance impact assessment should be marked **unverified**, **provisional**, or **pending validation**, not verified.\n\nState which evidence is unavailable and what tenant checks are required before verification. I have no live tenant connection, so I cannot validate the assessment.\n\nGreybeard recall returned no relevant confirmed memory (`no-match`), so there is no memory contribution or ID to cite."
+}

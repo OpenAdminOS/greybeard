@@ -27,6 +27,7 @@ export type {
   MemoryType,
   RecallInput,
   RecallResult,
+  RecallStatus,
   RecallResultNode,
   RememberInput,
   RememberResult

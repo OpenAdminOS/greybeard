@@ -1,0 +1,67 @@
+{
+  "id": "027",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 32.51,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32706,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 305,
+      "reasoning_output_tokens": 44
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Why the Windows compliance rollout includes a helpdesk review"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for context relevant to this rollout rationale, then answer within the available evidence.\n\nThe helpdesk review is a rollout safety gate. Greybeard memory ID 1 records a confirmed rollout decision: keep the Windows compliance pilot running for 48 hours and require helpdesk review before expanding.\n\nThe review likely checks whether the pilot caused user-impacting issues such as unexpected noncompliance, access blocks, enrollment failures, or increased support volume. That gives the team a chance to adjust policy settings, documentation, and support procedures before affecting more users.\n\nI have no live tenant connection, incident data, policy configuration, or helpdesk metrics, so I cannot verify which specific problem originally motivated the decision. The recalled item confirms the process requirement, not its detailed rationale."
+}

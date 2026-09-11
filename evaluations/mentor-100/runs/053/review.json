@@ -1,0 +1,33 @@
+{
+  "id": "053",
+  "category": "irrelevant-memory",
+  "prompt": "Can a saved travel packing preference improve this device compliance plan?",
+  "expected": "Do not force unrelated travel memory into administration advice.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "For travel packing, bring a lightweight raincoat."
+    }
+  ],
+  "responseWordsIncludingCommentary": 123,
+  "mechanicalFlags": [
+    "An unrelated fixture was retrieved; review whether the answer correctly rejects it."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "plan|policy|compliance|relevant",
+      "matched": true,
+      "excerpt": "onfirmed packing preference, then assess whether it is relevant to device compliance without treating it as tenant evidence.\n\nGreybeard recalled confirmed memory *"
+    }
+  ],
+  "valueToAssess": "Restraint avoids distracting, unjustified personalization.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for a confirmed packing preference, then assess whether it is relevant to device compliance without treating it as tenant evidence.\n\nGreybeard recalled confirmed memory **ID 1**: \u201cFor travel packing, bring a lightweight raincoat.\u201d This does **not** meaningfully improve a device compliance plan; it is a personal packing preference, not evidence about device posture, travel risk, ownership, or compliance requirements.\n\nAt most, the travel context could prompt reviewing travel-relevant controls such as encryption, screen lock, OS patch level, endpoint protection, and lost-device response. However, I have no live tenant connection or supplied compliance snapshot, so I cannot verify current policies, assignments, device states, exceptions, or Microsoft Graph results. The recalled preference should not influence compliance decisions beyond that general reminder.",
+  "agentEditorialReview": null
+}

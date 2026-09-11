@@ -1,0 +1,68 @@
+{
+  "id": "013",
+  "category": "generic-preference",
+  "fixture": "generic",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 13.24,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32690,
+      "cached_input_tokens": 29440,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 287,
+      "reasoning_output_tokens": 77
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Whether prior compliance rollout advice was based on a specific confirmed tenant incident",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"preference\",\"content\":\"During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":264,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":264,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "preference",
+              "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 264,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 264,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed incident context relevant to this question.\n\nNo. I have no evidence that the compliance rollout advice was based on a specific incident in your tenant.\n\nGreybeard recalled only memory ID 1: a generic preference to provide proactive recommendations during Windows compliance and device administration. That is not tenant incident history and did not identify any event.\n\nI have no live tenant connection, and no incident snapshot was supplied, so I cannot verify or attribute the advice to a particular incident."
+}

@@ -10,7 +10,8 @@ const recallInputSchema = {
   query: z.string().min(1).max(512),
   limit: z.number().int().positive().optional().default(5),
   scope: z.string().max(256).optional(),
-  tokenBudget: z.number().int().min(0).max(800).optional()
+  byteBudget: z.number().int().min(0).optional().describe("Optional UTF-8 byte cap for recalled nodes; defaults to 800 and larger values are clamped to 800. Usually omit."),
+  tokenBudget: z.number().int().min(0).optional().describe("Deprecated alias for byteBudget, not model tokens. Larger values are clamped to 800.")
 };
 
 const rememberInputSchema = {
@@ -119,7 +120,7 @@ function toMcpJsonResult(value: unknown, isError = false) {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(value, null, 2)
+        text: JSON.stringify(value)
       }
     ]
   };

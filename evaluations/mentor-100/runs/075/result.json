@@ -1,0 +1,67 @@
+{
+  "id": "075",
+  "category": "plan-only",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 15.82,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32707,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 501,
+      "reasoning_output_tokens": 107
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Windows compliance rollback outline, read-only, leave tenant objects unchanged"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll recall any relevant prior context first, then provide a read-only rollback outline with explicit evidence limits.\n\nGreybeard memory ID 1 contributes one applicable safeguard: retain a pilot for 48 hours and require helpdesk review before wider rollout.\n\nRead-only rollback outline:\n\n1. Define rollback triggers: enrollment failures, widespread noncompliance, access loss, or helpdesk volume exceeding an agreed threshold.\n2. Inventory the intended scope: Windows compliance policies, assignments, filters, Conditional Access dependencies, notifications, and grace periods.\n3. Capture a pre-change baseline: exported policy JSON, assignment lists, screenshots, timestamps, and known compliance/device counts.\n4. Document the restoration target for each proposed change: previous setting, assignment, exclusion, and dependency.\n5. Protect emergency access accounts and specify validation owners.\n6. Stage rollback order:\n   - Pause further rollout.\n   - Restore prior assignments/exclusions.\n   - Restore prior compliance settings.\n   - Re-evaluate Conditional Access dependencies.\n   - Validate pilot devices and authentication.\n7. Observe the pilot for 48 hours, then obtain helpdesk approval before expansion.\n8. Record success criteria, owners, communication steps, and escalation contacts.\n\nNo tenant objects were changed. I have no live tenant connection, so current policies, assignments, response shapes, paging, and errors were not verified through Lokka. A tenant-specific plan requires read-only Lokka access or administrator-supplied exports."
+}

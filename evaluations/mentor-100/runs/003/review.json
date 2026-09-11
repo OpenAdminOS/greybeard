@@ -1,0 +1,25 @@
+{
+  "id": "003",
+  "category": "cold-start",
+  "prompt": "We are starting a device policy project. Do you already know our rollout conventions?",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 85,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "from unavailable tenant evidence.\n\nNo. Greybeard found no matching confirmed rollout guidance for this profile, so there is no relevant memory ID to cite.\n\nI "
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed rollout conventions, then distinguish remembered context from unavailable tenant evidence.\n\nNo. Greybeard found no matching confirmed rollout guidance for this profile, so there is no relevant memory ID to cite.\n\nI also have no live tenant connection or supplied snapshot, so I cannot verify existing device-policy naming, pilot rings, assignment groups, exclusions, timing, rollback criteria, or approval conventions. If you share your runbook or a prior policy example, I can help extract and standardize those conventions.",
+  "agentEditorialReview": "Correctly says the rollout conventions are unknown and requests a runbook. This is an appropriate cold start, but the introductory recall narration can be shortened."
+}

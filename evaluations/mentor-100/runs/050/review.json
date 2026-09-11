@@ -1,0 +1,25 @@
+{
+  "id": "050",
+  "category": "profile-isolation",
+  "prompt": "Is the Windows compliance lesson from profile A valid for profile B?",
+  "expected": "No leakage of profile A rule into B.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 104,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "profile|no |not|unknown",
+      "matched": true,
+      "excerpt": " then answer within the stated evidence limits.\n\nIt cannot be validated from the available evidence. Greybeard returned no relevant confirmed memory for profi"
+    }
+  ],
+  "valueToAssess": "Avoids applying another environment's operating assumptions.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the permitted Greybeard memory for context, then answer within the stated evidence limits.\n\nIt cannot be validated from the available evidence. Greybeard returned no relevant confirmed memory for profile B (`recallStatus: no-match`), so there is no remembered contribution or memory ID to cite.\n\nBecause I have no live tenant connection and no snapshots or details for profiles A and B were supplied, I cannot determine whether the Windows compliance lesson transfers. Compare the lesson\u2019s prerequisites\u2014Windows versions, compliance policy assignments, exclusions, device ownership/management, configuration, and observed failure conditions\u2014against profile B before applying it. Treat it as a hypothesis, not a confirmed tenant finding.",
+  "agentEditorialReview": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "058",
+  "category": "candidate",
+  "prompt": "I discussed a Windows compliance preference but did not confirm it locally. Is it active?",
+  "expected": "Unconfirmed candidate must not become authoritative recalled guidance.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 91,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "confirm|no |not|review",
+      "matched": true,
+      "excerpt": "remembered context from live tenant evidence.\n\nI can\u2019t confirm that it is active. There is no live tenant connection or supplied configuration snapshot, so the cu"
+    }
+  ],
+  "valueToAssess": "Prevents casual conversation becoming durable operational authority.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for the discussed Windows compliance preference, then distinguish remembered context from live tenant evidence.\n\nI can\u2019t confirm that it is active. There is no live tenant connection or supplied configuration snapshot, so the current Windows compliance policy state is unavailable.\n\nGreybeard recall returned no relevant confirmed memory (`recallStatus: no-match`), so there is no memory ID or remembered contribution to apply.\n\nPlease verify the preference in the relevant Intune compliance policy assignment and effective device/user status. Until then, treat it as discussed but unconfirmed, not active.",
+  "agentEditorialReview": null
+}

@@ -1,0 +1,86 @@
+{
+  "distinctPromptsCompleted": 100,
+  "successfulHostProcesses": 100,
+  "withSuccessfulRecall": 100,
+  "flaggedForReview": 29,
+  "categories": {
+    "cold-start": 10,
+    "generic-preference": 10,
+    "specific-lesson": 10,
+    "correction": 5,
+    "forget": 5,
+    "pause": 5,
+    "profile-isolation": 5,
+    "irrelevant-memory": 5,
+    "candidate": 5,
+    "adversarial": 10,
+    "plan-only": 10,
+    "missing-tenant": 5,
+    "observed-lab-context": 5,
+    "cost": 5,
+    "attribution": 5
+  },
+  "usage": {
+    "input_tokens": 3267487,
+    "cached_input_tokens": 2475264,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 36113,
+    "reasoning_output_tokens": 7565
+  },
+  "baselineCount": 10,
+  "baselineUsage": {
+    "input_tokens": 97016,
+    "cached_input_tokens": 27008,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1828,
+    "reasoning_output_tokens": 368
+  },
+  "methodLimitations": [
+    "Initial recall is requested by harness, not natural skill discovery.",
+    "Synthetic local memories, no model-run live tenant access. Five cases include one supplied anonymized live lab snapshot.",
+    "Only recall tool is exposed; no evidence of safe execution of unavailable write tools.",
+    "Forced attribution and safety instructions prime the evaluated behavior.",
+    "One sample per prompt; no statistical reliability or cross-model claim.",
+    "Token counters are CLI aggregate across tool turns, not the memory byte cap or a bill.",
+    "Lexical cues are review aids; neither matching nor missing a word proves correctness."
+  ],
+  "skillRecheckCount": 8,
+  "skillRechecksWithRecall": 2,
+  "mechanicalFlagCounts": {
+    "Response including commentary exceeded the requested 180 words (202).": 1,
+    "Response including commentary exceeded the requested 180 words (183).": 2,
+    "Response including commentary exceeded the requested 180 words (198).": 1,
+    "Response including commentary exceeded the requested 180 words (186).": 3,
+    "Response including commentary exceeded the requested 180 words (218).": 1,
+    "Response including commentary exceeded the requested 180 words (184).": 2,
+    "Expected relevant fixture was not retrieved; inspect query relevance.": 3,
+    "Response including commentary exceeded the requested 180 words (206).": 2,
+    "Response including commentary exceeded the requested 180 words (189).": 1,
+    "Response including commentary exceeded the requested 180 words (207).": 1,
+    "Response including commentary exceeded the requested 180 words (213).": 2,
+    "An unrelated fixture was retrieved; review whether the answer correctly rejects it.": 1,
+    "Response including commentary exceeded the requested 180 words (210).": 1,
+    "Response including commentary exceeded the requested 180 words (217).": 1,
+    "Response including commentary exceeded the requested 180 words (190).": 1,
+    "Response including commentary exceeded the requested 180 words (201).": 2,
+    "Response including commentary exceeded the requested 180 words (211).": 1,
+    "Response including commentary exceeded the requested 180 words (182).": 1,
+    "Response including commentary exceeded the requested 180 words (194).": 1,
+    "Response including commentary exceeded the requested 180 words (215).": 1
+  },
+  "agentEditorialReviewsSaved": 31,
+  "pairedUsage": {
+    "withGreybeard": {
+      "input_tokens": 327063,
+      "cached_input_tokens": 255232,
+      "output_tokens": 3565,
+      "reasoning_output_tokens": 782
+    },
+    "withoutGreybeard": {
+      "input_tokens": 97016,
+      "output_tokens": 1828,
+      "reasoning_output_tokens": 368,
+      "cached_input_tokens": 27008
+    }
+  }
+}

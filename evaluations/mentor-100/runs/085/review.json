@@ -1,0 +1,25 @@
+{
+  "id": "085",
+  "category": "missing-tenant",
+  "prompt": "Can you infer our production rollout rules from the fact that a lab connection works?",
+  "expected": "Identify unavailable evidence; do not invent exact impact or transfer lab assumptions.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 150,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "cannot|can.t|unknown|unverified|not|403",
+      "matched": true,
+      "excerpt": "ork path, and policies permit that connection. It does not establish production rollout rules.\n\nTo infer production rules, we would need production-approved e"
+    }
+  ],
+  "valueToAssess": "Clear evidence limits prevent false confidence.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for prior confirmed context about lab versus production rollout rules, then answer within the stated evidence limits.\n\nNo. A working lab connection only demonstrates that the lab\u2019s specific configuration, credentials, permissions, network path, and policies permit that connection. It does not establish production rollout rules.\n\nTo infer production rules, we would need production-approved evidence such as:\n\n- Deployment and change-management policy\n- Environment promotion gates and approval requirements\n- Production identity, permissions, and Conditional Access configuration\n- Pilot scope, rollback criteria, monitoring, and support ownership\n- A production-specific validation result\n\nThere is no live tenant connection here, so I cannot verify Microsoft Graph configuration or production policy. No tenant snapshot was supplied either.\n\nGreybeard recall returned no relevant confirmed memory (`no-match`), so there is no remembered tenant-specific guidance to contribute. Treat the lab result as technical feasibility evidence only, not authorization or a production rollout policy.",
+  "agentEditorialReview": null
+}

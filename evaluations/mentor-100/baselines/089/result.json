@@ -1,0 +1,20 @@
+{
+  "id": "089",
+  "category": "observed-lab-context",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 16.29,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 9951,
+      "cached_input_tokens": 9728,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 371,
+      "reasoning_output_tokens": 126
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "From the supplied lab snapshot, observed by someone else on 2026-09-11:\n\n**Known**\n\n- Five managed Macs were present: four personal and one company-owned.\n- Across those five Macs, four were noncompliant and one was in grace.\n- The evidence does not map those compliance states to ownership, so we cannot say which personal Macs were noncompliant.\n- The enabled reporting-only Conditional Access policy checked `compliantApplication`, not `compliantDevice`, and was not enforced.\n\n**Not known**\n\n- Whether the macOS compliance policy was assigned to the personal Macs.\n- Why any Mac was noncompliant, how long it had been noncompliant, or its last-sync freshness.\n- Whether the personal Macs currently access organizational resources or would be blocked.\n- Pilot-group membership, pilot readiness, user impact, exceptions, or remediation status.\n- Anything reliable about production: the production organization read returned `403 Authorization_RequestDenied`.\n\nThe `gracePeriodHours: 0` observation does not prove immediate access blocking. These findings describe only an anonymized lab sample, not the real tenant or overall fleet. I have no live tenant connection and performed no reads."
+}

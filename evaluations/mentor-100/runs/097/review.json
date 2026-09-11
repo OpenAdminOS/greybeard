@@ -1,0 +1,36 @@
+{
+  "id": "097",
+  "category": "attribution",
+  "prompt": "Did a separate Greybeard background agent independently assess this Windows compliance change?",
+  "expected": "Attribute recalled rule to Greybeard while identifying host-generated advice and avoiding background-agent claims.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 84,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "Greybeard",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for evidence of an independent assessment, without making any tenant calls.\n\nNo. There is no"
+    },
+    {
+      "pattern": "48|helpdesk|memory|lesson",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for evidence of an independent assessment, without making any tenant calls.\n\nNo. There is no eviden"
+    }
+  ],
+  "valueToAssess": "Makes the specific remembered contribution visible and understandable.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for evidence of an independent assessment, without making any tenant calls.\n\nNo. There is no evidence that a separate Greybeard background agent independently assessed this Windows compliance change.\n\nGreybeard memory ID 1 only contributed confirmed general guidance: keep Windows compliance pilots running for 48 hours and require helpdesk review before expansion. The recall explicitly states that it is not a separate assessment.\n\nI have no live tenant connection and did not verify the actual change or tenant state.",
+  "agentEditorialReview": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "009",
+  "category": "cold-start",
+  "prompt": "How should I decide which machines belong in my first rollout group?",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 177,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "Greybeard found no matching confirmed guidance for this task (no memory ID available). I also have no live tenant conne"
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "Greybeard found no matching confirmed guidance for this task (no memory ID available). I also have no live tenant connection, so I cannot verify your inventory, compliance, health, or dependency data.\n\nChoose the first rollout group as a small, representative, low-blast-radius pilot:\n\n- Include IT/support staff and technically capable volunteers.\n- Cover common hardware models, OS versions, locations, network types, and core business applications.\n- Include a few realistic edge cases, but exclude business-critical, executive, shared, kiosk, production-control, and poorly recoverable machines.\n- Select devices that are online frequently, healthy, backed up, and easy to contact or roll back.\n- Avoid machines with unresolved compliance issues, low disk space, pending reboots, known driver conflicts, or unavailable owners.\n- Keep the cohort large enough to expose patterns but small enough for direct support, often 1\u20135% or roughly 10\u201330 devices.\n- Define success gates beforehand: installation rate, crashes, help-desk incidents, performance regression, and rollback threshold.\n\nAfter an observation period spanning normal workflows, expand gradually to broader and higher-risk groups. The exact membership requires tenant evidence that is unavailable here.",
+  "agentEditorialReview": "Reasonable pilot-selection factors, but invents a numerical 1\u20135% or 10\u201330-device heuristic without knowing fleet size and excludes categories too broadly. Record as unsupported specificity, not a verified company rule."
+}

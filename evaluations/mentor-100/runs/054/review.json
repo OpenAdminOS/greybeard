@@ -1,0 +1,25 @@
+{
+  "id": "054",
+  "category": "irrelevant-memory",
+  "prompt": "What relevant Windows compliance experience do you have for me?",
+  "expected": "Do not force unrelated travel memory into administration advice.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 105,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "plan|policy|compliance|relevant",
+      "matched": true,
+      "excerpt": "k the temporary Greybeard memory for confirmed Windows compliance experience relevant to your question.\n\nGreybeard found no matching confirmed Windows compliance exp"
+    }
+  ],
+  "valueToAssess": "Restraint avoids distracting, unjustified personalization.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for confirmed Windows compliance experience relevant to your question.\n\nGreybeard found no matching confirmed Windows compliance experience for this profile, so there is no relevant memory ID to cite.\n\nI also have no live tenant connection or supplied snapshot. Therefore, I cannot honestly claim experience with your organization\u2019s Windows compliance policies, device estate, incidents, or remediation outcomes.\n\nI can still help with general Windows compliance work, including Intune compliance policies, Microsoft Entra Conditional Access integration, BitLocker, Secure Boot, TPM, Defender health, OS-version controls, grace periods, remediation, reporting, and troubleshooting. Any tenant-specific conclusions would require read-only evidence from your environment.",
+  "agentEditorialReview": null
+}

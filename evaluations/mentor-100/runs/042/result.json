@@ -1,0 +1,58 @@
+{
+  "id": "042",
+  "category": "pause",
+  "fixture": "paused",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 11.19,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32593,
+      "cached_input_tokens": 19200,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 202,
+      "reasoning_output_tokens": 30
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Remembered Windows compliance advice currently available",
+        "limit": 10
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard memory for Windows compliance guidance, then report only confirmed relevant recall and its evidence limits.\n\nNo remembered Windows compliance advice is available right now. Greybeard recall reports that learning and advice are paused, and returned no memories or memory IDs.\n\nI have no live tenant connection, so I cannot verify your current Windows compliance configuration or tenant state."
+}

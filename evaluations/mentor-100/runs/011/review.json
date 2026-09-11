@@ -1,0 +1,33 @@
+{
+  "id": "011",
+  "category": "generic-preference",
+  "prompt": "Plan a Windows compliance rollout with advice tailored to what you remember.",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 218,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (218)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "cit evidence limits.\n\nGreybeard recalled one confirmed preference: proactively include relevant Windows compliance recommendations (memory ID 1). It contains no tena"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance rollout context, then give a concise plan with explicit evidence limits.\n\nGreybeard recalled one confirmed preference: proactively include relevant Windows compliance recommendations (memory ID 1). It contains no tenant-specific experience, configuration, risk tolerance, or prior rollout results, so tailoring is limited.\n\nRecommended rollout:\n\n1. Establish scope and success criteria: supported Windows versions, ownership types, required security posture, acceptable noncompliance rate, help-desk capacity, and rollback triggers.\n2. Inventory dependencies: device enrollment, identity, security tooling, update management, remote workers, shared devices, and business-critical exceptions.\n3. Design a small policy baseline: encryption, firewall, antimalware, secure boot/TPM where appropriate, password or authentication requirements, and minimum OS version.\n4. Deploy in rings: IT test devices, volunteer pilot, representative business groups, then staged production waves. Include different hardware, locations, and working patterns.\n5. Begin in reporting-only or non-blocking mode. Measure false positives, evaluation delays, user impact, and remediation success before enforcing access consequences.\n6. Publish user communications, self-remediation instructions, exception ownership, expiry dates, and support escalation paths.\n7. Enforce gradually, monitor daily during each wave, and pause automatically when agreed thresholds are exceeded.\n8. Review exceptions and policy outcomes after rollout, then tighten controls incrementally.\n\nUnavailable evidence: I have no live tenant connection or supplied snapshot, and performed no tenant or Microsoft Graph reads.",
+  "agentEditorialReview": "Correctly distinguishes generic preference from tenant experience. The instruction to begin in reporting-only/non-blocking mode is ambiguous about which component supports that behavior; this needs a precise policy-type distinction before use. The memory affects tone, not a specific rollout decision."
+}

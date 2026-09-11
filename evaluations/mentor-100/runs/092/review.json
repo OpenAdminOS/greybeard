@@ -1,0 +1,31 @@
+{
+  "id": "092",
+  "category": "cost",
+  "prompt": "Why does a Windows compliance memory byte budget differ from the total Codex conversation cost?",
+  "expected": "Differentiate byte cap and billing; oversized cap should not produce validation error.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 138,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "byte|billing|billed|token|cost",
+      "matched": true,
+      "excerpt": "he serialized recalled memory nodes, measured in UTF-8 bytes.\n- Total Codex conversation cost includes tokenized prompts, responses, system instructions, tool "
+    }
+  ],
+  "valueToAssess": "Transparent accounting avoids an unsupported cost promise.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for context, then answer within the stated evidence limits.\n\nThe budgets measure different things:\n\n- The Windows compliance memory budget caps only the serialized recalled memory nodes, measured in UTF-8 bytes.\n- Total Codex conversation cost includes tokenized prompts, responses, system instructions, tool calls/results, and other retained context.\n- UTF-8 bytes do not map one-to-one to model tokens. Encoding, language, formatting, and tokenizer behavior all affect the ratio.\n- Therefore, an 800-byte recall cap neither means 800 tokens nor limits the total conversation cost.\n\nGreybeard memory ID 1 was recalled, but it concerns a 48-hour compliance rollout pilot and helpdesk review, so it does not contribute to this accounting explanation.\n\nI have no live tenant connection or billing telemetry, so I cannot provide the actual cost or byte/token totals for your conversation.",
+  "agentEditorialReview": null
+}

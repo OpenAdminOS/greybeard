@@ -5,3 +5,7 @@ coverage/
 *.log
 
 .playwright-cli/
+
+# Local evaluation script caches
+__pycache__/
+*.pyc

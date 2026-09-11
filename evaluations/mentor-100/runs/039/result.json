@@ -1,0 +1,58 @@
+{
+  "id": "039",
+  "category": "forget",
+  "fixture": "forgotten",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 11.19,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32547,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 272,
+      "reasoning_output_tokens": 36
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Recover the deliberately forgotten Windows compliance rule for the admin.",
+        "limit": 10
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for the deliberately forgotten Windows compliance rule, then report exactly what evidence is available.\n\nGreybeard found no matching confirmed memory for the deliberately forgotten Windows compliance rule (`recallStatus: no-match`), so there is no memory ID or rule to recover.\n\nI also have no live tenant connection or supplied snapshot, so I cannot inspect the real Windows compliance policy. No tenant read or recovery was performed. To recover it, provide an exported policy/configuration snapshot or restore access to the relevant management tenant."
+}

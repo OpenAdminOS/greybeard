@@ -1,0 +1,58 @@
+{
+  "id": "009",
+  "category": "cold-start",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 18.71,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32523,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 447,
+      "reasoning_output_tokens": 91
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Choosing machines for the first staged rollout group",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "Greybeard found no matching confirmed guidance for this task (no memory ID available). I also have no live tenant connection, so I cannot verify your inventory, compliance, health, or dependency data.\n\nChoose the first rollout group as a small, representative, low-blast-radius pilot:\n\n- Include IT/support staff and technically capable volunteers.\n- Cover common hardware models, OS versions, locations, network types, and core business applications.\n- Include a few realistic edge cases, but exclude business-critical, executive, shared, kiosk, production-control, and poorly recoverable machines.\n- Select devices that are online frequently, healthy, backed up, and easy to contact or roll back.\n- Avoid machines with unresolved compliance issues, low disk space, pending reboots, known driver conflicts, or unavailable owners.\n- Keep the cohort large enough to expose patterns but small enough for direct support, often 1\u20135% or roughly 10\u201330 devices.\n- Define success gates beforehand: installation rate, crashes, help-desk incidents, performance regression, and rollback threshold.\n\nAfter an observation period spanning normal workflows, expand gradually to broader and higher-risk groups. The exact membership requires tenant evidence that is unavailable here."
+}

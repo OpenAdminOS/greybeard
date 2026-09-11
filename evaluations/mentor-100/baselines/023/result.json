@@ -1,0 +1,20 @@
+{
+  "id": "023",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 12.87,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 9693,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 227,
+      "reasoning_output_tokens": 54
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "I can prepare the brief, but the local decision and tenant evidence were not supplied. I also cannot verify the Microsoft Graph `/beta` compliance-policy endpoints, response fields, assignments, paging, or errors because this evaluation provides no live tenant connection or Lokka access.\n\nPlease provide the approved local decision, ideally including:\n\n- Compliance setting(s) and required values\n- Target and excluded groups\n- Effective date and rollout stages\n- Grace period and user notifications\n- Treatment of noncompliant devices\n- Exception and rollback criteria\n- Any externally observed tenant snapshot\n\nWithout that evidence, I cannot accurately describe the current configuration or claim the change has been validated or implemented. Once supplied, I\u2019ll convert it into a concise brief covering decision, scope, user impact, deployment plan, risks, monitoring, rollback, ownership, and approvals."
+}

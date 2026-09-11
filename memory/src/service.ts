@@ -8,13 +8,13 @@ import {
   type ConfirmInput, type EdgeRelation, type ForgetInput, type ForgetResult,
   type ListInput, type ListResult, type MemoryExport, type MemoryLinkInput,
   type MemoryNode, type MemoryStatus, type MemoryType, type RecallInput,
-  type RecallResult, type RecallResultNode, type RememberInput, type RememberResult
+  type RecallResult, type RecallStatus, type RecallResultNode, type RememberInput, type RememberResult
 } from "./types.js";
 
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
 const DEFAULT_SOFT_CAP = 2000;
-const DEFAULT_TOKEN_BUDGET = 800;
+const DEFAULT_BYTE_BUDGET = 800;
 const QUERY_TTL_DAYS = 90;
 const JSON_PRIVACY_BYTE_THRESHOLD = 2048;
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -70,18 +70,26 @@ export class MemoryService {
 
   async recall(input: RecallInput): Promise<RecallResult> {
     const limit = normalizeLimit(input.limit, DEFAULT_LIMIT);
-    const tokenBudget = normalizeBudget(input.tokenBudget);
+    const byteBudget = normalizeBudget(input.byteBudget);
+    const legacyBudget = normalizeBudget(input.tokenBudget);
+    if (input.byteBudget !== undefined && input.tokenBudget !== undefined && input.byteBudget !== input.tokenBudget) {
+      throw invalid("Use byteBudget or its deprecated tokenBudget alias, not conflicting values.");
+    }
+    const budget = input.byteBudget !== undefined ? byteBudget : legacyBudget;
     const query = input.query.trim();
     if (!query || Buffer.byteLength(query,"utf8") > 512) throw invalid("Recall query must be between 1 and 512 UTF-8 bytes.");
     const scope = input.scope ?? "global";
     validateLabel(scope, "scope");
+    if (readLocalConfig(this.appDataPath).learningEnabled === false) {
+      return this.recallResponse([], 0, budget, "paused");
+    }
     const now = this.nowSeconds();
     this.expireQueries(now);
     const matches = this.searchMatches(query, scope, limit);
-    const matched = matches.map(row => ({ ...toRecallMemory(row), matched: true, score: this.scoreMatch(row, now) }));
+    const matched = matches.map(row => ({ ...toRecallMemory(row), matched: true }));
     const expanded = this.expandOneHop(matched, scope);
     const results: RecallResultNode[] = [];
-    let estimatedTokens = 0;
+    let serializedBytes = 0;
     // An applicable exception is more specific than the matched general rule.
     // If the exception cannot fit, suppress its parent rather than returning a
     // misleading general rule without the qualification.
@@ -90,19 +98,34 @@ export class MemoryService {
     const ordered = [...exceptions, ...matched.filter(node => !qualifiedParents.has(node.id)),
       ...expanded.filter(node => node.relation !== "exception_to")];
     for (const node of ordered) {
-      // UTF-8 bytes conservatively bound byte-based tokenizers, including all
-      // recalled node metadata and JSON escaping. This is a budget, not billing.
+      // Count compact recalled nodes, including JSON escaping and separators.
+      // The response envelope and host context are outside this byte budget.
       const cost = Buffer.byteLength(JSON.stringify(node), "utf8") + 1;
       if (results.some(result => result.id === node.id)) continue;
       if (results.length >= limit) break;
-      if (estimatedTokens + cost > tokenBudget) continue;
+      if (serializedBytes + cost > budget) continue;
       results.push(node);
-      estimatedTokens += cost;
+      serializedBytes += cost;
     }
     this.refreshLastUsed(results.map(node => node.id), now);
+    return this.recallResponse(results, serializedBytes, budget,
+      results.length ? "recalled" : ordered.length ? "budget-excluded" : "no-match");
+  }
+
+  private recallResponse(results: RecallResultNode[], serializedBytes: number, byteBudget: number, recallStatus: RecallStatus): RecallResult {
+    const statements: Record<RecallStatus, string> = {
+      recalled: "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.",
+      "no-match": "Greybeard found no matching confirmed guidance for this task in this profile and scope.",
+      "budget-excluded": "Matching confirmed guidance did not fit the recall byte budget. No remembered guidance was returned.",
+      paused: "Greybeard learning and advice are paused. No remembered guidance was returned."
+    };
     return {
-      tenant: this.tenant, message: results.length ? "memory recalled" : "no memory for this yet",
-      results, estimatedTokens, tokenBudget, budgetScope: "serialized-recalled-nodes"
+      tenant: this.tenant, profileId: this.profileId,
+      message: recallStatus === "recalled" ? "memory recalled" : recallStatus === "no-match" ? "no memory for this yet" : recallStatus === "paused" ? "advice paused" : "no guidance fits byte budget",
+      results, recallStatus,
+      attribution: { kind: results.length ? "confirmed-guidance" : "none", statement: statements[recallStatus] },
+      serializedBytes, byteBudget, budgetUnit: "utf8-bytes",
+      estimatedTokens: serializedBytes, tokenBudget: byteBudget, budgetScope: "serialized-recalled-nodes"
     };
   }
 
@@ -262,16 +285,16 @@ export class MemoryService {
     const seen = new Set(matched.map(n => n.id));
     const expanded: RecallResultNode[] = [];
     for (const node of matched) {
-      const rows = this.db.prepare(`SELECT n.*,e.relation,e.weight,e.source FROM edges e
+      const rows = this.db.prepare(`SELECT n.*,e.relation,e.weight,e.source AS edge_source FROM edges e
         JOIN nodes n ON n.id=CASE WHEN e.source=@id THEN e.target ELSE e.source END
         WHERE (e.source=@id OR e.target=@id) AND ${applicableSql()}
         ORDER BY CASE WHEN e.relation='exception_to' AND e.target=@id THEN 0 ELSE 1 END,e.weight DESC,n.id DESC LIMIT 50`)
-        .all({ ...this.identity(), id: node.id, scope }) as Array<NodeRow & { relation: EdgeRelation; weight: number; source: number }>;
+        .all({ ...this.identity(), id: node.id, scope }) as Array<NodeRow & { relation: EdgeRelation; weight: number; edge_source: number }>;
       for (const row of rows) {
-        if (row.relation === "exception_to" && row.source !== row.id) continue;
+        if (row.relation === "exception_to" && row.edge_source !== row.id) continue;
         if (seen.has(row.id) && row.relation !== "exception_to") continue;
         seen.add(row.id);
-        expanded.push({ ...toRecallMemory(row), matched: false, score: node.score-0.001, linkedFrom: node.id, relation: row.relation, edgeWeight: row.weight });
+        expanded.push({ ...toRecallMemory(row), matched: false, linkedFrom: node.id, relation: row.relation });
       }
     }
     return expanded;
@@ -322,16 +345,17 @@ function normalizeLimit(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(1,Math.min(MAX_LIMIT,Math.floor(value))) : fallback;
 }
 function normalizeBudget(value: number | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.max(0,Math.min(DEFAULT_TOKEN_BUDGET,Math.floor(value))) : DEFAULT_TOKEN_BUDGET;
+  if (value === undefined) return DEFAULT_BYTE_BUDGET;
+  if (!Number.isSafeInteger(value) || value < 0) throw invalid("Recall byte budget must be a non-negative safe integer.");
+  return Math.min(DEFAULT_BYTE_BUDGET, value);
 }
 function toMemoryNode(row: NodeRow): MemoryNode {
   return { id: row.id,revision: row.revision,type: row.type,content: row.content,tenant: row.tenant,createdAt: row.created_at,lastUsedAt: row.last_used_at,
     profileId: row.profile_id,status: row.status,source: row.source,scope: row.scope,confirmedAt: row.confirmed_at,
     confirmationChannel: row.confirmed_by,supersedes: row.supersedes,supersededAt: row.superseded_at };
 }
-function toRecallMemory(row: NodeRow): Omit<MemoryNode, "revision" | "confirmationChannel" | "supersedes" | "supersededAt"> {
-  const { revision: _revision, confirmationChannel: _channel, supersedes: _supersedes, supersededAt: _supersededAt, ...context } = toMemoryNode(row);
-  return context;
+function toRecallMemory(row: NodeRow): Omit<RecallResultNode, "matched"> {
+  return { id: row.id, type: row.type, content: row.content, status: row.status, source: row.source, scope: row.scope };
 }
 
 export function enforcePrivacy(content: string, type?: MemoryType): void {

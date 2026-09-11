@@ -1,0 +1,20 @@
+{
+  "id": "047",
+  "category": "profile-isolation",
+  "fixture": "other-profile",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 7.95,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 10738,
+      "cached_input_tokens": 8448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 137,
+      "reasoning_output_tokens": 51
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "I can\u2019t borrow that convention because no other profile, snapshot, confirmed Greybeard memory, or live tenant connection is available here. I also can\u2019t verify Microsoft Graph data through Lokka, so I won\u2019t invent or claim a Windows compliance convention.\n\nProvide the source profile or an exported policy snapshot, and I can adapt its convention. Without that evidence, choosing one would be an unsupported assumption."
+}

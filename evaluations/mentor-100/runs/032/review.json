@@ -1,0 +1,38 @@
+{
+  "id": "032",
+  "category": "correction",
+  "prompt": "Plan Windows compliance using the latest confirmed rollout convention.",
+  "expected": "Apply corrected 72-hour rule, not superseded 48-hour rule.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 2,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 189,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (189)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "72",
+      "matched": true,
+      "excerpt": "nvention: keep the Windows compliance pilot active for 72 hours and require helpdesk review before expansion.\n\nRecommended rollout plan:\n\n1. Define complianc"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "ndows compliance pilot active for 72 hours and require helpdesk review before expansion.\n\nRecommended rollout plan:\n\n1. Define compliance requirements, assignments"
+    }
+  ],
+  "valueToAssess": "Confirmed correction prevents repeating obsolete guidance.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for the latest confirmed Windows compliance rollout convention, then separate remembered guidance from anything requiring live tenant verification.\n\nGreybeard memory ID 2 provides the latest confirmed convention: keep the Windows compliance pilot active for 72 hours and require helpdesk review before expansion.\n\nRecommended rollout plan:\n\n1. Define compliance requirements, assignments, grace periods, notifications, and exception handling.\n2. Validate policies in a non-production test group.\n3. Deploy to a small, representative pilot covering supported Windows versions and device types.\n4. Hold the pilot for at least 72 hours.\n5. Review compliance results, false positives, user impact, and helpdesk tickets.\n6. Obtain explicit helpdesk approval before expanding.\n7. Roll out in staged rings, pausing between rings to review the same signals.\n8. Document rollback criteria, exclusions, ownership, and final acceptance.\n\nUnavailable evidence: there is no live tenant connection, so I cannot verify existing Intune policies, device counts, assignments, licensing, current compliance state, or Microsoft Graph `/beta` endpoint behavior through Lokka. The recalled convention comes from a synthetic evaluation fixture and is not evidence of the real tenant\u2019s configuration. Before execution, an authenticated read-only tenant review is required.",
+  "agentEditorialReview": null
+}

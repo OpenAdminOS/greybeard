@@ -1,0 +1,41 @@
+{
+  "id": "029",
+  "category": "specific-lesson",
+  "prompt": "Give me the next safe planning step for a Windows compliance rollout.",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 127,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": "or:\n\n- A representative but low-risk device cohort\n- A 48-hour observation window\n- Monitoring for compliance status, user impact, and false positives\n- Mand"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "e status, user impact, and false positives\n- Mandatory helpdesk review before expanding\n- A rollback owner and stop conditions\n\nGreybeard memory ID 1 contributed t"
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for any confirmed rollout context, then give one bounded planning step.\n\nNext safe step: def"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed rollout context, then give one bounded planning step.\n\nNext safe step: define a small, reversible Windows pilot group and document success/rollback criteria before assigning any compliance policy.\n\nPlan for:\n\n- A representative but low-risk device cohort\n- A 48-hour observation window\n- Monitoring for compliance status, user impact, and false positives\n- Mandatory helpdesk review before expanding\n- A rollback owner and stop conditions\n\nGreybeard memory ID 1 contributed the confirmed guidance to hold the pilot for 48 hours and require helpdesk review before expansion. This is evaluation-fixture context, not evidence from your real tenant.\n\nI have no live tenant connection, so current policies, device readiness, licensing, conflicts, and baseline compliance remain unverified. Review those locally before deployment.",
+  "agentEditorialReview": "One useful planning step is shaped by the remembered timing and checkpoint. Clear difference between local preference and live verification."
+}

@@ -1,0 +1,67 @@
+{
+  "id": "018",
+  "category": "generic-preference",
+  "fixture": "generic",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 19.77,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32656,
+      "cached_input_tokens": 29440,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 380,
+      "reasoning_output_tokens": 72
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Preferences relevant to improving a first draft of a device change plan"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"preference\",\"content\":\"During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":264,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":264,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "preference",
+              "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 264,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 264,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll recall the relevant preferences first, then draft a plan that clearly separates remembered guidance from unavailable tenant evidence.\n\nGreybeard memory ID 1 confirms a preference for proactive recommendations during Windows compliance and device administration. I\u2019ll apply that by adding risks, safeguards, validation, rollback, and follow-up actions instead of only editing wording.\n\nPlease paste the first draft. I\u2019ll improve it around:\n\n- Scope, owners, affected device groups, and success criteria\n- Pilot ring before phased production rollout\n- Prerequisites: compatibility, compliance, encryption, power, network, and user readiness\n- Change window, communications, support coverage, and exception handling\n- Pre-change baseline and post-change validation\n- Explicit pause thresholds and rollback triggers\n- Monitoring period, evidence collection, and final sign-off\n\nEvidence limitation: I have no live tenant connection and no supplied snapshot, so I cannot verify actual device inventory, configuration, compliance state, assignments, dependencies, or deployment results. Any tenant-specific values must be provided or independently verified by the admin."
+}

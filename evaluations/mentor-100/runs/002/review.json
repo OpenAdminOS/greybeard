@@ -1,0 +1,27 @@
+{
+  "id": "002",
+  "category": "cold-start",
+  "prompt": "Before I change our device compliance settings, what do you need from me?",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 183,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (183)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "preparing a device-compliance change.\n\nGreybeard found no relevant confirmed memory for this task (no memory ID available).\n\nBefore changing device compliance"
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context relevant to preparing a device-compliance change.\n\nGreybeard found no relevant confirmed memory for this task (no memory ID available).\n\nBefore changing device compliance settings, please provide:\n\n- Intended outcome and the specific settings you want changed\n- Current policy export or screenshots, including platform and applicability rules\n- Included/excluded users, groups, device filters, and assignment scope\n- Current compliance results, affected-device counts, and common failure reasons\n- Related Conditional Access policies, especially actions for noncompliant devices\n- Supported platforms, OS versions, ownership types, and known exceptions\n- Planned pilot group, deployment schedule, user communications, and help-desk readiness\n- Acceptable grace period and enforcement deadline\n- Rollback criteria, previous values, and emergency exclusions\n- Change approval and confirmation of whether I\u2019m authorized only to advise or also to execute\n\nI have no live tenant connection, so I cannot verify current Microsoft Graph/Intune configuration, assignments, response shapes, or impact. To perform the required live verification, you would need to provide authenticated Lokka Microsoft MCP access with read permissions; any later write would require explicit authorization.",
+  "agentEditorialReview": "Useful requirements gathering with explicit evidence limits. The execution-authorization question is unnecessary for a planning-only isolated evaluation. Strong global Lokka policy affects this response, so it is not a clean measure of Greybeard alone."
+}

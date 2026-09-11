@@ -1,0 +1,25 @@
+{
+  "id": "051",
+  "category": "irrelevant-memory",
+  "prompt": "Plan a Windows compliance rollout. Does any remembered lesson actually apply?",
+  "expected": "Do not force unrelated travel memory into administration advice.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 171,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "plan|policy|compliance|relevant",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for a directly relevant Windows compliance rollout lesson, then distinguish usable experience from generic preferences and "
+    }
+  ],
+  "valueToAssess": "Restraint avoids distracting, unjustified personalization.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for a directly relevant Windows compliance rollout lesson, then distinguish usable experience from generic preferences and unavailable tenant evidence.\n\nNo remembered lesson applies. Greybeard returned **no matching confirmed guidance**, so there is no memory ID or tenant experience to cite.\n\nI also have no live tenant connection or supplied snapshot, so these remain unavailable: current Windows inventory, Intune enrollment, compliance policies, Conditional Access dependencies, exception groups, and failure rates.\n\nA safe rollout plan:\n\n1. Baseline device ownership, supported Windows versions, enrollment state, and business-critical exceptions.\n2. Define compliance signals and remediation guidance.\n3. Validate policy interactions, especially Conditional Access.\n4. Pilot with IT and representative users using report-only or low-impact enforcement where available.\n5. Track evaluation errors, noncompliance reasons, support volume, and remediation time.\n6. Expand through staged rings with explicit success and rollback criteria.\n7. Enforce only after exclusions, communications, help-desk procedures, and break-glass access are verified.\n8. Review exceptions regularly and retire temporary exclusions.\n\nThis is general planning advice, not evidence from the real tenant.",
+  "agentEditorialReview": null
+}

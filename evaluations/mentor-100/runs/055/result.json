@@ -1,0 +1,58 @@
+{
+  "id": "055",
+  "category": "irrelevant-memory",
+  "fixture": "irrelevant",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 18.08,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32584,
+      "cached_input_tokens": 27264,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 445,
+      "reasoning_output_tokens": 122
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Concise Windows compliance planning advice and useful applicable memory only",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "No live tenant evidence or supplied snapshot is available, so this is planning guidance only.\n\nFor Windows compliance:\n\n- Define measurable requirements: supported OS versions, BitLocker, Secure Boot, TPM, firewall, antivirus/EDR, password posture, and acceptable device-risk level.\n- Separate corporate, BYOD, privileged, kiosk, and exception populations.\n- Pilot policies in report-only or non-blocking mode, then expand through staged rings.\n- Pair compliance rules with conditional-access decisions carefully. Provide a grace period and remediation instructions before blocking access.\n- Establish ownership for exceptions, expiry dates, approvals, and periodic review.\n- Track compliance rate, evaluation errors, devices without recent check-ins, remediation time, and user-impact incidents.\n- Test recovery scenarios, including enrollment failures, stale records, emergency access, and devices becoming noncompliant while offline.\n- Document evidence retention and review cadence for audits.\n\nGreybeard recall returned **no matching confirmed guidance**, so there is no useful remembered tenant experience or memory ID to apply. Tenant-specific policy state, device counts, licensing, and enforcement behavior remain unverified."
+}

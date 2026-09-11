@@ -60,6 +60,10 @@ greybeard memory confirm --id 1
 
 Use the actual candidate ID returned by the first command. Confirmation previews the exact lesson and requires an interactive terminal; you can also review and confirm it in local graphical setup. A conversation, tool result, or successful command cannot silently turn a candidate into confirmed guidance.
 
+Local memory separates **Preferences** (how you want to work, including rollout rules) from **Lessons** (facts, decisions, and reusable approaches). Both require local confirmation. When a confirmed memory changes an answer, the client is instructed to identify the Greybeard memory and explain its effect. Recalling a memory alone does not establish that it is relevant or that Greybeard independently assessed your tenant.
+
+Recall defaults to an 800-byte budget for compact returned memory nodes. This is a context-size control, not measured model billing; tool definitions, the response envelope, skills, and your conversation add separate context. See the [memory contract](memory/README.md). Pausing learning and advice suppresses memory recall while leaving local review and export available.
+
 For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. The hook does not pause execution: Claude Code may surface the advice after a command runs. It does not guarantee a user-visible warning before execution. Advice never means a command is safe or authorized.
 
 ## Client behavior

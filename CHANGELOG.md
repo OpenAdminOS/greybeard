@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased improvements to 0.1
+
+- Accept oversized recall budgets without an avoidable MCP retry, retaining the 800-byte effective cap and documenting legacy budget names.
+- Return compact memory context with explicit byte accounting and truthful retrieval attribution.
+- Honor paused learning and advice during memory recall, and preserve the original source of linked lessons.
+- Separate preferences and lessons in local review, preserving confirmation, correction, forgetting, and pagination.
+- Teach client skills to identify the confirmed memory that changed advice without claiming an independent assessment.
+
 ## 0.1 - 2026-09-11
 
 Release tag: `v0.1.0`. Access to this executable release requires an account with access to the private repository; historical package versions below describe an earlier distribution.

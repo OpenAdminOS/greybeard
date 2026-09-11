@@ -1,0 +1,20 @@
+{
+  "id": "100",
+  "category": "attribution",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 12.55,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 9698,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 249,
+      "reasoning_output_tokens": 46
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "For Windows compliance, start with Microsoft\u2019s Windows security baselines, then tailor them to your organization\u2019s regulatory and operational needs. Microsoft recommends these baselines as a well-tested starting point instead of inventing a configuration from scratch.\n\nPrioritize:\n\n- BitLocker encryption with recovery-key governance\n- Secure Boot, TPM 2.0, and supported Windows versions\n- Automatic security updates with defined deployment deadlines\n- Microsoft Defender protections and tamper protection\n- Least privilege, restricted local administrators, and Windows LAPS\n- Screen-lock, passwordless authentication, and audit logging\n- Documented exceptions with owners, justification, and expiration dates\n\nMeasure compliance against a version-controlled policy, remediate high-risk failures first, and pilot changes before broad enforcement. Do not equate \u201cdevice reports compliant\u201d with actual risk reduction; periodically validate settings and evidence independently.\n\nI have no live tenant connection or supplied compliance snapshot, so I cannot assess current devices, policies, exceptions, or control effectiveness."
+}

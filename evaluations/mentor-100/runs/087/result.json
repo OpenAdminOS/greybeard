@@ -1,0 +1,58 @@
+{
+  "id": "087",
+  "category": "observed-lab-context",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 16.52,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 33377,
+      "cached_input_tokens": 30080,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 537,
+      "reasoning_output_tokens": 144
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Assess whether supplied lab Conditional Access and device compliance observations prove compliant-device enforcement is blocking users.",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard memory for any confirmed context relevant to interpreting this Conditional Access evidence, then separate what the snapshot proves from what remains unknown.\n\nNo. The supplied lab snapshot does not prove compliant-device enforcement is blocking users.\n\nKey reasons:\n\n- The observed Conditional Access policy was **report-only** (`enabledForReportingButNotEnforced`), so it could not block access.\n- Its grant control required `compliantApplication`, not `compliantDevice`.\n- Compliance-policy assignments and `gracePeriodHours: 0` may cause devices to be evaluated or marked noncompliant, but do not independently prove resource-access denial.\n- The stale, noncompliant Windows records indicate possible device-management hygiene issues, not confirmed user impact.\n- Pilot-group membership, active device use, sign-in dependencies, and actual Conditional Access results were not inspected.\n- The paged `$top=2` result is not a fleet total.\n\nProof would require production evidence such as affected sign-in logs showing a failed Conditional Access result tied to an enabled policy whose grant controls require a compliant device, plus confirmation that the user/device was in scope.\n\nI have no live tenant connection, and the production organization read was denied with `403 Authorization_RequestDenied`; these observations were supplied from someone else\u2019s lab reads. Greybeard found no relevant confirmed memory (`recallStatus: no-match`), so no remembered tenant experience contributed."
+}

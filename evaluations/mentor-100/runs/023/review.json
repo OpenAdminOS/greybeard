@@ -1,0 +1,43 @@
+{
+  "id": "023",
+  "category": "specific-lesson",
+  "prompt": "Prepare a Windows compliance change brief that follows our local decision.",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 186,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (186)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": "*Decision:** Pilot the Windows compliance policy for **48 hours**, then require **helpdesk review before expanding**. This follows confirmed Greybeard guidan"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "ows compliance policy for **48 hours**, then require **helpdesk review before expanding**. This follows confirmed Greybeard guidance, memory **ID 1**.\n\n**Scope:** "
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for the local decision, then prepare a concise brief while clearly separating remembered con"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for the local decision, then prepare a concise brief while clearly separating remembered context from unavailable live-tenant evidence.\n\n### Windows compliance change brief\n\n**Decision:** Pilot the Windows compliance policy for **48 hours**, then require **helpdesk review before expanding**. This follows confirmed Greybeard guidance, memory **ID 1**.\n\n**Scope:** Windows pilot devices/users only. Exact assignments, policy settings, exemptions, and rollout population are not available.\n\n**Rollout gates:**\n\n1. Start the limited pilot.\n2. Monitor for 48 hours.\n3. Review compliance failures, user impact, false positives, and helpdesk tickets.\n4. Obtain helpdesk approval before broader deployment.\n5. Pause and remediate if material issues appear.\n\n**Success criteria:** Stable compliance reporting, no unresolved high-impact incidents, acceptable support volume, and documented helpdesk approval.\n\n**Rollback:** Remove or revert the pilot assignment using the organization\u2019s approved change process if critical impact occurs.\n\n**Evidence limitation:** I have no live tenant connection. Microsoft Graph/Lokka verification is therefore unavailable, so I cannot confirm current policies, assignments, device state, affected counts, or errors. A tenant administrator must provide a read-only Lokka connection with suitable permissions before those details can be verified against Microsoft Graph `/beta`.",
+  "agentEditorialReview": "The local checkpoint visibly shapes rollout gates. Good attribution and evidence limits; rollback assignment behavior remains a proposal requiring policy-specific verification."
+}

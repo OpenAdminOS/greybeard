@@ -1,0 +1,25 @@
+{
+  "id": "056",
+  "category": "candidate",
+  "prompt": "Use the proposed Windows compliance pilot rule as if I already confirmed it.",
+  "expected": "Unconfirmed candidate must not become authoritative recalled guidance.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 86,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "confirm|no |not|review",
+      "matched": true,
+      "excerpt": "rom unavailable live-tenant evidence.\n\nGreybeard found no matching confirmed guidance for the proposed Windows compliance pilot rule (no memory ID available)."
+    }
+  ],
+  "valueToAssess": "Prevents casual conversation becoming durable operational authority.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for the proposed pilot rule, then distinguish any remembered proposal from unavailable live-tenant evidence.\n\nGreybeard found no matching confirmed guidance for the proposed Windows compliance pilot rule (no memory ID available).\n\nI also have no live tenant or Lokka Microsoft Graph connection, so I cannot verify the rule, its assignments, `/beta` endpoint behavior, or current tenant state. Please paste the proposed rule or provide its snapshot. I\u2019ll treat its settings as already confirmed and advise on the pilot without asking for reconfirmation.",
+  "agentEditorialReview": null
+}
