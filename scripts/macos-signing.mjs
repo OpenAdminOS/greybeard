@@ -13,10 +13,17 @@ const keychain = join(directory, 'signing.keychain-db');
 const binary = join(root, 'dist/executable', `greybeard-darwin-${process.arch}`);
 const native = join(root, 'node_modules/better-sqlite3/build/Release/better_sqlite3.node');
 const childEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GREYBEARD_APPLE_') && !name.startsWith('APPLE_API_') && !['CSC_LINK', 'CSC_KEY_PASSWORD'].includes(name)));
+const secretValues = Object.entries(process.env).filter(([name]) => name.startsWith('APPLE_API_') || name.startsWith('CSC_')).map(([, value]) => value).filter(Boolean);
 function required(name) { const value = process.env[name]; if (!value) throw new Error(`Required signing setting is missing: ${name}`); return value; }
 function run(tool, args) {
   try { return execFileSync(tool, args, { env: childEnv, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 40 * 60_000 }); }
-  catch { throw new Error(`${tool} failed during Apple ${mode}. No credential arguments were logged.`); }
+  catch (error) {
+    // Never include the exec exception message or arguments: security receives
+    // passwords as arguments. Tool stderr provides the actual signing failure.
+    let detail = String(error.stderr || '').replace(/-----BEGIN[^]*?-----END[^\n]*-----/g, '[redacted PEM]');
+    for (const secret of secretValues) detail = detail.split(secret).join('[redacted]');
+    throw new Error(`${tool} failed during Apple ${mode} (exit ${error.status ?? 'unknown'}): ${detail.slice(-4000) || 'no diagnostic output'}`);
+  }
 }
 async function verify(file) {
   run('codesign', ['--verify', '--strict', file]);
@@ -34,7 +41,12 @@ if (mode === 'prepare') {
   const certificate = join(directory, 'certificate.p12');
   await writeFile(certificate, Buffer.from(required('CSC_LINK'), 'base64'), { mode: 0o600 });
   const password = randomBytes(32).toString('hex');
+  secretValues.push(password);
+  const searchList = [...run('security', ['list-keychains', '-d', 'user']).matchAll(/"([^"]+)"/g)].map(match => match[1]);
+  await writeFile(join(directory, 'search-list.json'), JSON.stringify(searchList), { mode: 0o600 });
   run('security', ['create-keychain', '-p', password, keychain]);
+  // Keep the existing keychains available for the Apple intermediate chain.
+  run('security', ['list-keychains', '-d', 'user', '-s', keychain, ...searchList]);
   run('security', ['set-keychain-settings', '-lut', '3600', keychain]);
   run('security', ['unlock-keychain', '-p', password, keychain]);
   run('security', ['import', certificate, '-k', keychain, '-P', required('CSC_KEY_PASSWORD'), '-T', '/usr/bin/codesign']);
@@ -71,6 +83,10 @@ if (mode === 'prepare') {
   await writeFile(join(root, 'dist/executable/macos-signature.json'), JSON.stringify({ status: 'verified', ...identity, notarized: true, notarizationId: result.id, hardenedRuntime: true, sha256: createHash('sha256').update(await readFile(binary)).digest('hex') }, null, 2) + '\n');
   console.log(`Apple notarization accepted: ${result.id}. Raw executable tickets are retrieved online; no stapling is claimed.`);
 } else if (mode === 'cleanup') {
+  try {
+    const searchList = JSON.parse(await readFile(join(directory, 'search-list.json'), 'utf8'));
+    run('security', ['list-keychains', '-d', 'user', '-s', ...searchList]);
+  } catch { /* Preparation may have failed before saving the search list. */ }
   try { run('security', ['delete-keychain', keychain]); } catch { /* The prepare step may have failed before creating it. */ }
   await rm(directory, { recursive: true, force: true });
 } else throw new Error('Use prepare, sign, notarize, or cleanup.');
