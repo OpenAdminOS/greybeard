@@ -6,7 +6,7 @@ import { type CliRuntime, writeLine } from "./runtime.js";
 export async function runCompanion(runtime: CliRuntime): Promise<number> {
   const folder = dirname(runtime.nodePath);
   let path = runtime.platform === "darwin"
-    ? join(folder, "Greybeard")
+    ? join(folder, "GreybeardCompanion")
     : runtime.platform === "win32" ? join(folder, "../../Greybeard.exe") : join(folder, "../../greybeard-companion");
   if (runtime.platform === "linux") {
     const { getGreybeardAppDataPath } = await import("@greybeard/graph");

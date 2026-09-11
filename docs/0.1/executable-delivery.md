@@ -1,5 +1,7 @@
 # Install Greybeard 0.1
 
+Current companion implementation supersedes the earlier delivery and backlog status below. See [the companion flow](companion.md) and [recommendation coverage](reviews/implementation-coverage.md).
+
 The release tag is `v0.1.0`; the application displays **0.1**. The repository remains private. Open the [release page](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with access.
 
 Greybeard runs from one executable. It includes the runtime, application, SQLite library, skills, and logo. You do not install Node, npm, Git, or a source checkout. Its extracted runtime assets, settings, and memory database live in application data.

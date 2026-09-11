@@ -7,8 +7,8 @@ Windows and Mac Silicon independently.
 
 The installed application is a complete Electron companion containing its own
 Node executable. SQLite remains inside that executable, avoiding an Electron
-native-addon ABI dependency. Mac uses `Greybeard.app/Contents/MacOS/Greybeard`
-for the window and `Contents/MacOS/greybeard` for existing terminal references.
+native-addon ABI dependency. Mac uses `Greybeard.app/Contents/MacOS/GreybeardCompanion`
+for the window (distinct even on case-insensitive filesystems) and `Contents/MacOS/greybeard` for existing terminal references.
 Windows and Linux bundle the service under `resources/bin`. No browser tab is
 opened by the desktop shell.
 
@@ -42,7 +42,11 @@ these scripts cannot silently replace the previous downloads.
 The update feed contains `latest.yml`, `latest-mac.yml`, `latest-linux.yml` and
 associated archives/blockmaps. Mac needs its ZIP even though users download the
 DMG. Checksums are refreshed after DMG stapling, then checked again before
-publication. Electron's Windows updater validates the configured publisher and
+publication. Verification extracts the updater ZIP and mounts the DMG, checks
+the contained app signatures, tickets and Gatekeeper acceptance in release mode,
+and compares both executable hashes with the verified packaged app. A DMG
+blockmap created before stapling is removed; Mac updates use the ZIP blockmap.
+Electron's Windows updater validates the configured publisher and
 macOS validates its signed application. Candidate artifacts are not a substitute
 for release signing verification.
 

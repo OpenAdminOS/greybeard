@@ -1,5 +1,7 @@
 # Greybeard 0.1 implementation status
 
+Current companion implementation supersedes the earlier delivery and backlog status below. See [the companion flow](companion.md) and [recommendation coverage](reviews/implementation-coverage.md).
+
 This records the foundation verification from 10 September 2026 on branch `feat/0.1-mentor-foundation`. For the 0.1 downloads, signing status, and installation instructions, see [executable delivery](executable-delivery.md) and [release notes](release-notes.md). The public product display remains 0.1.
 
 ## Implemented

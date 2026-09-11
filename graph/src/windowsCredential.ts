@@ -77,8 +77,8 @@ $bytes = [GreybeardProtectedKey]::Read($env:GREYBEARD_CREDENTIAL_PATH)
   $reason = $_.Exception
   while ($reason.InnerException) { $reason = $reason.InnerException }
   $known = @('reparse-point','owner','unrestricted-acl','unsupported-acl','shared-acl','local-path','open','file-type-or-size','redirected-path','changed-file')
-  if ($known -contains $reason.Message) { [Console]::Error.Write('GB_KEY_' + $reason.Message) }
-  else { [Console]::Error.Write('GB_KEY_verification-unavailable') }
+  if ($known -contains $reason.Message) { [Console]::Out.Write('GB_KEY_' + $reason.Message) }
+  else { [Console]::Out.Write('GB_KEY_verification-unavailable') }
   exit 1
 }
 `;
@@ -94,9 +94,12 @@ export function readWindowsProtectedKey(path: string): Promise<string> {
     execFile(powershell, ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(READ_PROTECTED_KEY, "utf16le").toString("base64")], {
       windowsHide: true, timeout: 20_000, maxBuffer: 100 * 1024,
       env: { ...process.env, GREYBEARD_CREDENTIAL_PATH: path }
-    }, (error, stdout, stderr) => {
+    }, (error, stdout) => {
       if (error) {
-        const reason = /^GB_KEY_([a-z-]+)$/.exec(stderr.trim())?.[1] ?? "verification-unavailable";
+        // Windows PowerShell -EncodedCommand can append CLIXML progress records
+        // to stderr. The fixed failure protocol uses stdout, which has no key on
+        // a failed ACL check; consume only an exact allowlisted diagnostic.
+        const reason = /^GB_KEY_(reparse-point|owner|unrestricted-acl|unsupported-acl|shared-acl|local-path|open|file-type-or-size|redirected-path|changed-file|verification-unavailable)$/.exec(stdout.trim())?.[1] ?? "verification-unavailable";
         // Never surface execFile's error object: it can include stdout/key bytes.
         reject(new Error(`Windows private-key protection failed (${reason}). Use a regular local file owned by your account with access limited to you, SYSTEM and local Administrators. Symlinks, junctions and shared files are rejected.`));
         return;

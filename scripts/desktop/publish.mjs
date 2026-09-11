@@ -31,6 +31,7 @@ for (const platform of ['darwin', 'win32', 'linux']) {
   if (report.version !== version || report.release !== true || report.platform !== platform) throw new Error('Release verification does not match the requested version.');
   if (platform !== 'linux' && report.signature.status !== 'verified') throw new Error('Publisher signature verification is required.');
   if (platform === 'darwin' && report.signature.notarized !== true) throw new Error('Apple notarization is required.');
+  if (platform === 'darwin' && (!report.payloadVerification?.zipApplication || !report.payloadVerification?.dmgApplication || !report.payloadVerification?.executableHashesMatch)) throw new Error('Both distributed Mac application payloads must be verified.');
   for (const name of artifactNames(platform, version)) if (!report.files.some(file => file.name === name)) throw new Error('Missing required application format.');
   for (const file of report.files) {
     if (file.name.includes('/') || file.name.includes('\\')) throw new Error('Invalid artifact path.');

@@ -150,6 +150,8 @@ jobs:
         run: xvfb-run -a node scripts/desktop/smoke-packaged.mjs
       - name: Verify packaged application on Windows and macOS
         if: runner.os != 'Linux'
+        env:
+          DEBUG: pw:browser
         run: node scripts/desktop/smoke-packaged.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

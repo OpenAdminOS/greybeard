@@ -1,5 +1,7 @@
 # Greybeard: field review and next build
 
+Current companion implementation supersedes the earlier delivery and backlog status below. See [the companion flow](../companion.md) and [recommendation coverage](implementation-coverage.md).
+
 The product test is whether an administrator gets a materially better decision because Greybeard remembers relevant experience, preserves a correction, or identifies a constraint the current conversation would otherwise miss. Installation, a successful recall, and a branded answer are necessary infrastructure; they do not establish that value by themselves.
 
 ## Implemented after the Mac conversation

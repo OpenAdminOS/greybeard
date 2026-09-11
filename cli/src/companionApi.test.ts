@@ -16,10 +16,20 @@ it("authenticates local companion actions and preserves exact confirmation and c
   try {
     expect((await call("/add", { type: "decision", content: "Windows pilot requires helpdesk review." }, { origin: "https://example.com" })).status).toBe(403);
     expect((await call("/add", {}, { "x-greybeard-session": "wrong" })).status).toBe(403);
+    const inheritedTenant = process.env.GREYBEARD_TENANT_ID;
+    const inheritedProfile = process.env.GREYBEARD_PROFILE_ID;
+    process.env.GREYBEARD_TENANT_ID = "different-bound-tenant";
+    process.env.GREYBEARD_PROFILE_ID = "different-bound-profile";
+    try { expect((await call("/export")).data).toMatchObject({ tenant: "local", profileId: "local" }); }
+    finally {
+      if (inheritedTenant === undefined) delete process.env.GREYBEARD_TENANT_ID; else process.env.GREYBEARD_TENANT_ID = inheritedTenant;
+      if (inheritedProfile === undefined) delete process.env.GREYBEARD_PROFILE_ID; else process.env.GREYBEARD_PROFILE_ID = inheritedProfile;
+    }
     const add = await call("/add", { type: "decision", content: "Windows pilot requires helpdesk review.", evidenceKind: "rule", scope: "devices" });
     expect(add.data.status).toBe("candidate");
     const node = (await call("/memories", { query: "helpdesk", scope: "devices", status: "candidate" })).data.results[0];
     expect((await call("/confirm", { id: node.id, content: "Wrong text", revision: node.revision })).status).toBe(409);
+    expect((await call("/forget", { id: node.id, content: "Wrong text", revision: node.revision })).status).toBe(409);
     expect((await call("/confirm", { id: node.id, content: node.content, revision: node.revision })).status).toBe(200);
     await call("/correct", { id: node.id, content: "Windows pilot requires 72 hours of observation and helpdesk review." });
     const memories = (await call("/memories")).data.results;

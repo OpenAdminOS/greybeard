@@ -22,7 +22,7 @@ try {
     const installed = join(directory, 'Greybeard.app');
     await run('ditto', [join(mount, 'Greybeard.app'), installed], { env });
     await run('codesign', ['--verify', '--deep', '--strict', installed], { env });
-    executablePath = join(installed, 'Contents/MacOS/Greybeard');
+    executablePath = join(installed, 'Contents/MacOS/GreybeardCompanion');
   } else if (process.platform === 'linux') {
     await run(artifact, ['--appimage-extract'], { cwd: directory, env, maxBuffer: 8 * 1024 * 1024 });
     executablePath = join(directory, 'squashfs-root/greybeard-companion');

@@ -101,7 +101,7 @@ else {
   app.whenReady().then(async () => {
     await prepareCore();
     await service();
-    updater = createUpdateController(autoUpdater, { packaged: app.isPackaged, readMode: async () => (await request('/state')).updateMode, beforeInstall: async () => { const { createAppBackup } = require('./backup.cjs'); await createAppBackup({ appData, installation: process.platform === 'darwin' ? resolve(process.resourcesPath, '../..') : resolve(process.resourcesPath, '..'), platform: process.platform, appImage: process.env.APPIMAGE }); stopping = true; await request('/close'); }, platform: process.platform });
+    updater = createUpdateController(autoUpdater, { packaged: app.isPackaged, readMode: async () => (await request('/state')).updateMode, beforeInstall: async () => { await require('./sessions.cjs').requireIdleClients(appData, child.pid); const { createAppBackup } = require('./backup.cjs'); await createAppBackup({ appData, installation: process.platform === 'darwin' ? resolve(process.resourcesPath, '../..') : resolve(process.resourcesPath, '..'), platform: process.platform, appImage: process.env.APPIMAGE }); stopping = true; await request('/close'); }, platform: process.platform });
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       ...(process.platform === 'darwin' ? [{ label: 'Greybeard', submenu: [{ role: 'about' }, { type: 'separator' }, { label: 'Show Greybeard', click: () => void openWindow() }, { role: 'hide' }, { role: 'quit' }] }] : []),
       { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },

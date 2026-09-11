@@ -1,5 +1,5 @@
 import { _electron as electron, expect } from '@playwright/test';
-import { mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { MemoryService } from '../memory/dist/public.js';
@@ -56,6 +56,12 @@ try {
   await window.locator('#edit-outcome').fill('The first pilot exposed a shared sign-in remediation problem.');
   await window.locator('#save-memory').click();
   await expect(window.locator('#memory-list article').first()).toContainText('Needs review');
+  const exportPath = join(directory, 'exported-memory.json');
+  await app.evaluate(({ dialog }, filePath) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath }); }, exportPath);
+  await window.locator('#export-memory').click();
+  await expect(window.locator('#status')).toContainText('Memory exported');
+  const exported = JSON.parse(await readFile(exportPath, 'utf8'));
+  expect(exported.nodes.some(node => node.outcome?.includes('shared sign-in'))).toBe(true);
   await window.getByRole('button', { name: 'Settings', exact: true }).click();
   await window.locator('#pause').click();
   await expect(window.locator('#pause')).toHaveText('Resume learning and advice');

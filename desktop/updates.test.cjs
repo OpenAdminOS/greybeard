@@ -35,3 +35,10 @@ test('previous full application backup preserves resources and leaves memory alo
     const previous = await createAppBackup({ appData, installation, platform: 'win32' }); assert.equal(await readFile(join(previous, 'Greybeard/resources/core'), 'utf8'), 'old runtime'); assert.equal(await readFile(join(appData, 'memory.db'), 'utf8'), 'current memory');
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+test('application replacement waits for active CLI and MCP sessions to close', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = require('node:fs/promises'); const { tmpdir } = require('node:os'); const { join } = require('node:path');
+  const { requireIdleClients } = require('./sessions.cjs'); const root = await mkdtemp(join(tmpdir(), 'greybeard-active-client-'));
+  try { await mkdir(join(root, 'sessions')); await writeFile(join(root, 'sessions', `${process.pid}.json`), JSON.stringify({ pid: process.pid, executable: 'synthetic-client' }));
+    await assert.rejects(requireIdleClients(root, -1), /still using the runtime/); await requireIdleClients(root, process.pid);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

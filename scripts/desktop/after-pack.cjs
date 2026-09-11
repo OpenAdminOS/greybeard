@@ -8,8 +8,9 @@ module.exports = async function(context) {
   if (context.electronPlatformName !== 'win32') await chmod(binary, 0o755);
   // Exact identity keeps installed CLI references and macOS app replacement compatible.
   if (mac) {
+    await access(join(context.appOutDir, 'Greybeard.app/Contents/MacOS/GreybeardCompanion'));
     const plist = await readFile(join(context.appOutDir, 'Greybeard.app/Contents/Info.plist'), 'utf8');
-    if (!plist.includes('<string>com.ugurlabs.greybeard</string>') || !plist.includes('<string>Greybeard</string>')) {
+    if (!plist.includes('<string>com.ugurlabs.greybeard</string>') || !/<key>CFBundleExecutable<\/key>\s*<string>GreybeardCompanion<\/string>/u.test(plist)) {
       throw new Error('Companion bundle identity or executable name does not match the installed application.');
     }
   }

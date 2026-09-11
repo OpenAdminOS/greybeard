@@ -11,6 +11,7 @@ module.exports = {
   afterPack: './scripts/desktop/after-pack.cjs',
   publish: { provider: 'github', owner: 'OpenAdminOS', repo: 'greybeard', releaseType: 'release' },
   mac: {
+    executableName: 'GreybeardCompanion',
     target: [{ target: 'dmg', arch: ['arm64'] }, { target: 'zip', arch: ['arm64'] }],
     category: 'public.app-category.developer-tools',
     icon: 'assets/logo/greybeard-avatar.png',

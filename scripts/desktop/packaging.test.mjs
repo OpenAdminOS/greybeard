@@ -12,6 +12,8 @@ test('companion bundles the service at the paths used by installed launchers', (
   const config = require('../../desktop/electron-builder.cjs');
   assert.equal(config.appId, 'com.ugurlabs.greybeard');
   assert.equal(config.mac.extraFiles[0].to, 'MacOS/greybeard');
+  assert.equal(config.mac.executableName, 'GreybeardCompanion');
+  assert.notEqual(config.mac.executableName.toLowerCase(), config.mac.extraFiles[0].to.split('/').at(-1).toLowerCase());
   assert.equal(config.win.extraResources[0].to, 'bin/greybeard.exe');
   assert.equal(config.linux.extraResources[0].to, 'bin/greybeard');
   assert.deepEqual(config.mac.target.map(t => t.target), ['dmg', 'zip']);
