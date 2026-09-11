@@ -1,6 +1,6 @@
 // Exercise the actual distribution payload with a separate, empty local profile.
 import { _electron as electron, expect } from '@playwright/test';
-import { mkdtemp, rm, mkdir, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, readFile, readlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -19,6 +19,7 @@ try {
   if (process.platform === 'darwin') {
     mount = join(directory, 'mount'); await mkdir(mount);
     await run('hdiutil', ['attach', artifact, '-mountpoint', mount, '-nobrowse', '-readonly'], { env });
+    expect(await readlink(join(mount, 'Applications'))).toBe('/Applications');
     const installed = join(directory, 'Greybeard.app');
     await run('ditto', [join(mount, 'Greybeard.app'), installed], { env });
     await run('codesign', ['--verify', '--deep', '--strict', installed], { env });

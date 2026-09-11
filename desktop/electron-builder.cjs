@@ -13,7 +13,7 @@ module.exports = {
   mac: {
     target: [{ target: 'dmg', arch: ['arm64'] }, { target: 'zip', arch: ['arm64'] }],
     category: 'public.app-category.developer-tools',
-    icon: 'assets/logo/greybeard-avatar.png',
+    icon: 'assets/logo/greybeard-light.png',
     minimumSystemVersion: '14.0',
     identity: release ? undefined : '-',
     hardenedRuntime: release,
@@ -23,11 +23,21 @@ module.exports = {
     notarize: release,
     artifactName: 'Greybeard-${version}-mac-arm64.${ext}'
   },
-  dmg: { sign: release, title: 'Greybeard ${version}' },
+  dmg: {
+    sign: release,
+    title: 'Install Greybeard',
+    background: 'assets/installer/mac-background.png',
+    iconSize: 92,
+    iconTextSize: 14,
+    contents: [
+      { x: 176, y: 246, type: 'file' },
+      { x: 464, y: 246, type: 'link', path: '/Applications' }
+    ]
+  },
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     signExts: ['.dll'],
-    icon: 'assets/logo/greybeard-avatar.png',
+    icon: 'assets/logo/greybeard-light.png',
     extraResources: [{ from: 'dist/executable/greybeard-win32-x64.exe', to: 'bin/greybeard.exe' }],
     artifactName: 'Greybeard-${version}-windows-x64-setup.${ext}',
     ...(release ? { azureSignOptions: {
@@ -40,7 +50,7 @@ module.exports = {
   nsis: { oneClick: true, perMachine: false, deleteAppDataOnUninstall: false, createDesktopShortcut: true, createStartMenuShortcut: true },
   linux: {
     target: [{ target: 'AppImage', arch: ['x64'] }],
-    category: 'Utility', icon: 'assets/logo/greybeard-avatar.png',
+    category: 'Utility', icon: 'assets/logo/greybeard-light.png',
     extraResources: [{ from: 'dist/executable/greybeard-linux-x64', to: 'bin/greybeard' }],
     artifactName: 'Greybeard-${version}-linux-x64.${ext}'
   }
