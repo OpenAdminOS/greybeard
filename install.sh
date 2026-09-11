@@ -30,7 +30,7 @@ if [ -n "$local_asset" ]; then
   [ -f "$local_asset" ] || { printf '%s\n' 'GREYBEARD_RELEASE_FILE is not a readable release archive' >&2; exit 1; }
   cp "$local_asset" "$tmp_dir/$asset"
 elif command -v gh >/dev/null 2>&1; then
-  if ! gh release download "$release" --repo ugurkocde/greybeard --pattern "$asset" --dir "$tmp_dir"; then
+  if ! gh release download "$release" --repo OpenAdminOS/greybeard --pattern "$asset" --dir "$tmp_dir"; then
     printf '%s\n' 'Private release download failed. Sign in with gh auth login using an account with repository access, or download the archive in GitHub and set GREYBEARD_RELEASE_FILE.' >&2
     exit 1
   fi

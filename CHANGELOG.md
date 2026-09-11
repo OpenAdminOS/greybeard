@@ -4,6 +4,7 @@
 
 Release tag: `v0.1.0`. Access to this executable release requires an account with access to the private repository; historical package versions below describe an earlier distribution.
 
+- Host Greybeard releases and authenticated installer downloads in `OpenAdminOS/greybeard`.
 - Install one executable, with local graphical or terminal setup and no Node, npm, or Git requirement.
 - Use local mentoring and memory without connecting a Microsoft tenant.
 - Propose, inspect, confirm, correct, export, pause, and forget scoped lessons through local controls.

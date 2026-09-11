@@ -18,7 +18,7 @@ Greybeard is a local application. MCP exposes its memory and optional tenant-rea
 
 ## Install Greybeard 0.1
 
-Download the assets from the [private 0.1 release](https://github.com/ugurkocde/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**. Until the release is published, use the final delivery link provided with the release handoff.
+Download the assets from the [private 0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with repository access. GitHub tag `v0.1.0` corresponds to the product display **0.1**. Until the release is published, use the final delivery link provided with the release handoff.
 
 | Computer | Download |
 | --- | --- |

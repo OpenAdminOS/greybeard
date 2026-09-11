@@ -85,7 +85,7 @@ jobs:
           timestamp-digest: SHA256
           append-signature: false
           description: Greybeard 0.1
-          description-url: https://github.com/ugurkocde/greybeard
+          description-url: https://github.com/OpenAdminOS/greybeard
           exclude-environment-credential: false
           exclude-azure-cli-credential: true
           trace: false

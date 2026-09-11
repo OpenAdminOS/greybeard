@@ -22,7 +22,7 @@ try {
   if ($localAsset) {
     Copy-Item -LiteralPath $localAsset -Destination $temporary
   } elseif (Get-Command gh -ErrorAction SilentlyContinue) {
-    & gh release download $releaseTag --repo ugurkocde/greybeard --pattern $assetName --dir $temporaryDir
+    & gh release download $releaseTag --repo OpenAdminOS/greybeard --pattern $assetName --dir $temporaryDir
     if ($LASTEXITCODE -ne 0) { throw 'Private release download failed. Sign in with gh auth login using an account with repository access, or download the executable in GitHub and set GREYBEARD_RELEASE_FILE.' }
   } else {
     throw 'Download the executable from the private GitHub release and set GREYBEARD_RELEASE_FILE, or use an authenticated GitHub CLI (gh). No public download endpoint is configured.'

@@ -1,6 +1,6 @@
 # Install Greybeard 0.1
 
-The release tag is `v0.1.0`; the application displays **0.1**. The repository remains private. Open the [release page](https://github.com/ugurkocde/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with access. The final release handoff confirms publication and asset hashes.
+The release tag is `v0.1.0`; the application displays **0.1**. The repository remains private. Open the [release page](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with access. The final release handoff confirms publication and asset hashes.
 
 Greybeard runs from one executable. It includes the runtime, application, SQLite library, skills, and logo. You do not install Node, npm, Git, or a source checkout. Its extracted runtime assets, settings, and memory database live in application data.
 
@@ -134,6 +134,8 @@ Apple signing uses these repository secrets, matching the existing publisher's n
 | `APPLE_API_ISSUER` | API issuer identifier |
 
 The workflow verifies Apple Team ID `D259ULY2B4`, signs the embedded SQLite library before packaging, signs the executable with hardened runtime, and requires notarization status `Accepted`. Temporary signing material is removed at job completion. The raw executable has no stapled ticket; macOS retrieves its notarization ticket online.
+
+The OpenAdminOS organization currently uses GitHub Free, so this private repository uses repository-level signing secrets. Organization secrets are not available to private repositories on that plan.
 
 Stored GitHub secret values cannot be read back through the API. Add the original values to this repository's Actions secrets; a secret stored in another repository is not automatically available here. Keep certificates, private keys, and passwords out of commits and release assets.
 

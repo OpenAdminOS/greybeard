@@ -2,7 +2,7 @@
 
 **An IT mentor that learns how you work.**
 
-Release tag: `v0.1.0`. Download from the [private GitHub release](https://github.com/ugurkocde/greybeard/releases/tag/v0.1.0) using an account with repository access. The release handoff confirms publication and the final asset checksums.
+Release tag: `v0.1.0`. Download from the [private GitHub release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) using an account with repository access. The release handoff confirms publication and the final asset checksums.
 
 ## Included
 
