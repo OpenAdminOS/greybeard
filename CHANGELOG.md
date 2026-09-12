@@ -2,6 +2,8 @@
 
 ## Unreleased improvements to 0.1
 
+- Keep first-run navigation synchronized with the initial tool scan so a slow response cannot return the user to setup after they choose to explore.
+
 - Match the Windows companion notification identity to its installer shortcut. Extend native hook transport verification to Claude Code.
 
 - Preserve Gemini user-task retrieval and reviewed preference learning when the host prepends session-hook context. Verify real Gemini and Copilot hook delivery with isolated local transport checks.

@@ -19,8 +19,28 @@ try {
   app = await electron.launch({ args: [resolve('desktop')], env: { ...launchEnv, GREYBEARD_HOME: directory, GREYBEARD_APP_DATA: data, ELECTRON_DISABLE_SECURITY_WARNINGS: '', NODE_ENV: 'test' } });
   const window = await app.firstWindow();
   const errors = []; window.on('pageerror', e => errors.push(e.message));
+  // Hold the first scan response to reproduce a slow Windows startup. Navigation
+  // must not be enabled until that response can no longer override the user's choice.
+  const sessionToken=await window.evaluate('token');
+  let releaseInitialScan, initialScanCaptured;
+  const scanGate=new Promise(resolve=>{releaseInitialScan=resolve;});
+  const scanCaptured=new Promise(resolve=>{initialScanCaptured=resolve;});
+  let firstScan=true;
+  await window.route('**/state',async route=>{
+    if(!firstScan){await route.continue();return;}
+    firstScan=false;const response=await route.fetch();initialScanCaptured();
+    await scanGate;await route.fulfill({response});
+  });
+  await window.goto(new URL('?slow-initial-scan=1#'+sessionToken,window.url()).href);
+  await scanCaptured;
+  try { await expect(window.locator('#setup-later')).toBeDisabled(); }
+  finally {releaseInitialScan();}
+  await expect(window.locator('#setup-later')).toBeEnabled();
+  await window.unroute('**/state');
+
   await expect(window.locator('#onboarding')).toBeVisible();
   await window.locator('#setup-later').click();
+  await expect(window.locator('#workspace')).toBeVisible();
   await expect(window.locator('#memory-count')).toHaveText('65');
   expect(await window.evaluate(() => typeof window.require)).toBe('undefined');
   expect(await window.evaluate(() => typeof window.greybeardDesktop.exportMemory)).toBe('function');
