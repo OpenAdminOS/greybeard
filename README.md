@@ -6,31 +6,31 @@
 
 # Greybeard
 
-**An IT mentor that learns how you work.**
-
-For Microsoft 365, Intune, and Entra administrators using AI tools.
+**A self-improving second brain for IT admins.**
 
 </div>
 
-Greybeard notices relevant work through supported AI-tool events, brings in the lessons you have confirmed, and proposes useful operating preferences for review. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
+Greybeard learns how you work through lessons you review and approve, then brings relevant preferences, rules, and experience into supported AI conversations. It combines local memory and admin guidance with your existing AI model, like an experienced colleague helping you get better answers and spot risks before making changes.
 
-Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
+## Download Greybeard
 
-## Desktop companion
+**Free to use. No Node, npm, Git, or tenant connection required.**
 
-The companion now opens in its own application window. Manage memory, review exact proposals, add lessons from outcomes, inspect connections, rate recalled advice, and configure application updates without a browser tab. It keeps your existing local database. The optional Memory map shows recorded sources, timestamps and connections on a rotatable globe, with a flat view and exact-text details. It runs locally without model calls.
+Download the current latest release, **0.1.1**, directly for your computer:
 
-The new delivery is a Windows setup executable, an Apple Silicon DMG containing Greybeard.app, and a Linux AppImage. The CLI and MCP servers are bundled inside. [Companion application and installation flow](docs/0.1/companion.md) · [Implementation coverage](docs/0.1/reviews/implementation-coverage.md).
-
-## Install Greybeard
-
-Download [Greybeard 0.1.1](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.1), the desktop companion in the **0.1** release line. No Node, npm, Git, or tenant connection is required.
-
-| Computer | Download | Install |
+| Platform | Direct download | Install |
 | --- | --- | --- |
-| Windows x64 | [Windows setup executable](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-windows-x64-setup.exe) | Run the installer, then open Greybeard from Start. |
-| Apple Silicon Mac (macOS 14+) | [Mac DMG](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-mac-arm64.dmg) | Drag Greybeard to Applications, eject the DMG, then open the app. |
-| Linux x64 | [Linux AppImage](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-linux-x64.AppImage) | Mark the AppImage executable and open it from a permanent location. |
+| Windows x64 | **[Download for Windows (.exe)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-windows-x64-setup.exe)** | Run the installer, then open Greybeard from Start. |
+| macOS 14+ on Apple Silicon | **[Download for macOS (.dmg)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-mac-arm64.dmg)** | Drag Greybeard to Applications, eject the DMG, then open the app. |
+| Linux x64 | **[Download for Linux (.AppImage)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-linux-x64.AppImage)** | Mark the AppImage executable and open it from a permanent location. |
+
+[Latest release and all downloads](https://github.com/OpenAdminOS/greybeard/releases/latest) · [Download checksums](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/SHA256SUMS.txt)
+
+![Greybeard companion showing an interactive memory map with confirmed lessons, review proposals, recorded connections, and a timeline](docs/images/companion-memory-map.png)
+
+*The companion's memory map, shown with illustrative demo memories. Click a memory to explore its wording, history, and recorded connections.*
+
+## Get started
 
 Windows installers are publisher-signed. The Mac app and DMG are Developer ID signed and notarized. Linux is unsigned; use the release checksums to verify integrity. Download `SHA256SUMS.txt` from the same release and compare the matching hash before installation.
 
@@ -41,6 +41,12 @@ Upgrading from the earlier executable or a companion candidate: close Greybeard 
 The release includes complete-application update manifests and the Mac ZIP used by the updater. **Notify** is the default; **Automatic** downloads an available update, and installation still requires an explicit restart. Existing legacy executables without the companion updater need this manual installation first.
 
 For checksums, terminal installation, and upgrade details, see [installation instructions](docs/0.1/executable-delivery.md). The [release notes](docs/0.1/release-notes.md) describe the included features and limits.
+
+## Desktop companion
+
+The companion opens in its own application window. Manage memory, review exact proposals, add lessons from outcomes, inspect connections, rate recalled advice, and configure application updates without a browser tab. It keeps your existing local database. The optional Memory map shows recorded sources, timestamps and connections on a rotatable globe, with a flat view and exact-text details. It runs locally without model calls.
+
+Greybeard ships as a Windows setup executable, an Apple Silicon DMG containing Greybeard.app, and a Linux AppImage. The CLI and MCP servers are bundled inside. [Companion application and installation flow](docs/0.1/companion.md) · [Implementation coverage](docs/0.1/reviews/implementation-coverage.md).
 
 ## Your first lesson
 
@@ -61,6 +67,8 @@ Recall defaults to an 800-byte budget for compact returned memory nodes. This is
 Automatic mentoring uses local rules and confirmed memories without a separate model call. Each hook contributes at most 2,048 UTF-8 bytes, and identical context is suppressed for ten minutes within the same host session. Skills reuse context already supplied by a hook. These are context controls, not token or billing guarantees: the AI client may include context again in later model requests.
 
 ## Client behavior
+
+Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
 | Client | Automatic mentoring |
 | --- | --- |
@@ -114,7 +122,7 @@ Tenant tools use explicit Microsoft Graph `/beta` reads. **Production tenant wri
 
 ## Updates and model usage
 
-Notify is the default, but this release has no configured publisher update feed. Selecting Automatic does not make new GitHub releases install themselves. Download and verify a replacement manually, close Greybeard and its AI clients, retain the old executable, then replace it at the same path. Keep the application-data directory. The update engine supports verified staging with an independently configured trusted feed; Windows automatic activation is not implemented.
+The companion checks the public GitHub release feed. **Notify** is the default; **Automatic** downloads an available update, and installation requires an explicit restart. Configure updates in **App preferences**. If you use an older standalone executable, install the current companion manually and keep your application-data directory to preserve memory.
 
 Local SQLite and deterministic matching use no model tokens. Recalled context adds input tokens to your existing client's conversation. Retrieval is bounded after link expansion; actual whole-task costs depend on the client, model, and task. Greybeard does not require a separate model subscription or continuous model worker, and does not promise net token savings.
 
