@@ -60,6 +60,7 @@ function addFlag(flags: Map<string, string[]>, name: string, value: string): voi
 function flagTakesValue(name: string): boolean {
   return ![
     "help",
+    "review",
     "ui",
     "no-clients",
     "memory-hook",

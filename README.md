@@ -101,6 +101,8 @@ greybeard uninstall
 
 Review and confirm corrections separately. Pausing stops new learning and proactive advice; explicit recall remains available. Disabling the hook removes Greybeard-owned hook entries. Uninstall removes recognized integrations and retains your memories, configuration, and customer-owned certificate files.
 
+The upcoming 0.1.2 shared-memory feature is optional and lives in App preferences > Advanced. Existing setup stays local. See the [private-server guide](docs/0.1.2/shared-memory.md) and [remaining release checks](docs/0.1.2/implementation-status.md). The downloads above remain the published 0.1.1 release.
+
 Local storage is not a promise that data stays off the network: your AI client may send recalled lessons to its model. Processes running as your OS account can access the same files. Store reusable intent, not secrets or raw tenant exports.
 
 ## Optional tenant connection

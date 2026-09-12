@@ -148,6 +148,15 @@ try {
   await expect(window.locator('#pause')).toHaveText('Resume learning and advice');
   await window.locator('#pause').click();
   await window.getByRole('button', { name: 'App preferences', exact: true }).click();
+  await expect(window.locator('#shared-advanced')).not.toHaveAttribute('open','');
+  await window.locator('#shared-advanced summary').click();
+  await expect(window.locator('#shared-status')).toHaveText('Using local memory.');
+  await window.locator('#shared-pair').click();
+  await expect(window.locator('#status')).toContainText('Read and accept');
+  await window.locator('#shared-code').fill('not-submitted');
+  await window.getByRole('button', {name:'Your memory',exact:true}).click();
+  await expect(window.locator('#shared-code')).toHaveValue('');
+  await window.getByRole('button', {name:'App preferences',exact:true}).click();
   await window.locator('#updates').selectOption('manual');
   await window.locator('#save-settings').click();
   await expect(window.locator('#status')).toContainText('saved');

@@ -45,7 +45,7 @@ const forgetInputSchema = {
 
 const structuredOutputSchema = z.object({}).catchall(z.unknown());
 
-export function createGreybeardMemoryMcpServer(service: MemoryService): McpServer {
+export function createGreybeardMemoryMcpServer(service: Pick<MemoryService, "recall" | "remember" | "list" | "forget" | "discoverScopes" | "proposeOutcome">): McpServer {
   const server = new McpServer({
     name: "greybeard-memory",
     version: "0.1"

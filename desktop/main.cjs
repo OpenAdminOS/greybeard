@@ -83,11 +83,12 @@ handle('desktop:choose-file', async () => {
   const result = await dialog.showOpenDialog(window, { title: 'Choose a certificate or private key', properties: ['openFile'], filters: [{ name: 'PEM certificate or key', extensions: ['pem', 'crt', 'key'] }] });
   return result.canceled ? null : result.filePaths[0];
 });
-handle('desktop:export', async memoryTenant => {
+handle('desktop:export', async (memoryTenant, memoryBinding) => {
+  if (memoryBinding !== undefined && (typeof memoryBinding !== 'string' || memoryBinding.length > 1024)) throw new Error('Refresh the selected memory store.');
   if (typeof memoryTenant !== 'string' || memoryTenant.length > 100) throw new Error('Select a memory environment.');
   const result = await dialog.showSaveDialog(window, { title: 'Export memory', defaultPath: 'greybeard-memory.json', filters: [{ name: 'JSON', extensions: ['json'] }] });
   if (result.canceled || !result.filePath) return false;
-  await writeFile(result.filePath, JSON.stringify(await request('/export', { memoryTenant }), null, 2), { mode: 0o600 });
+  await writeFile(result.filePath, JSON.stringify(await request('/export', { memoryTenant, memoryBinding }), null, 2), { mode: 0o600 });
   return true;
 });
 handle('desktop:storage', async () => { await mkdir(appData, { recursive: true, mode: 0o700 }); return shell.openPath(appData); });

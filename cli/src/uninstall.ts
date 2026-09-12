@@ -1,7 +1,9 @@
 import { withClientConfigLock, writeClientConfigAtomic } from "./clientConfigFile.js";
 import { lstat, readFile, readlink, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { flagValues, type ParsedArgs } from "./args.js";
+import { getGreybeardAppDataPath } from "@greybeard/graph";
+import { readMemoryBinding, disconnectMemory } from "./sharedMemory.js";
+import { flagValue, flagValues, type ParsedArgs } from "./args.js";
 import { CLIENT_ADAPTERS, removeTomlTable, extractTomlTable, removeClaudeMemoryHook, listSkillSourceDirs, repoSkillsDir } from "./clients.js";
 import { SERVER_CATALOG, isGreybeardManagedEntry } from "./serverCatalog.js";
 import { hostForClient, removeAutomaticHooks } from "./automaticHooks.js";
@@ -61,6 +63,13 @@ export async function runUninstall(_args: ParsedArgs, runtime: CliRuntime): Prom
         if (next !== text) await writeClientConfigAtomic(fallback.path, next);
         });
       } catch { /* Preserve unreadable user files. */ }
+    }
+  }
+  if (!selected.length) {
+    const appData = flagValue(_args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+    if (await readMemoryBinding(appData)) {
+      const cleanup = await disconnectMemory(appData);
+      if (!cleanup.revoked || !cleanup.credentialsRemoved) writeLine(runtime.stderr, "Shared memory disconnected locally. Server revocation or OS credential cleanup is still pending.");
     }
   }
   writeLine(runtime.stdout, "Removed recognized Greybeard integrations. Your memories and configuration remain available. You may now delete the executable.");

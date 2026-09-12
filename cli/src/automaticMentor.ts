@@ -2,6 +2,7 @@ import { AutomaticMentorStore, MemoryService, MENTOR_RULES, digest, enforcePriva
 import { getGreybeardAppDataPath, readGreybeardConfig } from "@greybeard/graph";
 import { flagValue, type ParsedArgs } from "./args.js";
 import type { CliRuntime } from "./runtime.js";
+import { readMemoryBinding, RemoteMemory } from "./sharedMemory.js";
 import { readBoundedInput } from "./mentor.js";
 
 export const AUTOMATIC_HOSTS: MentorHost[] = ["claude", "codex", "cursor", "gemini", "copilot"];
@@ -126,7 +127,16 @@ export function hostEventOutput(host: MentorHost, kind: EventKind, input: Record
   return {hookSpecificOutput:{hookEventName:event,additionalContext:context}};
 }
 
+export function remoteEventText(input: Record<string, unknown>, kind: EventKind, host: MentorHost): string {
+  if (["start", "prompt", "stop"].includes(kind)) return shortUtf8(eventText(input, kind, host), 8192);
+  const raw = input.tool_input ?? input.toolArgs;
+  const tool = raw && typeof raw === "object" && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+  return shortUtf8(string(input.tool_name ?? input.toolName) + " " + string(tool.command ?? tool.code ?? input.command), 8192);
+}
+
 export async function runAutomaticMentor(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
+  const deadline = Date.now() + 1500;
+  const signal = AbortSignal.timeout(1500);
   const host = flagValue(args,"host") as MentorHost;
   const kind = flagValue(args,"event") as EventKind;
   if (!AUTOMATIC_HOSTS.includes(host) || !AUTOMATIC_EVENTS.includes(kind)) return 1;
@@ -135,10 +145,16 @@ export async function runAutomaticMentor(args: ParsedArgs, runtime: CliRuntime):
     const input = JSON.parse(await readBoundedInput(runtime.stdin,128 * 1024));
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid host input");
     const config = await readGreybeardConfig(appData);
-    const result = await processMentorEvent({appData,host,kind,input,profile:flagValue(args,"profile") || config.profileId || "local",tenant:flagValue(args,"tenant") || "local"});
+    const binding = await readMemoryBinding(appData);
+    if (binding) enforcePrivacy(remoteEventText(input, kind, host), "query");
+    const result = binding
+      ? config.learningEnabled === false || config.memoryHook === false ? {context:""} : await new RemoteMemory(appData, binding).request("/event", { host, kind, session: String(input.session_id ?? input.sessionId ?? input.conversation_id ?? "").slice(0,256), turn: String(input.turn_id ?? input.generation_id ?? input.tool_use_id ?? "").slice(0,256), text: remoteEventText(input,kind,host) }, signal)
+      : await processMentorEvent({appData,host,kind,input,profile:flagValue(args,"profile") || config.profileId || "local",tenant:flagValue(args,"tenant") || "local"});
+    if (binding && Date.now() > deadline) throw new Error("Shared memory deadline exceeded.");
     runtime.stdout.write(JSON.stringify(hostEventOutput(host,kind,input,result.context))+"\n");
   } catch {
     try {
+      if (await readMemoryBinding(appData)) { runtime.stdout.write("{}\n"); return 0; }
       const config = await readGreybeardConfig(appData);
       const store = new AutomaticMentorStore(appData,flagValue(args,"profile") || config.profileId || "local",flagValue(args,"tenant") || "local");
       try { store.record({host,event:kind,status:"error",fingerprint:digest(`${host}:${kind}:invalid`),diagnostic:"The host event could not be read. Restart this tool and inspect its hook diagnostics."}); } finally {store.close();}

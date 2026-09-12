@@ -3,7 +3,7 @@ import { mkdir, open, readdir, unlink, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { getGreybeardAppDataPath, readGreybeardConfig } from "@greybeard/graph";
-import { MemoryService } from "@greybeard/memory";
+import { openMemoryBackend, type MemoryBackend } from "./sharedMemory.js";
 import { flagValue, type ParsedArgs } from "./args.js";
 import { type CliRuntime, writeLine } from "./runtime.js";
 
@@ -61,7 +61,7 @@ export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes =
 export async function runMentor(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   if (args.positionals[0] === "event") return (await import("./automaticMentor.js")).runAutomaticMentor(args,runtime);
   if (args.positionals[0] !== "pre-tool") return 1;
-  let service: MemoryService | undefined;
+  let service: MemoryBackend | undefined;
   try {
     const event = JSON.parse(await readBoundedInput(runtime.stdin)) as Record<string, unknown>;
     if (!event || typeof event !== "object") return 0;
@@ -71,7 +71,7 @@ export async function runMentor(args: ParsedArgs, runtime: CliRuntime): Promise<
     const config = await readGreybeardConfig(appDataPath);
     if (config.learningEnabled === false || config.memoryHook === false) return 0;
     const profileId = flagValue(args, "profile") || runtime.env.GREYBEARD_PROFILE_ID || config.profileId || "local";
-    service = new MemoryService({ appDataPath, profileId, tenantId: flagValue(args, "tenant") || runtime.env.GREYBEARD_TENANT_ID || "local" });
+    service = await openMemoryBackend({ appDataPath, profileId, tenantId: flagValue(args, "tenant") || runtime.env.GREYBEARD_TENANT_ID || "local" });
     const result = await service.recall({ query: action.query, scope: action.scope, tokenBudget: 500, limit: 3 });
     if (!result.results.length) return 0;
     if (typeof event.session_id !== "string" || event.session_id.length > 256) return 0;

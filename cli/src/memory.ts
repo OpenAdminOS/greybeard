@@ -1,5 +1,6 @@
 import { getGreybeardAppDataPath, updateGreybeardConfig } from "@greybeard/graph";
 import { MEMORY_TYPES, MemoryService, type MemoryType } from "@greybeard/memory";
+import { openMemoryBackend, RemoteMemory } from "./sharedMemory.js";
 import { flagValue, ParsedArgs } from "./args.js";
 import { CliRuntime, writeLine } from "./runtime.js";
 
@@ -16,8 +17,9 @@ export async function runMemory(args: ParsedArgs, runtime: CliRuntime): Promise<
     writeLine(runtime.stdout, subcommand === "pause" ? "Memory capture and mentor advice paused." : "Memory capture and mentor advice resumed.");
     return 0;
   }
-  const service = new MemoryService({ appDataPath, profileId: flagValue(args, "profile") || runtime.env.GREYBEARD_PROFILE_ID });
+  const service = await openMemoryBackend({ appDataPath, profileId: flagValue(args, "profile") }, true);
   try {
+    if (service instanceof RemoteMemory) writeLine(runtime.stderr, `Shared store: ${service.binding.url}, profile ${service.profileId}, environment ${service.tenant}.`);
     if (subcommand === "list" || subcommand === "candidates") {
       const type = optionalType(flagValue(args, "type"));
       const limit = optionalNumber(flagValue(args, "limit"), "limit");
@@ -37,7 +39,7 @@ export async function runMemory(args: ParsedArgs, runtime: CliRuntime): Promise<
       if (subcommand === "correct" && !supersedes) throw new Error("--id is required for correction.");
       const original = subcommand === "correct" ? (await service.export()).nodes.find(node => node.id === supersedes) : undefined;
       if (subcommand === "correct" && !original) throw new Error("Memory to correct was not found in this profile.");
-      writeJson(runtime.stdout, await service.remember({ content, type: optionalType(flagValue(args, "type")) ?? original?.type ?? "preference", source: "local-cli", scope: flagValue(args, "scope") ?? original?.scope, ...(subcommand === "correct" ? { supersedes } : {}) }));
+      writeJson(runtime.stdout, await service.remember({ content, type: optionalType(flagValue(args, "type")) ?? original?.type ?? "preference", source: "local-cli", scope: flagValue(args, "scope") ?? original?.scope, ...(subcommand === "correct" ? { supersedes, ...(service instanceof RemoteMemory ? {expectedOriginalRevision: original?.revision} : {}) } : {}) }));
       writeLine(runtime.stdout, "Candidate saved. Review and confirm with greybeard memory confirm --id <id>.");
       return 0;
     }
@@ -64,7 +66,10 @@ export async function runMemory(args: ParsedArgs, runtime: CliRuntime): Promise<
         "olderThanDays"
       );
       const type = optionalType(flagValue(args, "type"));
-      const result = await service.forget({ id, olderThanDays, type });
+      if (service instanceof RemoteMemory && !id) throw new Error("Shared memory deletion requires one exact record ID.");
+      const node = service instanceof RemoteMemory ? (await service.export()).nodes.find(n => n.id === id) : undefined;
+      if (service instanceof RemoteMemory && (!node || !runtime.stdin.isTTY || await runtime.confirm(`Forget this exact shared memory: ${node.content} (Enter to confirm): `) !== "confirmed")) throw new Error("Shared memory deletion needs interactive review.");
+      const result = await service.forget(service instanceof RemoteMemory ? { id, expectedRevision: node?.revision } as Parameters<MemoryService["forget"]>[0] : { id, olderThanDays, type });
       writeJson(runtime.stdout, result);
       return 0;
     }

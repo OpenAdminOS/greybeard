@@ -1,6 +1,6 @@
 {
   "name": "@greybeard/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "private": true,
   "bin": {
@@ -11,7 +11,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@greybeard/graph": "0.1.1",
-    "@greybeard/memory": "0.1.1"
+    "@greybeard/graph": "0.1.2",
+    "@greybeard/memory": "0.1.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
   }
 }

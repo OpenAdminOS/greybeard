@@ -9,6 +9,7 @@ import {
   type CacheProtection,
   type GreybeardConfig
 } from "@greybeard/graph";
+import { readMemoryBinding, RemoteMemory } from "./sharedMemory.js";
 import { flagValue, ParsedArgs } from "./args.js";
 import {
   detectAllClients,
@@ -58,6 +59,10 @@ export async function assembleDoctorFindings(args: ParsedArgs, runtime: CliRunti
     { level: null, label: "Updates", detail: config.updateMode ?? "notify" },
     { level: null, label: "Tenant", detail: config.appOnlyProfile ? "configured; use greybeard connect status for connection checks" : "optional, disconnected" }
   ];
+  try {
+    const binding = await readMemoryBinding(appDataPath);
+    if (binding) { await new RemoteMemory(appDataPath, binding).status(); findings.push({level:"PASS",label:"Shared memory",detail:"Connected; restart AI clients after changing stores."}); }
+  } catch { findings.push({level:"FAIL",label:"Shared memory",detail:"Unavailable or misconfigured. Check Advanced settings. Local memory was not substituted."}); }
   const clients = await detectAllClients(runtime, { githubCopilot: config.clients?.githubCopilot === true });
   for (const client of clients.filter(c => c.detected)) {
     for (const warning of client.warnings ?? []) findings.push({ level: "WARN", label: `${client.name} config path`, detail: warning });

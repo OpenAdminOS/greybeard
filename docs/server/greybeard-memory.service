@@ -1,0 +1,23 @@
+[Unit]
+Description=Greybeard private shared memory
+After=network.target
+
+[Service]
+Type=simple
+User=greybeard
+Group=greybeard
+StateDirectory=greybeard-shared
+StateDirectoryMode=0700
+ExecStart=/opt/greybeard/greybeard server start --app-data /var/lib/greybeard-shared --port 47831 --public-url https://memory.example.com
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/greybeard-shared
+
+[Install]
+WantedBy=multi-user.target

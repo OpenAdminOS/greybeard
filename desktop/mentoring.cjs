@@ -1,12 +1,14 @@
 // Native notifications contain no prompt or memory text. The companion shows
 // current advice after opening, respecting later forgetting and pause changes.
 function createMentorNotifications({ request, supported, notify, now = Date.now }) {
-  let latest = null, lastNotification = 0, busy = false, timer;
+  let latest = null, lastNotification = 0, busy = false, timer, memoryBinding;
   async function poll() {
     if (busy) return;
     busy = true;
     try {
       const data = await request('/mentoring');
+      const binding = data.memoryBinding ?? 'local';
+      if (binding !== memoryBinding) { latest = null; memoryBinding = binding; }
       const events = Array.isArray(data.recent) ? data.recent : [];
       const newest = Math.max(0, ...events.map(event => event.id));
       const fresh = latest === null ? [] : events.filter(event => event.id > latest);

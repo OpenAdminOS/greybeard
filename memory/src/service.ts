@@ -31,6 +31,8 @@ export type MemoryServiceOptions = {
   now?: NowProvider;
   softCap?: number;
   queryTtlDays?: number;
+  /** Human review on a shared server can continue while capture and recall are paused. */
+  allowConfirmationWhilePaused?: boolean;
 };
 
 type NodeRow = {
@@ -51,11 +53,13 @@ export class MemoryService {
   private readonly nowProvider: NowProvider;
   private readonly softCap: number;
   private readonly queryTtlDays: number;
+  private readonly allowConfirmationWhilePaused: boolean;
   readonly tenant: string;
   readonly profileId: string;
 
   constructor(options: MemoryServiceOptions) {
     this.appDataPath = options.appDataPath;
+    this.allowConfirmationWhilePaused = options.allowConfirmationWhilePaused === true;
     const config = readLocalConfig(this.appDataPath);
     this.tenant = options.tenantId ?? nonEmpty(process.env.GREYBEARD_TENANT_ID) ?? nonEmpty(config.activeTenantId) ?? "local";
     validateLabel(this.tenant, "tenantId");
@@ -178,7 +182,7 @@ export class MemoryService {
   /** Trusted local control only. Deliberately absent from the MCP tool surface.
    * This is a product trust boundary, not isolation from same-user shell access. */
   async confirm(input: ConfirmInput): Promise<MemoryNode> {
-    this.assertLearningEnabled();
+    if (!this.allowConfirmationWhilePaused) this.assertLearningEnabled();
     return this.db.transaction(() => {
       const node = this.requireNode(input.id);
       if (typeof input.expectedRevision !== "string" || !input.expectedRevision || node.revision !== input.expectedRevision) {
