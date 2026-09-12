@@ -11,14 +11,21 @@ try {
   const data = join(temporary, 'data');
   await mkdir(home);
   const env = { PATH: '', HOME: home, USERPROFILE: home, GREYBEARD_HOME: home, GREYBEARD_APP_DATA: data, ...(process.platform === 'win32' ? { SystemRoot: process.env.SystemRoot, LOCALAPPDATA: home } : {}) };
-  function run(args) {
-    const result = spawnSync(binary, args, { cwd: temporary, env, encoding: 'utf8', timeout: 30_000 });
+  function run(args, input) {
+    const result = spawnSync(binary, args, { cwd: temporary, env, encoding: 'utf8', timeout: 30_000, input });
     assert.equal(result.status, 0, `${args.join(' ')}: ${result.error || result.stderr || result.stdout}`);
     return result.stdout;
   }
   assert.match(run(['--help']), /Greybeard/);
   run(['setup', '--yes']);
   run(['memory', 'list']);
+  const eventArgs=['mentor','event','--host','codex','--event','prompt','--app-data',data];
+  const advice=JSON.parse(run(eventArgs,JSON.stringify({session_id:'standalone-smoke',prompt:'We always require a recovery owner before production rollouts.'})));
+  assert.match(advice.hookSpecificOutput.additionalContext,/already saved candidate/);
+  assert.deepEqual(JSON.parse(run(eventArgs,'{invalid')),{});
+  run(['memory','pause']);
+  assert.deepEqual(JSON.parse(run(eventArgs,JSON.stringify({session_id:'paused-smoke',prompt:'Delete all production devices.'}))),{});
+  run(['memory','resume']);
   run(['setup', '--yes', '--app-data', './chosen-data']);
   const chosen = await readdir(join(temporary, 'chosen-data'));
   assert(chosen.includes('config.json') && chosen.includes('memory.db') && chosen.includes('runtime') && chosen.includes('sessions'), 'Explicit --app-data binds memory, assets and session locks together');
@@ -56,7 +63,7 @@ try {
     child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'executable-smoke', version: '0.1' } } }) + '\n');
   });
   assert.match(result, /serverInfo/);
-  console.log('Executable smoke passed: isolated copy, empty PATH, help, mentor-only setup, SQLite, memory MCP initialize.');
+  console.log('Executable smoke passed: isolated copy, empty PATH, help, mentor-only setup, SQLite, automatic proposal, malformed-event recovery, pause, memory MCP initialize.');
 } finally {
   await rm(temporary, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }

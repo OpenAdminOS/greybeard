@@ -4,8 +4,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig, updateGreybeardConfig } from "@greybeard/graph";
 import { companionPage } from "./companionUi.js";
-import { discoveryRuntime, inspectWorkspace } from "./workspaceStatus.js";
-import { MemoryService } from "@greybeard/memory";
+import { discoveryRuntime, inspectWorkspace, readAutomaticActivity } from "./workspaceStatus.js";
+import { AutomaticMentorStore, MemoryService } from "@greybeard/memory";
 import { previewSetupRepair, repairSetup } from "./setupRepair.js";
 import { detectAllClients } from "./clients.js";
 import { flagValue, parseArgs, type ParsedArgs } from "./args.js";
@@ -52,6 +52,9 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         const toolStatus = await inspectWorkspace(runtime, appDataPath);
         const configuredClients = toolStatus.filter(c => c.configured).map(c => c.name);
         result = { toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+      } else if (path === "/mentoring") {
+        const config = await readGreybeardConfig(appDataPath);
+        result = {...readAutomaticActivity(appDataPath,config.profileId ?? "local",config.activeTenantId ?? "local"),paused:config.learningEnabled === false || config.memoryHook === false};
       } else if (path === "/diagnostics") {
         const { assembleDoctorFindings } = await import("./doctor.js");
         result = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", appDataPath]), runtime);
@@ -64,6 +67,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         if (!["automatic", "notify", "manual"].includes(String(body.updateMode))) return fail(400, "Choose an update mode.");
         const { runSetup } = await import("./setup.js");
         const selected = body.clients as string[];
+        if (selected.includes("Claude Desktop") && !selected.includes("Claude Code")) selected.push("Claude Code");
         const detected = await detectAllClients(runtime);
         if (selected.some(name => !detected.some(client => client.detected && client.name === name))) return fail(400, "Selected client is no longer available.");
         // No selected clients means local memory only, not implicit selection of every client.
@@ -140,7 +144,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
           const nodes = (await service.export()).nodes.filter(node => node.supersededAt === null);
           result = { active: nodes.length, confirmed: nodes.filter(node => node.status === "confirmed").length, candidates: nodes.filter(node => node.status === "candidate").length };
         } else if (path === "/metrics") result = { ...(await service.adviceMetrics()), recent: await service.adviceHistory() };
-        else if (path === "/clear-metrics") { await service.clearAdviceMetrics(); result = { cleared: true }; }
+        else if (path === "/clear-metrics") { await service.clearAdviceMetrics(); const activity = new AutomaticMentorStore(appDataPath,memoryConfig.profileId ?? "local",tenantId); try { activity.clear(); } finally { activity.close(); } result = { cleared: true }; }
         else if (path === "/feedback") {
           if (typeof body.recallId !== "string" || !["accepted", "ignored", "irrelevant"].includes(String(body.feedback))) return fail(400, "Select an advice event and rating.");
           result = await service.recordAdviceFeedback({ recallId: body.recallId, feedback: body.feedback as "accepted" });

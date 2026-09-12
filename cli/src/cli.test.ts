@@ -440,7 +440,8 @@ describe("greybeard CLI", () => {
     }), "utf8");
 
     expect((await detectClaudeDesktop(runtime)).detected).toBe(true);
-    expect((await detectClaudeCode(runtime)).detected).toBe(false);
+    expect((await detectClaudeCode(runtime)).detected).toBe(true);
+    expect((await detectClaudeCode(runtime)).binaryPath).toBeNull();
 
     await writeFile(desktopConfig, JSON.stringify({
       mcpServers: {
@@ -647,7 +648,7 @@ describe("greybeard CLI", () => {
     expect(runtime.stdout.toString()).toContain("Claude Desktop");
     expect(runtime.stdout.toString()).toContain("greybeard skills pack");
     expect(runtime.stdout.toString()).toContain("fully quit and restart Claude Desktop");
-    expect(await pathExists(join(paths.home, ".claude", "skills"))).toBe(false);
+    expect(await pathExists(join(paths.home, ".claude", "skills"))).toBe(true);
     if (process.platform !== "win32") {
       expect((await stat(configPath)).mode & 0o777).toBe(0o600);
     }

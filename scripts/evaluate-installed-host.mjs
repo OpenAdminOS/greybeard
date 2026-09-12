@@ -4,11 +4,16 @@ import { writeCodexMcpConfig, writeCodexSkillFallback, wireCodexSkills, writeCla
 import { SERVER_CATALOG } from '../cli/dist/serverCatalog.js';
 import { appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
-const [home, app, client = 'codex'] = process.argv.slice(2);
+const [home, app, client = 'codex', automatic] = process.argv.slice(2);
 if (!home?.startsWith('/tmp/greybeard-evaluation-') || !app?.startsWith('/tmp/greybeard-evaluation-')) throw Error('Use isolated evaluation paths.');
 const runtime = createRuntime();
 runtime.homeDir = home;
 runtime.env = {...runtime.env, CODEX_HOME:join(home,'.codex'), ...(client === 'claude' ? {CLAUDE_CONFIG_DIR:join(home,'.claude')} : {}), GREYBEARD_APP_DATA:app,GREYBEARD_PROFILE_ID:'profile-a',GREYBEARD_TENANT_ID:'synthetic-lab'};
+if (automatic === 'automatic') {
+  const { writeAutomaticHooks } = await import('../cli/dist/automaticHooks.js');
+  await writeAutomaticHooks(runtime, client);
+  if (['gemini','copilot'].includes(client)) process.exit(0);
+}
 const options = {serverToggles:Object.fromEntries(SERVER_CATALOG.map(s=>[s.name,s.name==='greybeard-memory']))};
 if (client === 'claude') {
   await writeClaudeMcpConfig(runtime, options);

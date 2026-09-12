@@ -2,6 +2,7 @@ import { _electron as electron, expect } from '@playwright/test';
 import { mkdtemp, rm, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { processMentorEvent } from '../cli/dist/automaticMentor.js';
 import { MemoryService } from '../memory/dist/public.js';
 const directory = await mkdtemp(join(tmpdir(), 'greybeard-companion-check-'));
 const data = join(directory, 'data');
@@ -75,6 +76,11 @@ try {
   await expect(window.locator('#update-status')).toContainText('installed build');
   await window.getByRole('button', { name: 'Advice & activity', exact: true }).click();
   await expect(window.locator('#metrics .panel')).toHaveCount(4);
+  await processMentorEvent({appData:data,profile:'local',tenant:'local',host:'codex',kind:'prompt',input:{session_id:'native-smoke',prompt:'We always require helpdesk review before a production rollout.'}});
+  await window.locator('#refresh-mentoring').evaluate(button => button.click());
+  await expect(window.locator('#automatic-events')).toContainText('Proposed lesson');
+  await expect(window.locator('#automatic-events')).toContainText('codex');
+
   await window.getByRole('button', { name: 'Infrastructure', exact: true }).click();
   await window.locator('#check-capabilities').click();
   await expect(window.locator('#capability-results')).toContainText('not-selected');

@@ -1,0 +1,10 @@
+{
+  "id": "05",
+  "method": "Review of saved real model response plus independent local event ledger. Synthetic data only.",
+  "finding": "The prompt hook saved one candidate. The host reported its ID and exact-review requirement without another memory write.",
+  "exitCode": 0,
+  "contextBytes": 1203,
+  "automaticProposals": 1,
+  "mcpCalls": 0,
+  "limits": "One observed run, not a model-quality guarantee or a real tenant assessment. See sourceHashes for the exact implementation exercised."
+}

@@ -5,6 +5,7 @@ module.exports = {
   copyright: 'Copyright Ugurlabs',
   directories: { app: 'desktop', output: 'dist/companion', buildResources: 'assets/logo' },
   files: ['*.cjs', '!*.test.cjs', 'package.json'],
+  extraResources: [{ from: 'assets/logo/greybeard-light.png', to: 'greybeard-tray.png' }],
   asar: true,
   npmRebuild: false, // SQLite runs inside the Node SEA, never inside Electron.
   forceCodeSigning: release && process.platform !== 'linux',

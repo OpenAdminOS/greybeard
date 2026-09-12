@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard, Notification, Tray, nativeImage } = require('electron');
 const { spawn } = require('node:child_process');
 const { join, resolve } = require('node:path');
 const { writeFile, mkdir, readFile, copyFile, chmod, rename } = require('node:fs/promises');
@@ -6,7 +6,8 @@ const { autoUpdater } = require('electron-updater');
 const { createUpdateController } = require('./updates.cjs');
 
 app.setName('Greybeard');
-let window, child, serverUrl, stopping = false, updater;
+const startup = require('./startup.cjs').createStartupController(app);
+let window, child, serverUrl, stopping = false, updater, mentorNotifications, tray;
 const root = resolve(__dirname, '..');
 let core = app.isPackaged
   ? process.platform === 'darwin' ? join(process.resourcesPath, '../MacOS/greybeard') : join(process.resourcesPath, 'bin', process.platform === 'win32' ? 'greybeard.exe' : 'greybeard')
@@ -98,6 +99,7 @@ handle('desktop:updates', async (action) => {
   if (!['status', 'check', 'download', 'install'].includes(action)) throw new Error('Unknown update action.');
   return updater[action]();
 });
+handle('desktop:startup', enabled => enabled === undefined ? startup.status() : startup.set(enabled));
 handle('desktop:quit', () => app.quit());
 
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -112,10 +114,20 @@ else {
       { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
       { label: 'Window', submenu: [{ role: 'minimize' }, { label: 'Show Greybeard', click: () => void openWindow() }, ...(process.platform !== 'darwin' ? [{ role: 'quit' }] : [])] }
     ]));
-    await openWindow();
+    const atLogin = app.isPackaged && process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin;
+    if (!process.argv.includes('--background') && !atLogin) await openWindow();
+    const { createMentorNotifications } = require('./mentoring.cjs');
+    mentorNotifications = createMentorNotifications({ request, supported: () => Notification.isSupported(), notify: body => { const note = new Notification({ title: 'Greybeard', body }); note.on('click', () => void openWindow()); note.show(); } });
+    mentorNotifications.start();
+    // Windows needs a visible way to reopen a companion that keeps listening
+    // after its window closes. macOS already exposes the app in the Dock.
+    if (process.platform !== 'darwin') {
+      const icon = nativeImage.createFromPath(app.isPackaged ? join(process.resourcesPath,'greybeard-tray.png') : join(root,'assets/logo/greybeard-light.png'));
+      if (!icon.isEmpty()) { tray = new Tray(icon.resize({width:20,height:20})); tray.setToolTip('Greybeard'); tray.setContextMenu(Menu.buildFromTemplate([{label:'Open Greybeard',click:()=>void openWindow()},{label:'Quit Greybeard',click:()=>app.quit()}])); tray.on('click',()=>void openWindow()); }
+    }
     void updater.schedule();
     app.on('activate', () => void openWindow());
   }).catch(error => { dialog.showErrorBox('Cannot open Greybeard', error.message); app.quit(); });
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-  app.on('before-quit', () => { stopping = true; updater?.stop(); child?.kill(); });
+  app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !tray) app.quit(); });
+  app.on('before-quit', () => { stopping = true; updater?.stop(); mentorNotifications?.stop(); tray?.destroy(); child?.kill(); });
 }

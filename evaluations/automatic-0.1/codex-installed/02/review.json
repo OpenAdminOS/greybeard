@@ -1,0 +1,10 @@
+{
+  "id": "02",
+  "method": "Review of saved real model response plus independent local event ledger. Synthetic data only.",
+  "finding": "The confirmed correction supplied 72 hours; the superseded 48-hour record did not set the plan.",
+  "exitCode": 0,
+  "contextBytes": 1207,
+  "automaticProposals": 0,
+  "mcpCalls": 0,
+  "limits": "One observed run, not a model-quality guarantee or a real tenant assessment. See sourceHashes for the exact implementation exercised."
+}

@@ -1,7 +1,10 @@
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { AutomaticMentorStore, memoryDbPath } from "@greybeard/memory";
+import { inspectAutomaticHooks, hostForClient } from "./automaticHooks.js";
 import { readGreybeardConfig } from "@greybeard/graph";
-import { detectAllClients, getClientAdapter, inspectClaudeMemoryHook, summarizeSkillWiring, extractTomlTable } from "./clients.js";
+import { detectAllClients, getClientAdapter, summarizeSkillWiring, extractTomlTable } from "./clients.js";
 import { findExecutable, type CliRuntime } from "./runtime.js";
 import { serverOptionsFromConfig, findCatalogServer, isGreybeardManagedEntry } from "./serverCatalog.js";
 
@@ -18,6 +21,7 @@ export function discoveryRuntime(runtime: CliRuntime): CliRuntime {
 export async function inspectWorkspace(runtime: CliRuntime, appDataPath: string) {
   const config = await readGreybeardConfig(appDataPath);
   const bound = { ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: appDataPath, GREYBEARD_PROFILE_ID: config.profileId ?? "local", GREYBEARD_TENANT_ID: config.activeTenantId ?? "local" } };
+  const activity = readAutomaticActivity(appDataPath,config.profileId ?? "local",config.activeTenantId ?? "local");
   const clients = await detectAllClients(runtime);
   return Promise.all(clients.map(async client => {
     const adapter = getClientAdapter(client.name);
@@ -25,6 +29,7 @@ export async function inspectWorkspace(runtime: CliRuntime, appDataPath: string)
     let configured = false;
     let memoryReady = false;
     let manualSkills = false;
+    const automatic = await inspectAutomaticHooks(bound,hostForClient(client.name));
     try {
       const mcp = await adapter.inspectMcpConfig(bound, serverOptionsFromConfig(config));
       configured = mcp.configured;
@@ -43,14 +48,26 @@ export async function inspectWorkspace(runtime: CliRuntime, appDataPath: string)
           for (const entry of skills.entries.filter(entry => entry.status === "blocked")) issues.push(`${entry.name}: ${entry.message ?? "Needs setup"} (${entry.target})`);
         }
         if (adapter.inspectFallback && !(await adapter.inspectFallback(bound)).configured) issues.push("Greybeard's tool instructions need setup.");
-        if (adapter.ambientChannel === "memory-hook" && config.memoryHook !== false && !(await inspectClaudeMemoryHook(bound)).configured) issues.push("The advisory hook needs setup.");
+        if (config.memoryHook !== false && !automatic.configured) issues.push("Automatic mentoring hooks need setup.");
       }
     } catch { issues.push("Could not inspect this integration. Run installation checks or try setup again."); }
-    return { name: client.name, detected: client.detected, configured, memoryReady, ready: client.detected && configured && issues.length === 0, issues,
+    const observed = activity.hosts.find(item => item.host === automatic.host);
+    const latest = activity.recent.find(item => item.host === automatic.host);
+    const mentoring = {...automatic, mode:client.name === "Claude Desktop" ? "Code mode automatic; Chat MCP-assisted" : automatic.host === "cursor" ? "Companion prompt advice and host tool context" : "Automatic prompt and tool context",
+      status: config.learningEnabled === false || config.memoryHook === false ? "paused" : automatic.disabled ? "disabled-in-host" : !automatic.configured ? "not-configured" : latest?.status === "error" ? "error" : observed ? "observed" : "awaiting-event",
+      lastSeen:observed?.lastSeen ?? null, eventsObserved:observed?.events ?? 0, contextBytes:observed?.contextBytes ?? 0};
+    return { name: client.name, detected: client.detected, configured, memoryReady, mentoring, ready: client.detected && configured && issues.length === 0, issues,
       configPath: client.userConfigPath, channel: adapter.ambientChannel, manualSkills,
-      guidance: adapter.ambientChannel === "memory-hook" ? "Command advice and remembered lessons. Advice does not block commands."
-        : adapter.ambientChannel === "none-manual" ? "Memory tools are available when requested. Skills need a separate manual import."
-        : "Instructions and skills help this tool bring relevant lessons into your work.",
+      guidance: client.name === "Claude Desktop" ? "Automatic mentoring in Code mode. Ordinary Chat uses MCP-assisted memory. Code shares the Claude Code integration."
+        : automatic.host === "cursor" ? "Prompts trigger local companion advice. Supported tool results can receive context automatically."
+        : "Automatic prompt checks, relevant advice and proposed lessons. Host approval may be needed once.",
       warnings: client.warnings ?? [] };
   }));
+}
+
+export function readAutomaticActivity(appData: string,profile: string,tenant: string): ReturnType<AutomaticMentorStore["summary"]> {
+  if (!existsSync(memoryDbPath(appData))) return {hosts:[],recent:[],retentionDays:7,storesPrompts:false};
+  const store = new AutomaticMentorStore(appData,profile,tenant);
+  try { return store.summary(); }
+  finally {store.close();}
 }

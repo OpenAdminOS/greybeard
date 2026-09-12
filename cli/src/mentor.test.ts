@@ -37,7 +37,7 @@ describe("mentor 0.1", () => {
     expect(Object.keys(config.mcpServers)).toEqual(["greybeard-memory"]);
     expect(config.mcpServers["greybeard-memory"].env).toMatchObject({ GREYBEARD_APP_DATA: f.appData, GREYBEARD_PROFILE_ID: "local" });
     const settings = JSON.parse(await readFile(join(f.home, ".claude", "settings.json"), "utf8"));
-    expect(settings.hooks.PreToolUse[0].hooks[0].command).toContain("'mentor' 'pre-tool'");
+    expect(settings.hooks.PreToolUse[0].hooks[0].command).toContain("'mentor' 'event'");
     expect(settings.hooks.PreToolUse[0].hooks[0].args).toBeUndefined();
     expect((await readGreybeardConfig(f.appData)).updateMode).toBe("notify");
     expect(await runCli(["setup", "--writes"], f.runtime)).toBe(1);

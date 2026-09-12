@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { flagValues, type ParsedArgs } from "./args.js";
 import { CLIENT_ADAPTERS, removeTomlTable, extractTomlTable, removeClaudeMemoryHook, listSkillSourceDirs, repoSkillsDir } from "./clients.js";
 import { SERVER_CATALOG, isGreybeardManagedEntry } from "./serverCatalog.js";
+import { hostForClient, removeAutomaticHooks } from "./automaticHooks.js";
 import { type CliRuntime, writeLine } from "./runtime.js";
 
 export async function runUninstall(_args: ParsedArgs, runtime: CliRuntime): Promise<number> {
@@ -11,6 +12,8 @@ export async function runUninstall(_args: ParsedArgs, runtime: CliRuntime): Prom
   if (selected.length === 0 || selected.includes("Claude Code")) await removeClaudeMemoryHook(runtime);
   for (const [name, adapter] of Object.entries(CLIENT_ADAPTERS)) {
     if (selected.length && !selected.includes(name)) continue;
+    // Desktop Chat has its own MCP entry; automatic Desktop Code shares Claude Code hooks.
+    if (name !== "Claude Desktop") await removeAutomaticHooks(runtime,hostForClient(name as import("./clients.js").KnownClientName));
     const client = await adapter.detect(runtime);
     try {
       await lstat(client.userConfigPath);

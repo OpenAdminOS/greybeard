@@ -52,6 +52,7 @@ export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes =
 }
 
 export async function runMentor(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
+  if (args.positionals[0] === "event") return (await import("./automaticMentor.js")).runAutomaticMentor(args,runtime);
   if (args.positionals[0] !== "pre-tool") return 1;
   let service: MemoryService | undefined;
   try {

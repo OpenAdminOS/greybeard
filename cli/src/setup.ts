@@ -3,6 +3,7 @@ import { initializeMemoryDatabase } from "@greybeard/memory";
 import { flagValue, flagValues, hasFlag, parseArgs, type ParsedArgs } from "./args.js";
 import { detectAllClients, summarizeSkillWiring, wireAllClientSkills, writeAllClientMcpConfigs, writeAllClientSkillFallbacks, writeClaudeMemoryHook, removeClaudeMemoryHook, type ClientDetectionOptions, type ClientMcpConfigResult, type KnownClientName, type SkillFallbackResult, type SkillWireResult } from "./clients.js";
 import { type CliRuntime, writeInfoLine, writeLine, writeStatusLine } from "./runtime.js";
+import { hostForClient, writeAutomaticHooks, removeAutomaticHooks } from "./automaticHooks.js";
 import { findCatalogServer, optionalCatalogServers, serverOptionsFromConfig } from "./serverCatalog.js";
 
 export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
@@ -18,6 +19,7 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
   const config = await readGreybeardConfig(appDataPath);
   const toggles = serverTogglesFromArgs(args, config.mcpServers);
   const requestedClients = flagValues(args, "client");
+  if (requestedClients.some(name => name.toLowerCase() === "claude desktop") && !requestedClients.some(name => name.toLowerCase() === "claude code")) requestedClients.push("Claude Code");
   const clients = await detectAllClients(runtime, clientDetectionOptions(args, config));
   const names = new Map(clients.map(client => [client.name.toLowerCase(), client.name]));
   for (const name of requestedClients) {
@@ -52,12 +54,16 @@ export async function runSetup(args: ParsedArgs, runtime: CliRuntime): Promise<n
   const skills = await wireAllClientSkills(bound, detected);
   const fallbacks = await writeAllClientSkillFallbacks(bound, detected);
   for (const client of detected) printClientLedgerLine({ runtime, client: client.name, mcp: results.find(r => r.client === client.name), skills: skills.find(r => r.client === client.name), fallback: fallbacks.find(r => r.client === client.name), verbose: hasFlag(args, "verbose") });
-  if (!updated.memoryHook) await removeClaudeMemoryHook(bound);
-  else if (detected.some(c => c.name === "Claude Code")) await writeClaudeMemoryHook(bound);
+  const automaticHosts = [...new Set(detected.map(client => hostForClient(client.name)))];
+  for (const host of automaticHosts) {
+    if (host === "claude") { if (updated.memoryHook) await writeClaudeMemoryHook(bound); else await removeClaudeMemoryHook(bound); }
+    else if (updated.memoryHook) await writeAutomaticHooks(bound,host);
+    else await removeAutomaticHooks(bound,host);
+  }
   if (detected.length === 0) writeLine(runtime.stdout, "No selected installed client detected. Install a supported client and rerun setup.");
-  writeLine(runtime.stdout, "Claude Code: advisory context for supported commands; execution is not paused and advice may appear afterward. Other clients: memory and guidance when requested.");
+  if (detected.length) writeLine(runtime.stdout, "Automatic mentoring hooks configured. Restart tools and approve Greybeard hooks where the host requires it. Claude Desktop automatic mentoring applies to Code mode; ordinary Chat remains MCP-assisted.");
   writeLine(runtime.stdout, `Updates: ${updated.updateMode}. Run greybeard update to check available releases.`);
-  writeLine(runtime.stdout, "Start by asking your AI client to remember an operating preference. Review it with greybeard memory candidates.");
+  writeLine(runtime.stdout, "State an operating preference in your AI tool. Review proposed lessons with greybeard memory candidates.");
   return results.some(r => !r.configured) ? 1 : 0;
 }
 

@@ -9,7 +9,7 @@ export function memoryDbPath(appDataPath: string): string {
   return join(appDataPath, MEMORY_DB_FILENAME);
 }
 
-export function openMemoryDatabase(appDataPath: string, path = memoryDbPath(appDataPath)): SqliteDatabase {
+export function openMemoryDatabase(appDataPath: string, path = memoryDbPath(appDataPath), timeout = 5000): SqliteDatabase {
   mkdirSync(appDataPath, { recursive: true, mode: 0o700 });
   mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
   for (const directory of new Set([appDataPath, dirname(path)])) {
@@ -32,11 +32,11 @@ export function openMemoryDatabase(appDataPath: string, path = memoryDbPath(appD
     }
   }
   const db = new DatabaseConstructor(path, {
-    timeout: 5000
+    timeout
   });
   if (path !== ":memory:") chmodSync(path, 0o600);
   db.pragma("foreign_keys = ON");
-  db.pragma("busy_timeout = 5000");
+  db.pragma(`busy_timeout = ${Math.max(0, Math.floor(timeout))}`);
   db.pragma("journal_mode = WAL");
   try {
     initializeMemorySchema(db);

@@ -58,7 +58,7 @@ try {
   // Test the native clipboard bridge without changing the user's actual clipboard.
   await app.evaluate(({ clipboard }) => { clipboard.writeText = text => { globalThis.copiedStarterPrompt = text; }; });
   await window.locator('#copy-setup-prompt').click();
-  expect(await app.evaluate(() => globalThis.copiedStarterPrompt)).toContain('review and confirm the exact wording');
+  expect(await app.evaluate(() => globalThis.copiedStarterPrompt)).toContain('I prefer that administrative change plans');
   await window.locator('#finish-setup').click();
   await expect(window.locator('#workspace')).toBeVisible();
   await expect(window.locator('#memory-count')).toHaveText('0');

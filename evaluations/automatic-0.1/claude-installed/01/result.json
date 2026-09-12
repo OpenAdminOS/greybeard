@@ -1,0 +1,148 @@
+{
+  "automatic": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "claude",
+          "lastSeen": 1789207135492,
+          "events": 2,
+          "contextBytes": 1350,
+          "adviceEvents": 2,
+          "proposals": 0
+        }
+      ],
+      "recent": [
+        {
+          "id": 2,
+          "host": "claude",
+          "event": "prompt",
+          "createdAt": 1789207135492,
+          "status": "context",
+          "bytes": 900,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [
+            {
+              "id": 1,
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+            }
+          ],
+          "reminders": [
+            "Broad rollout: establish the affected population, start with a representative pilot, and define stop conditions and recovery before expanding.",
+            "Access change: check dependent sign-in paths and recovery access before rollout. A successful configuration change does not prove users can still access their resources."
+          ]
+        },
+        {
+          "id": 1,
+          "host": "claude",
+          "event": "start",
+          "createdAt": 1789207135263,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "651484b8-f2f5-401f-a452-18246d447867",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207134,
+        "lastUsedAt": 1789207135,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207134,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "id": "01",
+  "fixture": "lesson",
+  "prompt": "I am planning to change an Intune compliance policy for all Windows devices. Help me plan it. Do not make tenant changes.",
+  "exitCode": 1,
+  "toolCalls": [],
+  "response": "Failed to authenticate: OAuth session expired and could not be refreshed",
+  "resultEvents": [
+    {
+      "duration_api_ms": 0,
+      "stop_reason": "stop_sequence",
+      "session_id": "cd01e929-fdc8-4098-a6a1-2e175bb5a624",
+      "total_cost_usd": 0,
+      "usage": {
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "modelUsage": {},
+      "permission_denials": [],
+      "terminal_reason": "api_error",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "subagent_stats": {
+        "spawned": 0,
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "user": 0,
+          "system": 0
+        },
+        "refused": {
+          "depth_limit": 0,
+          "concurrency_limit": 0,
+          "budget": 0
+        },
+        "by_type": {}
+      },
+      "is_error": true,
+      "num_turns": 1,
+      "subtype": "success",
+      "api_error_status": null,
+      "result": "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "type": "result",
+      "duration_ms": 214,
+      "uuid": "0204562b-a6e3-4cbc-95c4-d9ac1b0b20ce",
+      "queued_turn_count": 0,
+      "result_index": 0
+    }
+  ]
+}

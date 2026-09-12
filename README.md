@@ -12,7 +12,7 @@ For Microsoft 365, Intune, and Entra administrators using AI tools.
 
 </div>
 
-Greybeard keeps the decisions and lessons you confirm, brings relevant context into later work, and supplies relevant advisory context for supported commands in Claude Code. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
+Greybeard notices relevant work through supported AI-tool events, brings in the lessons you have confirmed, and proposes useful operating preferences for review. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
 
 Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
@@ -58,7 +58,7 @@ For checksum commands, authenticated terminal installation, and replacement inst
 
 ## Your first lesson
 
-Ask your AI client to remember a durable preference, or propose one locally:
+State a durable preference in your connected Code or CLI session, such as “We always require a recovery owner before a production rollout.” Greybeard proposes a lesson automatically; review its exact wording in the companion. You can also propose one locally:
 
 ```sh
 greybeard memory add --content "Review stale device ownership before device deletion" --scope devices
@@ -72,18 +72,23 @@ Local memory separates **Preferences** (how you want to work, including rollout 
 
 Recall defaults to an 800-byte budget for compact returned memory nodes. This is a context-size control, not measured model billing; tool definitions, the response envelope, skills, and your conversation add separate context. See the [memory contract](memory/README.md). Pausing learning and advice suppresses memory recall while leaving local review and export available.
 
-For a supported later action, Claude Code receives a short advisory containing applicable confirmed lessons. The initial command adapter recognizes individual `Remove-MgDevice`, `Remove-MgUser`, `Remove-MgGroup`, and `Update-MgGroup` commands through its Bash pre-tool event, including a simple PowerShell command wrapper. Compound scripts and other actions are outside that adapter's coverage. The hook does not pause execution: Claude Code may surface the advice after a command runs. It does not guarantee a user-visible warning before execution. Advice never means a command is safe or authorized.
+Automatic mentoring uses local rules and confirmed memories without a separate model call. Each hook contributes at most 2,048 UTF-8 bytes, and identical context is suppressed for ten minutes within the same host session. Skills reuse context already supplied by a hook. These are context controls, not token or billing guarantees: the AI client may include context again in later model requests.
 
 ## Client behavior
 
-| Client | Integration behavior |
+| Client | Automatic mentoring in this branch |
 | --- | --- |
-| Claude Code | Skills, memory MCP, and advisory context for the supported commands above; execution is not paused |
-| Codex CLI, Cursor, Gemini CLI | Memory MCP and configured guidance; automatic action advice is not implemented |
-| Claude Desktop | Memory MCP; skills require the documented manual pack route; assistance on request |
-| GitHub Copilot | Optional configuration through `--with-copilot`; assistance on request |
+| Claude Code | Prompt and pre-tool context, automatic preference proposals, memory MCP and skills |
+| Claude Desktop Code | Same local hooks and skills as Claude Code; setup connects both surfaces together |
+| Claude Desktop Chat | Clearly labeled MCP-assisted; no documented automatic prompt hook; specialist skills require manual import |
+| Codex CLI | Prompt and pre-tool context; review new or changed definitions in `/hooks` before they run |
+| Gemini CLI | BeforeAgent context and AfterTool context, with reviewed lesson proposals |
+| Cursor | Prompt advice in the running Greybeard companion; session-start and post-tool model context. Cursor's prompt hook cannot inject model context |
+| GitHub Copilot CLI | Preserves the transformed user prompt and appends context, plus post-tool context. Optional integration |
 
-Configuration detection is distinct from verifying a complete conversation in each client. The [implementation status](docs/0.1/implementation-status.md) records the evidence and remaining work.
+Greybeard never approves or blocks a host command. Host permissions still apply. Installed configuration is shown separately from observed events in the companion, including pause, disabled hooks, and local errors. Keep the companion running for native notifications; Mac and Windows installations offer an optional open-at-login preference.
+
+The [automatic mentoring contract and verification](docs/0.1/automatic-mentoring.md) lists the checked host versions, evidence, and remaining live-session limitations. Ordinary Chat support is not a promise of universal prompt observation.
 
 ## Memory and control
 

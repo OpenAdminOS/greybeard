@@ -1,0 +1,10 @@
+{
+  "id": "10",
+  "method": "Review of saved real model response plus independent local event ledger. Synthetic data only.",
+  "finding": "The ordinary preference statement became one candidate and the host correctly described pending human review.",
+  "exitCode": 0,
+  "contextBytes": 1066,
+  "automaticProposals": 1,
+  "mcpCalls": 0,
+  "limits": "One observed run, not a model-quality guarantee or a real tenant assessment. See sourceHashes for the exact implementation exercised."
+}

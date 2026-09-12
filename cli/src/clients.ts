@@ -119,16 +119,18 @@ type StdioServerDefinition = {
 
 export async function detectClaudeCode(runtime: CliRuntime): Promise<ClaudeDetection> {
   const configPath = claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
+  const desktop = await detectClaudeDesktop(runtime);
   const [binaryPath, configSignal] = await Promise.all([
     runtime.findExecutable("claude"),
     claudeConfigDetectionSignal(configPath)
   ]);
   return {
     name: "Claude Code",
-    detected: Boolean(binaryPath || configSignal),
+    detected: Boolean(binaryPath || configSignal || desktop.detected),
     binaryPath,
     userConfigPath: configPath,
-    userConfigExists: configSignal
+    userConfigExists: configSignal,
+    ...(desktop.detected ? { detectionDetail: "Claude Code integration is also used by Claude Desktop Code mode." } : {})
   };
 }
 
@@ -514,6 +516,7 @@ function pruneClaudeMemoryHooks(root: Record<string, unknown>, runtime: CliRunti
 }
 
 export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void> {
+  await (await import("./automaticHooks.js")).removeAutomaticHooks(runtime,"claude");
   const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
   try { await lstat(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
   await withClientConfigLock(path, async () => {
@@ -527,42 +530,13 @@ export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void>
 }
 
 export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
-  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
-  return withClientConfigLock(path, async () => {
-  const root = await readJsonObject(path);
-  pruneClaudeMemoryHooks(root, runtime);
-  const hooks = isObject(root.hooks) ? root.hooks : {};
-  const existing = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
-  const invocation = runtimeCommand(runtime, ["mentor", "pre-tool", "--app-data", runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(), "--profile", runtime.env.GREYBEARD_PROFILE_ID || "local", "--tenant", runtime.env.GREYBEARD_TENANT_ID || "local", "--greybeard-owned-hook=0.1"]);
-  const quote = runtime.platform === "win32"
-    ? (value: string) => { if (/[\r\n%!"]/u.test(value)) throw new Error("Unsupported character in Windows hook path."); return `"${value}"`; }
-    : (value: string) => "'" + value.replace(/'/gu, "'\\''") + "'";
-  existing.push({ matcher: "Bash", hooks: [{ type: "command", command: [invocation.command, ...invocation.args].map(quote).join(" "), timeout: 5 }] });
-  hooks.PreToolUse = existing;
-  root.hooks = hooks;
-  await writeJsonObject(path, root);
-  return { path, configured: true, status: "installed" };
-  });
+  await removeClaudeMemoryHook(runtime);
+  return (await import("./automaticHooks.js")).writeAutomaticHooks({ ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() } }, "claude");
 }
 
 export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
-  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
-  try {
-    const root = await readJsonObject(path);
-    const hooks = isObject(root.hooks) ? root.hooks : {};
-    const promptSubmit = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
-    const configured = promptSubmit.some((group) =>
-      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(candidate => isGreybeardMemoryHookHandler(candidate, runtime)));
-    return {
-      path,
-      configured
-    };
-  } catch {
-    return {
-      path,
-      configured: false
-    };
-  }
+  const result = await (await import("./automaticHooks.js")).inspectAutomaticHooks({ ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() } }, "claude");
+  return {path:result.path,configured:result.configured};
 }
 
 export async function wireClaudeSkills(runtime: CliRuntime): Promise<SkillWireResult> {

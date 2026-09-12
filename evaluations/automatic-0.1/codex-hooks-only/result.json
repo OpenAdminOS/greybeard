@@ -1,0 +1,92 @@
+{
+  "method": "Hooks only, no MCP, installed skills or host instructions. Isolated vetted scripts use the documented automation-only trust bypass for the trusted comparison; normal installation never does.",
+  "trustedFixture": true,
+  "prompt": "Plan a Windows compliance rollout to every device. Include the known pilot duration and review condition if available. Do not use tools or change anything. Keep it short.",
+  "exitCode": 0,
+  "response": "1. Inventory all Windows devices, including versions, ownership, and exceptions.\n2. Pilot on a representative group for **48 hours**. Validate compliance reporting, sign-in, resource access, and recovery access.\n3. Define stop conditions for access failures or unexpected noncompliance, with rollback and recovery steps ready.\n4. **Require helpdesk review before expanding.** Roll out in monitored waves until every Windows device is covered, pausing if stop conditions occur.",
+  "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<isolated-evaluation>/home/.codex\"))\n",
+  "automatic": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "codex",
+          "lastSeen": 1789207664902,
+          "events": 3,
+          "contextBytes": 1350,
+          "adviceEvents": 2,
+          "proposals": 0
+        }
+      ],
+      "recent": [
+        {
+          "id": 3,
+          "host": "codex",
+          "event": "stop",
+          "createdAt": 1789207664902,
+          "status": "quiet",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 2,
+          "host": "codex",
+          "event": "prompt",
+          "createdAt": 1789207659290,
+          "status": "context",
+          "bytes": 900,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [
+            {
+              "id": 1,
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+            }
+          ],
+          "reminders": [
+            "Broad rollout: establish the affected population, start with a representative pilot, and define stop conditions and recovery before expanding.",
+            "Access change: check dependent sign-in paths and recovery access before rollout. A successful configuration change does not prove users can still access their resources."
+          ]
+        },
+        {
+          "id": 1,
+          "host": "codex",
+          "event": "start",
+          "createdAt": 1789207659128,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "8be1ba96-d41d-4119-a0da-805b8d1de310",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207657,
+        "lastUsedAt": 1789207659,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207657,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  }
+}

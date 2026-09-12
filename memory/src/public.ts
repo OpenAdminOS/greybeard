@@ -7,6 +7,8 @@ export {
 } from "./database.js";
 export { createGreybeardMemoryMcpServer, withMemoryMcpErrors } from "./mcpServer.js";
 export { MemoryService, enforcePrivacy } from "./service.js";
+export { AutomaticMentorStore, MENTOR_RULES, digest } from "./automatic.js";
+export type { MentorHost, MentorEventStatus } from "./automatic.js";
 export {
   EDGE_RELATIONS,
   GreybeardMemoryError,

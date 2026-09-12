@@ -2,6 +2,11 @@
 
 ## Unreleased improvements to 0.1
 
+- Add automatic event-based mentoring for Claude Code and Desktop Code, Codex, Gemini, Copilot CLI, and Cursor's supported companion/context channels. Keep ordinary Desktop Chat explicitly MCP-assisted.
+- Propose explicit operating preferences automatically for exact review, share confirmed lessons across tools, suppress repeated context, and retain a 2 KB hook context ceiling without separate background model calls.
+- Show actual host events, delivery channels, pause and errors in the companion. Add private native notifications, background tray behavior and optional Mac/Windows login startup.
+- Preserve unrelated hook configuration during setup, upgrade and removal. Keep Codex hook trust under the user's control.
+
 - Upgrade skill links from previous packaged builds automatically. Show exact integration conflicts, offer reviewed backup-and-reconnect repair, and allow continuing setup with unresolved tools.
 - Guide first launch through automatic tool discovery, one-button learning setup, verified per-tool results and a first-conversation prompt. Keep memory review and optional infrastructure separate from setup.
 

@@ -6,6 +6,7 @@ import { getClientAdapter, removeTomlTable, writeClaudeMemoryHook, type KnownCli
 import { withClientConfigLock, writeClientConfigAtomic } from "./clientConfigFile.js";
 import { serverOptionsFromConfig } from "./serverCatalog.js";
 import type { CliRuntime } from "./runtime.js";
+import { hostForClient, writeAutomaticHooks } from "./automaticHooks.js";
 
 export async function previewSetupRepair(runtime: CliRuntime, client: KnownClientName) {
   const adapter = getClientAdapter(client);
@@ -65,5 +66,6 @@ export async function repairSetup(runtime: CliRuntime, appDataPath: string, prev
   await adapter.wireSkills(bound);
   if (adapter.writeFallback) await adapter.writeFallback(bound);
   if (preview.client === "Claude Code" && config.memoryHook !== false) await writeClaudeMemoryHook(bound);
+  else if(config.memoryHook !== false) await writeAutomaticHooks(bound,hostForClient(preview.client));
   return { backupPath: backup };
 }

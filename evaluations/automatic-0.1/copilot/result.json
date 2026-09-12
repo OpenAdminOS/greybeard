@@ -1,0 +1,39 @@
+{
+  "host": "copilot",
+  "version": "GitHub Copilot CLI 1.0.83.\nRun 'copilot update' to check for updates.",
+  "prompt": "Plan a Windows compliance rollout for every device. Include any known pilot duration and review conditions. Do not use tools or change anything. Keep it short.",
+  "exitCode": 1,
+  "stdout": "{\"type\":\"session.warning\",\"data\":{\"message\":\"Third-party MCP servers are disabled by your organization's Copilot policy. Only built-in servers are available.\",\"warningType\":\"policy\"},\"ephemeral\":true,\"id\":\"6be98bd2-c794-4069-a762-a346902e681f\",\"timestamp\":\"2026-09-12T10:02:18.233Z\",\"parentId\":\"c17a9fea-32f0-4383-9065-2aff056875b4\"}\n{\"type\":\"session.managed_settings_resolved\",\"data\":{\"source\":\"none\",\"serverManaged\":false,\"deviceManaged\":false,\"clientManaged\":false,\"policyHelperManaged\":false,\"failClosed\":false,\"sandboxEnabledByUndeterminedPolicy\":false,\"bypassPermissionsDisabled\":false,\"managedKeys\":[]},\"ephemeral\":true,\"id\":\"171c75ee-0fd7-4c67-9f7b-a2825b80d21f\",\"timestamp\":\"2026-09-12T10:02:18.454Z\",\"parentId\":\"c17a9fea-32f0-4383-9065-2aff056875b4\"}\n",
+  "stderr": "Error: Access denied by policy settings (Request ID: E64C:18E867:130C0:1D921:6AA5232A)\n\nYour Copilot CLI policy setting may be preventing access. This can happen when:\n  \u2022 Your organization has restricted Copilot access\n  \u2022 Your Copilot subscription does not include this feature\n  \u2022 Required policies have not been enabled by your administrator\n\nTo resolve this, visit your Copilot settings: https://github.com/settings/copilot\n",
+  "automatic": {
+    "activity": {
+      "hosts": [],
+      "recent": [],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "8322ca50-6fee-4061-a1e3-04a41e05b015",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207336,
+        "lastUsedAt": 1789207336,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207336,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "method": "Isolated home and synthetic memory. Only generated host hooks, no MCP configuration or Greybeard host instructions. No tenant tools."
+}

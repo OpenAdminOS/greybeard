@@ -1,0 +1,3 @@
+Checking MCP server health…
+
+greybeard-memory: /usr/bin/node <repository>/cli/dist/index.js mcp memory - ✔ Connected

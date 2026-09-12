@@ -1,5 +1,14 @@
 # Greybeard 0.1 implementation status
 
+## Current branch: automatic mentoring
+
+The [automatic mentoring contract](automatic-mentoring.md) supersedes the initial command-only coverage below. This branch adds prompt/turn hooks for Claude Code and Desktop Code, Codex, Gemini, Copilot CLI, plus Cursor companion prompt advice and supported model-context events. Ordinary Desktop Chat remains MCP-assisted. It also adds automatic reviewed preference proposals, bounded context and duplicate suppression, actual event status, native notifications and optional login startup.
+
+Current execution evidence and exact external host blockers are recorded in [automatic mentoring evaluations](../../evaluations/automatic-0.1/README.md). Historical evaluations below describe the earlier executable implementation; they are not proof that every new host or operating system has passed a real model conversation.
+
+## Earlier executable baseline
+
+
 Current companion implementation supersedes the earlier delivery and backlog status below. See [the companion flow](companion.md) and [recommendation coverage](reviews/implementation-coverage.md).
 
 This records the foundation verification from 10 September 2026 on branch `feat/0.1-mentor-foundation`. For the 0.1 downloads, signing status, and installation instructions, see [executable delivery](executable-delivery.md) and [release notes](release-notes.md). The public product display remains 0.1.

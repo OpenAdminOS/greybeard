@@ -1,0 +1,6 @@
+{
+  "date": "2026-09-12T10:10:17.997187+00:00",
+  "cliVersion": "codex-cli 0.154.0",
+  "method": "Normal generated global AGENTS.md, MCP config and installed skill links; plain user prompts. Isolated home, ephemeral workspace and synthetic memories. No forced recall or disabled skill discovery. Only local recall, scope discovery and candidate proposals exposed; no tenant tools. Existing account auth referenced. The documented hook-trust bypass is used ONLY for these isolated vetted generated scripts; consumer installation requires /hooks approval. Automatic ledger proves execution independently of model tool choice.",
+  "limitations": "Model behavior varies. This proves observations in Codex on this machine, not every supported host or OS. No production tenant access."
+}
