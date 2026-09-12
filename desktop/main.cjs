@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard } = require('electron');
 const { spawn } = require('node:child_process');
 const { join, resolve } = require('node:path');
 const { writeFile, mkdir, readFile, copyFile, chmod, rename } = require('node:fs/promises');
@@ -88,6 +88,11 @@ handle('desktop:export', async memoryTenant => {
   return true;
 });
 handle('desktop:storage', async () => { await mkdir(appData, { recursive: true, mode: 0o700 }); return shell.openPath(appData); });
+handle('desktop:copy-text', async text => {
+  if (typeof text !== 'string' || text.length > 4096) throw new Error('Choose a short prompt to copy.');
+  clipboard.writeText(text);
+  return true;
+});
 handle('desktop:recovery', async () => shell.openPath(join(appData, 'application-recovery/previous')));
 handle('desktop:updates', async (action) => {
   if (!['status', 'check', 'download', 'install'].includes(action)) throw new Error('Unknown update action.');

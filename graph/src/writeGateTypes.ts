@@ -88,6 +88,7 @@ export type TerminalPlanStatus = "completed" | "partial" | "failed";
 export type GreybeardConfig = {
   profileId?: string;
   learningEnabled?: boolean;
+  companionSetupCompleted?: boolean;
   updateMode?: "automatic" | "notify" | "manual";
   appOnlyProfile?: AppOnlyProfile;
   configRevision?: number;

@@ -17,6 +17,7 @@ export async function readGreybeardConfig(appDataPath: string): Promise<Greybear
     return {
       profileId: typeof parsed.profileId === "string" ? parsed.profileId : undefined,
       learningEnabled: typeof parsed.learningEnabled === "boolean" ? parsed.learningEnabled : undefined,
+      companionSetupCompleted: parsed.companionSetupCompleted === true,
       updateMode: parsed.updateMode === "automatic" || parsed.updateMode === "notify" || parsed.updateMode === "manual" ? parsed.updateMode : undefined,
       appOnlyProfile: parseAppOnlyProfile(parsed.appOnlyProfile),
       configRevision: typeof parsed.configRevision === "number" && Number.isSafeInteger(parsed.configRevision)

@@ -20,7 +20,7 @@
     "test:executable": "node scripts/smoke-executable.mjs && node scripts/smoke-update.mjs",
     "desktop": "electron desktop",
     "test:desktop": "node --test desktop/*.test.cjs",
-    "test:companion": "node scripts/smoke-companion.mjs",
+    "test:companion": "node scripts/smoke-onboarding.mjs && node scripts/smoke-companion.mjs",
     "build:companion": "npm run build:executable && node scripts/desktop/build.mjs"
   },
   "devDependencies": {

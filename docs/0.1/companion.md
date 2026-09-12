@@ -5,13 +5,17 @@ The companion is a real desktop application window with native menus, file picke
 ## Everyday flow
 
 1. Install the Windows application from one signed setup executable, or drag the Mac application from its signed DMG to Applications.
-2. Open Greybeard. Local memory works immediately; a tenant connection is optional.
-3. Select detected AI tools in Connections and save. Restart those clients to load their integration.
-4. Add an operating preference, decision or observation. Save a proposal, review its exact content, then confirm it.
-5. Continue working in the AI client. Greybeard contributes applicable confirmed context; the companion shows local retrieval activity and lets you mark it useful, ignored or irrelevant.
-6. Correct or forget a memory in the companion. Corrections remain proposals until confirmed, and prior text remains active until replacement confirmation.
+2. On first launch, Greybeard checks all six supported AI tools and shows which were detected. Common GUI-launch install locations are checked without invoking a shell or the tools.
+3. Choose the detected tools you use, then select **Enable learning**. Local memory is bundled already. Setup writes the memory connection and supported skills/instructions, then checks each selected integration. No tenant connection or model download is needed.
+4. Review per-tool results. A blocked user skill or conflicting connection stays intact and prevents a false success result. Retry after resolving the issue. Claude Desktop's memory connection is automated; its optional skill import remains manual and is identified as such.
+5. Fully quit and reopen the selected AI tools. Copy the starter prompt into one of them, then return to Greybeard to review the lesson it proposes. Confirmation applies to the exact local text.
+6. Later launches open the workspace. Continue in the AI tool; Greybeard can contribute applicable confirmed context. Review proposals, correct or forget lessons, and inspect retrieval activity here.
 
-Overview explains the value, Memory searches and filters the whole local collection before pagination, Connections displays selected permissions and explicit read probes, Advice & activity shows retrieval metrics, and Settings manages pause, updates and installation checks. The environment selector separates local memory from the configured tenant. No memory control changes tenant configuration.
+**Explore the app first** saves that choice without configuring or removing AI-tool integrations. The workspace offers setup whenever the user is ready. Existing memories and paused learning are retained; the explicit Enable learning action resumes learning.
+
+Overview presents the next useful step. AI tools manages integrations and rescanning; Infrastructure holds the optional tenant connection. Your memory contains review, search, correction, export and pause/resume. Advice & activity shows retrieval feedback. App preferences is a secondary navigation item for updates, local storage and installation help. The memory environment selector appears only when a tenant connection makes it relevant.
+
+The companion labels local configuration checks separately from a running host connection. It cannot silently restart an AI tool or guarantee a host will apply advice. No memory control changes tenant configuration, and no continuous model or desktop observer is introduced.
 
 ## Installation and CLI
 
@@ -23,7 +27,7 @@ Development: run `npm ci`, `npm run build:executable`, then `npm run desktop`. B
 
 The desktop updater downloads the complete application using electron-updater. Notify mode checks without downloading, Automatic downloads an available verified update, and Manual makes no scheduled checks. All modes require an explicit restart to install. macOS updates require the signed application ZIP alongside the DMG; Windows uses signed NSIS installers and publisher verification. Model use is unrelated to update checks.
 
-Before replacement, the companion copies the complete current application into its private application-recovery folder. If backup fails, installation does not proceed. Open the previous application backup from Settings, quit Greybeard and its AI clients, and reinstall/open the retained version if needed. This is manual recovery, not automatic failure detection. Memory is not restored from an old snapshot, so newer decisions remain. Cross-version schema compatibility must be checked before using a much older runtime.
+Before replacement, the companion copies the complete current application into its private application-recovery folder. If backup fails, installation does not proceed. Open the previous application backup from App preferences, quit Greybeard and its AI clients, and reinstall/open the retained version if needed. This is manual recovery, not automatic failure detection. Memory is not restored from an old snapshot, so newer decisions remain. Cross-version schema compatibility must be checked before using a much older runtime.
 
 The repository is currently private. Its GitHub update feed cannot be accessed anonymously. No shared GitHub token is bundled with the application; feed failures are shown and manual verified installation remains possible. Public automatic distribution requires an accessible release feed. This source work does not replace the already published 0.1 download.
 

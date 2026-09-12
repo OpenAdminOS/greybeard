@@ -38,6 +38,10 @@ try {
   app = await electron.launch({ executablePath, env });
   expect(await app.evaluate(({ app }) => app.isPackaged)).toBe(true);
   const window = await app.firstWindow();
+  await expect(window.locator('#onboarding')).toBeVisible();
+  await expect(window.locator('#setup-tools .tool-card')).toHaveCount(6);
+  await window.locator('#setup-later').click();
+  await expect(window.locator('#workspace')).toBeVisible();
   await expect(window.locator('#memory-count')).toHaveText('0');
   expect(await window.evaluate(() => typeof window.require)).toBe('undefined');
   expect(await window.evaluate(() => typeof window.greybeardDesktop.exportMemory)).toBe('function');

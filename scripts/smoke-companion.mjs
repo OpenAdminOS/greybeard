@@ -18,6 +18,8 @@ try {
   app = await electron.launch({ args: [resolve('desktop')], env: { ...launchEnv, GREYBEARD_HOME: directory, GREYBEARD_APP_DATA: data, ELECTRON_DISABLE_SECURITY_WARNINGS: '', NODE_ENV: 'test' } });
   const window = await app.firstWindow();
   const errors = []; window.on('pageerror', e => errors.push(e.message));
+  await expect(window.locator('#onboarding')).toBeVisible();
+  await window.locator('#setup-later').click();
   await expect(window.locator('#memory-count')).toHaveText('65');
   expect(await window.evaluate(() => typeof window.require)).toBe('undefined');
   expect(await window.evaluate(() => typeof window.greybeardDesktop.exportMemory)).toBe('function');
@@ -62,10 +64,10 @@ try {
   await expect(window.locator('#status')).toContainText('Memory exported');
   const exported = JSON.parse(await readFile(exportPath, 'utf8'));
   expect(exported.nodes.some(node => node.outcome?.includes('shared sign-in'))).toBe(true);
-  await window.getByRole('button', { name: 'Settings', exact: true }).click();
   await window.locator('#pause').click();
   await expect(window.locator('#pause')).toHaveText('Resume learning and advice');
   await window.locator('#pause').click();
+  await window.getByRole('button', { name: 'App preferences', exact: true }).click();
   await window.locator('#updates').selectOption('manual');
   await window.locator('#save-settings').click();
   await expect(window.locator('#status')).toContainText('saved');
@@ -73,7 +75,7 @@ try {
   await expect(window.locator('#update-status')).toContainText('installed build');
   await window.getByRole('button', { name: 'Advice & activity', exact: true }).click();
   await expect(window.locator('#metrics .panel')).toHaveCount(4);
-  await window.getByRole('button', { name: 'Connections', exact: true }).click();
+  await window.getByRole('button', { name: 'Infrastructure', exact: true }).click();
   await window.locator('#check-capabilities').click();
   await expect(window.locator('#capability-results')).toContainText('not-selected');
   await window.getByRole('button', { name: 'Your memory', exact: true }).click();
@@ -84,7 +86,7 @@ try {
   app = await electron.launch({ args: [resolve('desktop')], env: { ...launchEnv, GREYBEARD_HOME: directory, GREYBEARD_APP_DATA: data } });
   const reopened = await app.firstWindow();
   await expect(reopened.locator('#memory-count')).not.toHaveText('…');
-  await reopened.getByRole('button', { name: 'Settings', exact: true }).click();
+  await reopened.getByRole('button', { name: 'App preferences', exact: true }).click();
   await expect(reopened.locator('#updates')).toHaveValue('manual');
   expect(errors).toEqual([]);
   console.log('Actual Electron companion passed: isolated 65-memory database, search across pages, exact confirmation, correction, forgetting, outcome proposal, pause/resume, settings persistence, capability preview, local activity, renderer isolation and reopen.');

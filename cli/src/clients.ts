@@ -486,7 +486,10 @@ export async function writeAllClientMcpConfigs(
   options: ServerConfigOptions = {},
   clients?: readonly ClientDetection[]
 ): Promise<ClientMcpConfigResult[]> {
-  return Promise.all(clientNames(clients).map((client) => writeClientMcpConfig(runtime, client, options)));
+  return Promise.all(clientNames(clients).map(async client => {
+    try { return await writeClientMcpConfig(runtime, client, options); }
+    catch (error) { return { client, path: (await CLIENT_ADAPTERS[client].detect(runtime)).userConfigPath, configured: false, error: error instanceof Error ? error.message : "Configuration failed." }; }
+  }));
 }
 
 export async function writeClientMcpConfig(
@@ -515,6 +518,9 @@ export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void>
   try { await lstat(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
   await withClientConfigLock(path, async () => {
     const root = await readJsonObject(path);
+    const hooks = isObject(root.hooks) ? root.hooks : {};
+    const owned = ["UserPromptSubmit", "PreToolUse"].some(event => Array.isArray(hooks[event]) && (hooks[event] as unknown[]).some(group => isObject(group) && Array.isArray(group.hooks) && group.hooks.some(handler => isGreybeardMemoryHookHandler(handler, runtime))));
+    if (!owned) return;
     pruneClaudeMemoryHooks(root, runtime);
     await writeJsonObject(path, root);
   });
@@ -611,7 +617,10 @@ export async function wireAllClientSkills(
   runtime: CliRuntime,
   clients?: readonly ClientDetection[]
 ): Promise<SkillWireResult[]> {
-  return Promise.all(clientNames(clients).map((client) => wireClientSkills(runtime, client)));
+  const results = await Promise.allSettled(clientNames(clients).map(client => wireClientSkills(runtime, client)));
+  const failure = results.find(result => result.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
+  return results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
 }
 
 export async function wireClientSkills(runtime: CliRuntime, client: KnownClientName): Promise<SkillWireResult> {
@@ -674,8 +683,10 @@ export async function writeAllClientSkillFallbacks(
   runtime: CliRuntime,
   clients?: readonly ClientDetection[]
 ): Promise<SkillFallbackResult[]> {
-  const results = await Promise.all(clientNames(clients).map((client) => writeClientSkillFallback(runtime, client)));
-  return results.filter((result): result is SkillFallbackResult => result !== null);
+  const settled = await Promise.allSettled(clientNames(clients).map(client => writeClientSkillFallback(runtime, client)));
+  const failure = settled.find(result => result.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
+  return settled.flatMap(result => result.status === "fulfilled" && result.value ? [result.value] : []);
 }
 
 export const CLIENT_ADAPTERS: Record<KnownClientName, ClientAdapter> = {

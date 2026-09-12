@@ -4,8 +4,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig, updateGreybeardConfig } from "@greybeard/graph";
 import { companionPage } from "./companionUi.js";
+import { discoveryRuntime, inspectWorkspace } from "./workspaceStatus.js";
 import { MemoryService } from "@greybeard/memory";
-import { detectAllClients, getClientAdapter } from "./clients.js";
+import { detectAllClients } from "./clients.js";
 import { flagValue, parseArgs, type ParsedArgs } from "./args.js";
 import { readBoundedInput } from "./mentor.js";
 import { type CliRuntime, writeLine } from "./runtime.js";
@@ -16,6 +17,8 @@ function sameSecret(actual: string, expected: string): boolean {
 }
 
 export async function startSetupUi(runtime: CliRuntime, appDataPath: string, options: { desktop?: boolean } = {}): Promise<{ server: Server; url: string }> {
+  if (options.desktop) runtime = discoveryRuntime(runtime);
+  let setupInProgress = false;
   const session = randomBytes(32).toString("hex");
   const nonce = randomBytes(24).toString("base64");
   let origin = "";
@@ -44,9 +47,9 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
       let result: unknown;
       if (path === "/state") {
         const config = await readGreybeardConfig(appDataPath);
-        const detectedClients = (await detectAllClients(runtime)).filter(c => c.detected);
-        const configuredClients = (await Promise.all(detectedClients.map(async c => ({ name: c.name, configured: (await getClientAdapter(c.name).inspectMcpConfig(runtime)).configured })))).filter(c => c.configured).map(c => c.name);
-        result = { connection: config.appOnlyProfile ? { tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: (await detectAllClients(runtime)).filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+        const toolStatus = await inspectWorkspace(runtime, appDataPath);
+        const configuredClients = toolStatus.filter(c => c.configured).map(c => c.name);
+        result = { toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
       } else if (path === "/diagnostics") {
         const { assembleDoctorFindings } = await import("./doctor.js");
         result = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", appDataPath]), runtime);
@@ -62,8 +65,24 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         const detected = await detectAllClients(runtime);
         if (selected.some(name => !detected.some(client => client.detected && client.name === name))) return fail(400, "Selected client is no longer available.");
         // No selected clients means local memory only, not implicit selection of every client.
-        const code = await runSetup(parseArgs(["setup", "--yes", "--app-data", appDataPath, "--update-mode", String(body.updateMode), ...(body.mentor === false ? ["--no-memory-hook"] : ["--memory-hook"]), ...(selected.length ? selected.flatMap(name => ["--client", name]) : ["--no-clients"])]), runtime);
-        result = { configured: code === 0 };
+        if (setupInProgress) return fail(409, "Setup is already running. Wait for it to finish.");
+        setupInProgress = true;
+        try {
+          const sink = { write: () => true };
+          let setupError: string | undefined;
+          let code = 1;
+          try {
+            code = await runSetup(parseArgs(["setup", "--yes", "--app-data", appDataPath, "--update-mode", String(body.updateMode), ...(body.mentor === false ? ["--no-memory-hook"] : ["--memory-hook"]), ...(selected.length ? selected.flatMap(name => ["--client", name]) : ["--no-clients"])]), { ...runtime, stdout: sink, stderr: sink });
+          } catch { setupError = "Setup could not finish. Review the tool results and check file permissions before retrying."; }
+          const tools = await inspectWorkspace(runtime, appDataPath);
+          const configured = code === 0 && selected.every(name => tools.some(tool => tool.name === name && tool.ready));
+          if (configured) await updateGreybeardConfig(appDataPath, current => ({ ...current, companionSetupCompleted: true, ...(body.enableLearning === true ? { learningEnabled: true } : {}) }));
+          result = { configured, tools, selected, ...(setupError ? { error: setupError } : {}), message: configured ? "Configuration checked. Restart your selected AI tools to load Greybeard." : "Some integrations need attention. Successful integrations have been kept; retry after fixing the listed issues." };
+        } finally { setupInProgress = false; }
+      } else if (path === "/setup-later") {
+        if (setupInProgress) return fail(409, "Wait for setup to finish.");
+        await updateGreybeardConfig(appDataPath, current => ({ ...current, companionSetupCompleted: true }));
+        result = { saved: true };
       } else if (path === "/connect") {
         for (const key of ["tenant", "clientId", "certificate", "privateKey"]) if (typeof body[key] !== "string" || !(body[key] as string).trim()) return fail(400, "Tenant ID, application ID and both certificate file paths are required.");
         if (!Array.isArray(body.capabilities) || !body.capabilities.length || body.capabilities.some(key => typeof key !== "string" || !Object.hasOwn(APPLICATION_CAPABILITIES, key))) return fail(400, "Choose at least one read capability.");

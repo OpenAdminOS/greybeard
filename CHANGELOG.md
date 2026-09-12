@@ -2,6 +2,8 @@
 
 ## Unreleased improvements to 0.1
 
+- Guide first launch through automatic tool discovery, one-button learning setup, verified per-tool results and a first-conversation prompt. Keep memory review and optional infrastructure separate from setup.
+
 - Use the approved Greybeard logo for application icons and a compact Retina Mac installer layout with clear drag-to-Applications guidance.
 - Add a desktop companion for memory, connections, advice activity and settings, with native file dialogs and no browser launch.
 - Add full-application update staging and previous-app recovery, with Windows setup, Mac DMG/ZIP and Linux AppImage packaging.
