@@ -16,15 +16,15 @@ Greybeard learns how you work through lessons you review and approve, then bring
 
 **Free to use. No Node, npm, Git, or tenant connection required.**
 
-Download the current latest release, **0.1.1**, directly for your computer:
+Download the current latest release, **0.1.2**, directly for your computer:
 
 | Platform | Direct download | Install |
 | --- | --- | --- |
-| Windows x64 | **[Download for Windows (.exe)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-windows-x64-setup.exe)** | Run the installer, then open Greybeard from Start. |
-| macOS 14+ on Apple Silicon | **[Download for macOS (.dmg)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-mac-arm64.dmg)** | Drag Greybeard to Applications, eject the DMG, then open the app. |
-| Linux x64 | **[Download for Linux (.AppImage)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-linux-x64.AppImage)** | Mark the AppImage executable and open it from a permanent location. |
+| Windows x64 | **[Download for Windows (.exe)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.2/Greybeard-0.1.2-windows-x64-setup.exe)** | Run the installer, then open Greybeard from Start. |
+| macOS 14+ on Apple Silicon | **[Download for macOS (.dmg)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.2/Greybeard-0.1.2-mac-arm64.dmg)** | Drag Greybeard to Applications, eject the DMG, then open the app. |
+| Linux x64 | **[Download for Linux (.AppImage)](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.2/Greybeard-0.1.2-linux-x64.AppImage)** | Mark the AppImage executable and open it from a permanent location. |
 
-[Latest release and all downloads](https://github.com/OpenAdminOS/greybeard/releases/latest) · [Download checksums](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/SHA256SUMS.txt)
+[Latest release and all downloads](https://github.com/OpenAdminOS/greybeard/releases/latest) · [Download checksums](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.2/SHA256SUMS.txt)
 
 ![Greybeard companion showing an interactive memory map with confirmed lessons, review proposals, recorded connections, and a timeline](docs/images/companion-memory-map.png)
 
@@ -101,7 +101,7 @@ greybeard uninstall
 
 Review and confirm corrections separately. Pausing stops new learning and proactive advice; explicit recall remains available. Disabling the hook removes Greybeard-owned hook entries. Uninstall removes recognized integrations and retains your memories, configuration, and customer-owned certificate files.
 
-The upcoming 0.1.2 shared-memory feature is optional and lives in App preferences > Advanced. Existing setup stays local. See the [private-server guide](docs/0.1.2/shared-memory.md) and [remaining release checks](docs/0.1.2/implementation-status.md). The downloads above remain the published 0.1.1 release.
+Shared memory in 0.1.2 is optional and lives in **App preferences > Advanced**. Existing setup stays local. See the [private-server guide](docs/0.1.2/shared-memory.md) and [device validation](evaluations/shared-memory-0.1.2/README.md).
 
 Local storage is not a promise that data stays off the network: your AI client may send recalled lessons to its model. Processes running as your OS account can access the same files. Store reusable intent, not secrets or raw tenant exports.
 

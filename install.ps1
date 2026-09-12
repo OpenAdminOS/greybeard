@@ -1,6 +1,6 @@
 # Installs the signed companion through its normal per-user NSIS installer.
 $ErrorActionPreference = 'Stop'
-$releaseTag = if ($env:GREYBEARD_RELEASE_TAG) { $env:GREYBEARD_RELEASE_TAG } else { 'v0.1.1' }
+$releaseTag = if ($env:GREYBEARD_RELEASE_TAG) { $env:GREYBEARD_RELEASE_TAG } else { 'v0.1.2' }
 $releaseHash = $env:GREYBEARD_RELEASE_SHA256
 $localAsset = $env:GREYBEARD_RELEASE_FILE
 if ($releaseTag -notmatch '^[a-zA-Z0-9._-]+$' -or $releaseHash -notmatch '^[a-fA-F0-9]{64}$') {
