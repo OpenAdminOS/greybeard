@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased improvements to 0.1
+## Unreleased
+
+## 0.1.1 - 2026-09-12
 
 - Add client-secret authentication to Infrastructure alongside certificates, with protected OS storage, masked input, credential rotation and disconnect cleanup.
 
@@ -54,7 +56,7 @@ Updates use manual verified downloads for this release. Windows tenant credentia
 
 Historical entries below describe earlier code and retain their original version labels.
 
-## 0.1.1 - 2026-07-10
+## Historical distribution 0.1.1 - 2026-07-10
 
 ### Security
 

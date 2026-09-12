@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -41,8 +41,17 @@ for (const platform of ['darwin', 'win32', 'linux']) {
   }
   uploads.push(join(directory, reportName), join(directory, `SHA256SUMS-${platform}.txt`));
 }
-const notes = join(directory, 'release-notes.md');
-await writeFile(notes, `Greybeard ${version}: the local desktop companion for configuration, status and reviewed memory.\n\nDownload the signed and notarized Mac Silicon DMG or the signed Windows setup executable. Linux uses an AppImage with SHA-256 integrity hashes. The Mac ZIP is used for complete-application updates.\n\nUpdate metadata is hosted with these assets. Private repository access may require downloading manually through GitHub; no repository credential is embedded in the app.\n`);
+for (const name of ['install.sh', 'install.ps1']) {
+  await copyFile(join(root, name), join(directory, name));
+  uploads.push(join(directory, name));
+}
+const sums = join(directory, 'SHA256SUMS.txt');
+const entries = [];
+for (const file of uploads) entries.push(`${createHash('sha256').update(await readFile(file)).digest('hex')}  ${file.split(/[\\/]/u).pop()}`);
+await writeFile(sums, entries.join('\n') + '\n');
+uploads.push(sums);
+const notes = join(root, 'docs/0.1/release-notes.md');
+if (!(await readFile(notes, 'utf8')).startsWith(`# Greybeard ${version}\n`)) throw new Error('Release notes must match the application version.');
 // A draft prevents users seeing a partial release if an upload fails. No overwrite flag.
 gh(['release', 'create', tag, '--repo', repository, '--target', process.env.GITHUB_SHA || 'HEAD', '--draft', '--title', `Greybeard ${version}`, '--notes-file', notes, ...uploads]);
 gh(['release', 'edit', tag, '--repo', repository, '--draft=false', '--latest']);

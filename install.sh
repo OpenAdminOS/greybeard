@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-# Install a verified private release. No Node, Git, npm, or developer tools required.
+# Install a checksum-verified companion release. No Node, Git, npm, or developer tools required.
 set -eu
 umask 077
-release="${GREYBEARD_RELEASE_TAG:-v0.1.0}"
+release="${GREYBEARD_RELEASE_TAG:-v0.1.1}"
 expected="${GREYBEARD_RELEASE_SHA256:-}"
 local_asset="${GREYBEARD_RELEASE_FILE:-}"
 if [ -z "$expected" ]; then
-  printf '%s\n' 'Set GREYBEARD_RELEASE_SHA256 to the asset hash from the authenticated Greybeard release. Optionally set GREYBEARD_RELEASE_FILE to an already downloaded DMG or Linux archive.' >&2
+  printf '%s\n' 'Set GREYBEARD_RELEASE_SHA256 to the asset hash from the Greybeard release. Optionally set GREYBEARD_RELEASE_FILE to an already downloaded DMG or Linux AppImage.' >&2
   exit 1
 fi
 case "$release" in *[!a-zA-Z0-9._-]*) printf '%s\n' 'Invalid release tag' >&2; exit 1;; esac
@@ -16,15 +16,15 @@ case "$(uname -s)" in Linux) os=linux;; Darwin) os=darwin;; *) printf '%s\n' 'Us
 case "$(uname -m)" in x86_64) arch=x64;; aarch64|arm64) arch=arm64;; *) printf '%s\n' 'Unsupported architecture' >&2; exit 1;; esac
 # A shell under Rosetta can report x86_64 on an Apple Silicon Mac.
 if [ "$os" = darwin ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then arch=arm64; fi
-case "$os-$arch" in darwin-arm64|linux-x64) ;; *) printf '%s\n' 'This release provides an Apple Silicon Mac DMG and an x64 Linux archive. No matching executable is published for this machine.' >&2; exit 1;; esac
+case "$os-$arch" in darwin-arm64|linux-x64) ;; *) printf '%s\n' 'This release provides an Apple Silicon Mac DMG and an x64 Linux AppImage. No matching executable is published for this machine.' >&2; exit 1;; esac
 if [ "$os" = darwin ]; then
   asset="Greybeard-${release#v}-mac-arm64.dmg"
   install_dir="${GREYBEARD_APP_DIR:-$HOME/Applications}"
   destination="$install_dir/Greybeard.app"
 else
-  asset="greybeard-linux-x64.tar.gz"
+  asset="Greybeard-${release#v}-linux-x64.AppImage"
   install_dir="${GREYBEARD_BIN_DIR:-$HOME/.local/bin}"
-  destination="$install_dir/greybeard"
+  destination="$install_dir/Greybeard.AppImage"
 fi
 mkdir -p "$install_dir"
 if [ -e "$destination" ] || [ -L "$destination" ]; then
@@ -49,14 +49,9 @@ trap 'exit 143' HUP TERM
 if [ -n "$local_asset" ]; then
   [ -f "$local_asset" ] || { printf '%s\n' 'GREYBEARD_RELEASE_FILE is not a readable release file' >&2; exit 1; }
   cp "$local_asset" "$tmp_dir/$asset"
-elif command -v gh >/dev/null 2>&1; then
-  if ! gh release download "$release" --repo OpenAdminOS/greybeard --pattern "$asset" --dir "$tmp_dir"; then
-    printf '%s\n' 'Private release download failed. Sign in with gh auth login using an account with repository access, or download the asset in GitHub and set GREYBEARD_RELEASE_FILE.' >&2
-    exit 1
-  fi
 else
-  printf '%s\n' 'Download the asset from the private GitHub release and set GREYBEARD_RELEASE_FILE, or use an authenticated GitHub CLI (gh). No public download endpoint is configured.' >&2
-  exit 1
+  curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
+    "https://github.com/OpenAdminOS/greybeard/releases/download/$release/$asset" --output "$tmp_dir/$asset"
 fi
 if command -v sha256sum >/dev/null 2>&1; then
   actual=$(sha256sum "$tmp_dir/$asset" | cut -d ' ' -f 1)
@@ -86,13 +81,9 @@ if [ "$os" = darwin ]; then
   printf '%s\n' "Installed $destination. Open Greybeard from Applications for graphical setup."
   "$destination/Contents/MacOS/greybeard" setup
 else
-  # Read only the one expected member, never unpack arbitrary archive paths.
-  [ "$(tar -tzf "$tmp_dir/$asset")" = greybeard ] || { printf '%s\n' 'Unexpected release archive contents' >&2; exit 1; }
-  tar -xOf "$tmp_dir/$asset" greybeard > "$tmp_dir/greybeard"
-  chmod 700 "$tmp_dir/greybeard"
-  "$tmp_dir/greybeard" --help >/dev/null
+  chmod 700 "$tmp_dir/$asset"
   # Hard-linking in the same directory refuses an installation created concurrently.
-  ln "$tmp_dir/greybeard" "$destination"
-  printf '%s\n' "Installed $destination. Add $install_dir to PATH if needed."
-  "$destination" setup
+  ln "$tmp_dir/$asset" "$destination"
+  printf '%s\n' "Installed $destination. Open it to configure your AI tools."
+
 fi

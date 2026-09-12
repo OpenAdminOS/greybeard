@@ -4,7 +4,7 @@
     <img src="assets/logo/greybeard-light.png" alt="Greybeard logo: a bespectacled face with a grey beard" width="188">
   </picture>
 
-# Greybeard 0.1
+# Greybeard
 
 **An IT mentor that learns how you work.**
 
@@ -16,45 +16,31 @@ Greybeard notices relevant work through supported AI-tool events, brings in the 
 
 Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
-## Desktop companion (current source)
+## Desktop companion
 
 The companion now opens in its own application window. Manage memory, review exact proposals, add lessons from outcomes, inspect connections, rate recalled advice, and configure application updates without a browser tab. It keeps your existing local database. The optional Memory map shows recorded sources, timestamps and connections on a rotatable globe, with a flat view and exact-text details. It runs locally without model calls.
 
 The new delivery is a Windows setup executable, an Apple Silicon DMG containing Greybeard.app, and a Linux AppImage. The CLI and MCP servers are bundled inside. [Companion application and installation flow](docs/0.1/companion.md) · [Implementation coverage](docs/0.1/reviews/implementation-coverage.md).
 
-These source changes are not yet in the published 0.1 assets described below. The Companion application workflow builds downloadable installer candidates; signed publication is a separate explicit workflow operation. Whole-app update code is implemented. Automatic distribution also requires published companion installers and update manifests; making the source public does not publish those assets.
+## Install Greybeard
 
-## Install Greybeard 0.1
+Download [Greybeard 0.1.1](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.1), the desktop companion in the **0.1** release line. No Node, npm, Git, or tenant connection is required.
 
-Download the assets from the [0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0). These are the earlier executable build, not the current desktop companion. GitHub tag `v0.1.0` corresponds to the product display **0.1**.
+| Computer | Download | Install |
+| --- | --- | --- |
+| Windows x64 | [Windows setup executable](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-windows-x64-setup.exe) | Run the installer, then open Greybeard from Start. |
+| Apple Silicon Mac (macOS 14+) | [Mac DMG](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-mac-arm64.dmg) | Drag Greybeard to Applications, eject the DMG, then open the app. |
+| Linux x64 | [Linux AppImage](https://github.com/OpenAdminOS/greybeard/releases/download/v0.1.1/Greybeard-0.1.1-linux-x64.AppImage) | Mark the AppImage executable and open it from a permanent location. |
 
-| Computer | Download |
-| --- | --- |
-| Windows x64 | `greybeard-win32-x64.exe` |
-| Apple Silicon Mac (macOS 14+) | `greybeard-darwin-arm64.dmg` |
-| Linux x64 | `greybeard-linux-x64.tar.gz` |
+Windows installers are publisher-signed. The Mac app and DMG are Developer ID signed and notarized. Linux is unsigned; use the release checksums to verify integrity. Download `SHA256SUMS.txt` from the same release and compare the matching hash before installation.
 
-The Mac disk image contains `Greybeard.app`; the Linux archive contains `greybeard`. You do not need Node, npm, Git, or a source checkout. Download `SHA256SUMS.txt` from the same release and compare the checksum for your asset before opening it. Put the executable in its permanent location **before setup**, because client configurations refer to that path.
+First launch detects your AI tools. Choose the ones you use, select **Enable learning**, review the setup results, then fully restart those tools. Codex requires reviewing and trusting Greybeard in `/hooks`. Proposed memories stay inactive until you confirm their exact wording in the companion.
 
-On Windows, move the executable into `%LOCALAPPDATA%\Greybeard\bin`, rename it to `greybeard.exe`, then double-click it. For terminal setup:
+Upgrading from the earlier executable or a companion candidate: close Greybeard and its AI clients, install the new companion, and rerun setup under **AI tools** to update integration paths. Keep your local data directory; installation preserves existing memories. The old `v0.1.0` download remains available for recovery.
 
-```powershell
-& "$env:LOCALAPPDATA\Greybeard\bin\greybeard.exe" setup
-```
+The release includes complete-application update manifests and the Mac ZIP used by the updater. **Notify** is the default; **Automatic** downloads an available update, and installation still requires an explicit restart. Existing legacy executables without the companion updater need this manual installation first.
 
-On a Mac, open the DMG, drag **Greybeard.app** into **Applications**, eject the disk image, then open **Greybeard** from Applications. For terminal setup:
-
-```sh
-"/Applications/Greybeard.app/Contents/MacOS/GreybeardLauncher" setup
-```
-
-The release workflow signs, notarizes, and staples both the Mac app and disk image. The DMG metadata records the verification results and software and packaging commits.
-
-Setup detects your AI clients, configures your selection, creates local memory, and defaults updates to **Notify**. It requires no Microsoft sign-in or tenant permissions. Restart your selected AI clients after setup.
-
-The executable contains the runtime, skills, logo, and SQLite library. It extracts integrity-checked assets into application data; settings and memories remain outside the executable so they survive replacement. There is no configured automatic-update feed for this release: updates are manual downloads.
-
-For checksum commands, terminal installation, and replacement instructions, see [executable delivery](docs/0.1/executable-delivery.md). The [release notes](docs/0.1/release-notes.md) describe the available features and limits.
+For checksums, terminal installation, and upgrade details, see [installation instructions](docs/0.1/executable-delivery.md). The [release notes](docs/0.1/release-notes.md) describe the included features and limits.
 
 ## Your first lesson
 
@@ -76,7 +62,7 @@ Automatic mentoring uses local rules and confirmed memories without a separate m
 
 ## Client behavior
 
-| Client | Automatic mentoring in current source |
+| Client | Automatic mentoring |
 | --- | --- |
 | Claude Code | Prompt and pre-tool context, automatic preference proposals, memory MCP and skills |
 | Claude Desktop Code | Same local hooks and skills as Claude Code; setup connects both surfaces together |
@@ -122,7 +108,7 @@ greybeard connect disconnect
 
 No permissions are preselected. The connection command lists each candidate Application permission and its purpose. Configure and consent only the selected capabilities in Entra; Greybeard never creates the registration, grants permissions, or silently escalates access. Its app-only provider checks the returned application's identity and exact role selection and leaves unsuitable connections inactive. These checks do not prove minimum permissions.
 
-The current source checks private-key ownership and permissions on POSIX and Windows. Windows checks the same file handle it reads and permits the current user plus SYSTEM and local Administrators as the OS recovery boundary. The previously published 0.1 build still has its earlier Windows limitation. Mentor-only setup remains available independently. Exact permission validation and certificate lifecycle requirements are tracked in [the implementation plan](docs/0.1/implementation-plan.md).
+The current source checks private-key ownership and permissions on POSIX and Windows. Windows checks the same file handle it reads and permits the current user plus SYSTEM and local Administrators as the OS recovery boundary. Mentor-only setup remains available independently. Exact permission validation and certificate lifecycle requirements are tracked in [the implementation plan](docs/0.1/implementation-plan.md).
 
 Tenant tools use explicit Microsoft Graph `/beta` reads. **Production tenant writes, approval tools, and delegated permission mutation are disabled in 0.1.** Change planning skills prepare a reviewable brief for your existing execution workflow.
 

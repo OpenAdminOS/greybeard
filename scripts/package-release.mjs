@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 const root = resolve(import.meta.dirname, '..');
 const version = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version;
-if (version !== '0.1.0') throw new Error('This release workflow is scoped to version 0.1.0.');
+if (!/^0\.1\.\d+$/u.test(version)) throw new Error('This release workflow requires a numeric version in the 0.1 line.');
 const release = process.argv.includes('--release');
 const platform = `${process.platform}-${process.arch}`;
 if (process.env.GREYBEARD_EXPECT_PLATFORM && platform !== process.env.GREYBEARD_EXPECT_PLATFORM) throw new Error(`Unexpected build target ${platform}.`);

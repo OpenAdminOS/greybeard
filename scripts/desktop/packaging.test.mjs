@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -97,4 +97,53 @@ test('embedded Authenticode signer and timestamp regressions', t => {
   const result = spawnSync('pwsh', ['-NoProfile', '-File', 'scripts/desktop/authenticode-signers.test.ps1'], { encoding: 'utf8', timeout: 30000 });
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(result.stdout, /timestamp binding and PE bounds regressions passed/u);
+});
+
+test('publication stages complete checksummed assets and refuses changed payloads', { skip: process.platform === 'win32' }, async () => {
+  // Publication runs on Ubuntu; the local gh fixture never contacts GitHub.
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'greybeard-publication-')));
+  try {
+    const directory = join(root, 'dist/companion');
+    const tools = join(root, 'tools');
+    for (const path of [directory, tools, join(root, 'scripts/desktop'), join(root, 'docs/0.1')]) await mkdir(path, { recursive: true });
+    for (const name of ['publish.mjs', 'contracts.mjs']) await writeFile(join(root, 'scripts/desktop', name), await readFile(new URL(name, import.meta.url)));
+    await writeFile(join(root, 'package.json'), JSON.stringify({ version: '0.1.1' }));
+    await writeFile(join(root, 'docs/0.1/release-notes.md'), '# Greybeard 0.1.1\n\nFixture release notes.\n');
+    for (const name of ['install.sh', 'install.ps1']) await writeFile(join(root, name), `fixture ${name}`);
+    const payload = Buffer.from('synthetic application payload');
+    for (const platform of ['darwin', 'win32', 'linux']) {
+      const files = [];
+      for (const name of artifactNames(platform, '0.1.1')) {
+        await writeFile(join(directory, name), payload);
+        files.push({ name, bytes: payload.length, sha256: createHash('sha256').update(payload).digest('hex') });
+      }
+      await writeFile(join(directory, `verification-${platform}.json`), JSON.stringify({ version: '0.1.1', platform, release: true, wholeApplication: true, signature: { status: 'verified', notarized: true }, payloadVerification: { zipApplication: true, dmgApplication: true, executableHashesMatch: true }, files }));
+      await writeFile(join(directory, `SHA256SUMS-${platform}.txt`), 'fixture platform manifest');
+    }
+    const calls = join(root, 'calls.jsonl');
+    await writeFile(join(tools, 'gh'), `#!/usr/bin/env node\nconst fs = require('node:fs'); const args = process.argv.slice(2); if (args[0] === 'api') process.stdout.write('[]'); else fs.appendFileSync(process.env.FIXTURE_CALLS, JSON.stringify(args) + '\\n');\n`, { mode: 0o755 });
+    const env = { ...process.env, PATH: `${tools}:${process.env.PATH}`, FIXTURE_CALLS: calls, RELEASE_REQUESTED: 'true', PUBLISH_REQUESTED: 'true', RELEASE_TAG: 'v0.1.1', GITHUB_REPOSITORY: 'fixture/repository', GITHUB_SHA: 'fixture-commit' };
+    const run = () => spawnSync(process.execPath, [join(root, 'scripts/desktop/publish.mjs'), 'publish'], { env, encoding: 'utf8' });
+    const published = run();
+    assert.equal(published.status, 0, published.stderr);
+    const operations = (await readFile(calls, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(operations.length, 2);
+    assert.deepEqual(operations[0].slice(0, 3), ['release', 'create', 'v0.1.1']);
+    assert.ok(operations[0].includes('--draft'));
+    assert.ok(operations[1].includes('--draft=false'));
+    assert.ok(operations[1].includes('--latest'));
+    const manifest = (await readFile(join(directory, 'SHA256SUMS.txt'), 'utf8')).trim().split('\n');
+    assert.equal(manifest.length, 12);
+    for (const entry of manifest) {
+      const [digest, name] = entry.split('  ');
+      assert.equal(createHash('sha256').update(await readFile(join(directory, name))).digest('hex'), digest);
+      assert.ok(operations[0].includes(join(directory, name)));
+    }
+    assert.ok(operations[0].includes(join(directory, 'SHA256SUMS.txt')));
+    await writeFile(join(directory, artifactNames('darwin', '0.1.1')[0]), 'changed after verification');
+    const refused = run();
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /changed after verification/);
+    assert.equal((await readFile(calls, 'utf8')).trim().split('\n').length, 2);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

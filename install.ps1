@@ -1,6 +1,6 @@
 # Installs the signed companion through its normal per-user NSIS installer.
 $ErrorActionPreference = 'Stop'
-$releaseTag = if ($env:GREYBEARD_RELEASE_TAG) { $env:GREYBEARD_RELEASE_TAG } else { 'v0.1.0' }
+$releaseTag = if ($env:GREYBEARD_RELEASE_TAG) { $env:GREYBEARD_RELEASE_TAG } else { 'v0.1.1' }
 $releaseHash = $env:GREYBEARD_RELEASE_SHA256
 $localAsset = $env:GREYBEARD_RELEASE_FILE
 if ($releaseTag -notmatch '^[a-zA-Z0-9._-]+$' -or $releaseHash -notmatch '^[a-fA-F0-9]{64}$') {
@@ -16,10 +16,9 @@ New-Item -ItemType Directory -Path $temporaryDir | Out-Null
 $temporary = Join-Path $temporaryDir $assetName
 try {
   if ($localAsset) { Copy-Item -LiteralPath $localAsset -Destination $temporary }
-  elseif (Get-Command gh -ErrorAction SilentlyContinue) {
-    & gh release download $releaseTag --repo OpenAdminOS/greybeard --pattern $assetName --dir $temporaryDir
-    if ($LASTEXITCODE -ne 0) { throw 'Release download failed. Use a GitHub account with repository access or a downloaded installer.' }
-  } else { throw 'Download the companion installer and set GREYBEARD_RELEASE_FILE, or use authenticated GitHub CLI access.' }
+  else {
+    Invoke-WebRequest -Uri "https://github.com/OpenAdminOS/greybeard/releases/download/$releaseTag/$assetName" -OutFile $temporary
+  }
   if ((Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash -ne $releaseHash) { throw 'Installer checksum verification failed.' }
   $signature = Get-AuthenticodeSignature -LiteralPath $temporary
   if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'CN=Ugurlabs UG \(haftungsbeschränkt\)' -or -not $signature.TimeStamperCertificate) { throw 'The installer does not have the expected valid publisher signature and timestamp.' }
