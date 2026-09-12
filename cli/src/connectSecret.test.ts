@@ -81,3 +81,16 @@ it("removes a newly saved secret if another connection wins before configuration
     expect(mocks.remove).toHaveBeenCalledWith(f.directory,"a".repeat(64));
   } finally {await f.close();}
 });
+
+
+it("reports locked-store cleanup after disconnecting without discarding local memory",async()=>{
+  const f=await fixture();
+  try {
+    await writeGreybeardConfig(f.directory,{learningEnabled:true,appOnlyProfile:{tenantId:tenant,clientId:client,capabilities:["users"],authMethod:"client-secret",secretRef:"b".repeat(64)}});
+    mocks.remove.mockRejectedValueOnce(new Error("locked"));
+    expect(await runConnect(parseArgs(["connect","disconnect","--app-data",f.directory]),f.runtime)).toBe(0);
+    expect(f.output()).toContain("could not be deleted");
+    const config=await readGreybeardConfig(f.directory);
+    expect(config.appOnlyProfile).toBeUndefined(); expect(config.learningEnabled).toBe(true);
+  } finally {await f.close();}
+});

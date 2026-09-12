@@ -53,6 +53,7 @@ it("authenticates local companion actions and preserves exact confirmation and c
     expect((await call("/connect", { ...secretInput, certificate: "conflicting.pem" })).status).toBe(400);
     expect((await call("/connect", { ...secretInput, authMethod: "unrecognized" })).status).toBe(400);
     expect((await call("/capability-preview")).data.configured).toBe(false);
+    expect((await call("/disconnect")).data.message).toContain("Tenant disconnected");
     await call("/pause", { paused: true });
     expect((await call("/outcome", { lesson: "Review rollout evidence", outcome: "Helpdesk identified a kiosk issue." })).status).toBe(400);
     expect((await call("/export")).data.nodes).toHaveLength(2);

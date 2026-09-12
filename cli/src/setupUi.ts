@@ -110,7 +110,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
       } else if (path === "/connect") {
         const method = body.authMethod ?? "certificate";
         if (method !== "certificate" && method !== "client-secret") return fail(400, "Choose client secret or certificate authentication.");
-        if (method === "client-secret" && (body.certificate || body.privateKey) || method === "certificate" && body.clientSecret !== undefined) return fail(400, "Choose one authentication method.");
+        if ((method === "client-secret" && (body.certificate || body.privateKey)) || (method === "certificate" && body.clientSecret !== undefined)) return fail(400, "Choose one authentication method.");
         for (const key of ["tenant", "clientId", ...(method === "client-secret" ? ["clientSecret"] : ["certificate", "privateKey"])]) if (typeof body[key] !== "string" || !(body[key] as string).trim()) return fail(400, "Enter tenant ID, application ID and the credentials for your selected authentication method.");
         if (!Array.isArray(body.capabilities) || !body.capabilities.length || body.capabilities.some(key => typeof key !== "string" || !Object.hasOwn(APPLICATION_CAPABILITIES, key))) return fail(400, "Choose at least one read capability.");
         const { runConnect } = await import("./connect.js");
@@ -125,8 +125,11 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         result = await getConnectionPreview(appDataPath, { verify: body.live === true, fetcher: runtime.fetcher });
       } else if (path === "/disconnect") {
         const { runConnect } = await import("./connect.js");
-        await runConnect(parseArgs(["connect", "disconnect", "--app-data", appDataPath]), runtime);
-        result = { connected: false };
+        let output = "";
+        const sink = { write: (text: string) => { output += text; return true; } };
+        const code = await runConnect(parseArgs(["connect", "disconnect", "--app-data", appDataPath]), { ...runtime, stdout: sink, stderr: sink });
+        if (code !== 0) return fail(400, output.trim());
+        result = { connected: false, message: output.trim() };
       } else if (path === "/pause") {
         if (typeof body.paused !== "boolean") return fail(400, "Invalid pause state.");
         await updateGreybeardConfig(appDataPath, current => ({ ...current, learningEnabled: !body.paused }));

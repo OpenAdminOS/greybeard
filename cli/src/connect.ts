@@ -39,7 +39,7 @@ export async function runConnect(args: ParsedArgs, runtime: CliRuntime, supplied
     if (useSecret && (flagValue(args, "certificate") || flagValue(args, "private-key"))) throw new Error("Choose either a client secret or certificate credentials.");
     if (args.flags.has("client-secret-stdin") && suppliedSecret === undefined) {
       const { readBoundedInput } = await import("./mentor.js");
-      suppliedSecret = (await readBoundedInput(runtime.stdin, 4096)).replace(/\r?\n$/u, "");
+      suppliedSecret = (await readBoundedInput(runtime.stdin, 4096, 60_000)).replace(/\r?\n$/u, "");
     }
     if (useSecret) validateClientSecret(suppliedSecret ?? "");
     const profile: AppOnlyProfile = {

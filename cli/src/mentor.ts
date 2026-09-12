@@ -31,12 +31,12 @@ export function supportedAction(event: Record<string, unknown>): { query: string
   return undefined;
 }
 
-export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes = 16_384): Promise<string> {
+export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes = 16_384, timeoutMs = 1500): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = "";
     let bytes = 0;
     const decoder = new StringDecoder("utf8");
-    const timer = setTimeout(() => finish(new Error("Input timed out.")), 1500);
+    const timer = setTimeout(() => finish(new Error("Input timed out.")), timeoutMs);
     const onData = (chunk: Buffer | string) => {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       bytes += buffer.length;
