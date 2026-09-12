@@ -1,23 +1,23 @@
 # Install Greybeard
 
-[Download Greybeard 0.1.1](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.1). This release bundles the native companion, CLI, MCP services, skills and local SQLite memory. No developer tools or tenant connection are needed.
+[Download Greybeard 0.1.2](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.2). This release bundles the native companion, CLI, MCP services, skills and local SQLite memory. No developer tools or tenant connection are needed.
 
 ## Windows x64
 
-Download `Greybeard-0.1.1-windows-x64-setup.exe` and `SHA256SUMS.txt`. Compare the installer hash with its entry:
+Download `Greybeard-0.1.2-windows-x64-setup.exe` and `SHA256SUMS.txt`. Compare the installer hash with its entry:
 
 ```powershell
-Get-FileHash "$env:USERPROFILE\Downloads\Greybeard-0.1.1-windows-x64-setup.exe" -Algorithm SHA256
+Get-FileHash "$env:USERPROFILE\Downloads\Greybeard-0.1.2-windows-x64-setup.exe" -Algorithm SHA256
 ```
 
 Run the publisher-signed installer and open Greybeard from Start. Follow the detected-tool setup, then restart your selected AI tools. The bundled CLI is at `resources\bin\greybeard.exe` inside the installation directory; it is not a separate download.
 
 ## Apple Silicon Mac
 
-Requires macOS 14 or later. Download `Greybeard-0.1.1-mac-arm64.dmg` and compare its checksum:
+Requires macOS 14 or later. Download `Greybeard-0.1.2-mac-arm64.dmg` and compare its checksum:
 
 ```sh
-shasum -a 256 "$HOME/Downloads/Greybeard-0.1.1-mac-arm64.dmg"
+shasum -a 256 "$HOME/Downloads/Greybeard-0.1.2-mac-arm64.dmg"
 ```
 
 Open the DMG, drag Greybeard to Applications, eject the image, then open Greybeard. Both the app and disk image are Developer ID signed and notarized. Terminal setup is also available:
@@ -28,11 +28,11 @@ Open the DMG, drag Greybeard to Applications, eject the image, then open Greybea
 
 ## Linux x64
 
-Download `Greybeard-0.1.1-linux-x64.AppImage` and compare its checksum:
+Download `Greybeard-0.1.2-linux-x64.AppImage` and compare its checksum:
 
 ```sh
-sha256sum "$HOME/Downloads/Greybeard-0.1.1-linux-x64.AppImage"
-chmod +x "$HOME/Downloads/Greybeard-0.1.1-linux-x64.AppImage"
+sha256sum "$HOME/Downloads/Greybeard-0.1.2-linux-x64.AppImage"
+chmod +x "$HOME/Downloads/Greybeard-0.1.2-linux-x64.AppImage"
 ```
 
 Move it to a permanent location before setup, then open it. Linux is unsigned: the checksum checks integrity, not publisher identity. Depending on your distribution, AppImage support may require FUSE 2. The extracted MCP runtime lives in application data so it can run outside an AppImage mount.

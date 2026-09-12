@@ -1,6 +1,6 @@
 # Greybeard 0.1.2 implementation evidence
 
-The shared-memory implementation addresses [issue #5](https://github.com/OpenAdminOS/greybeard/issues/5). This is PR evidence, not a publication or platform certification claim.
+The shared-memory implementation addresses [issue #5](https://github.com/OpenAdminOS/greybeard/issues/5). Release availability and assets are recorded on the [0.1.2 release page](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.2). This document records implementation evidence and its limits.
 
 ## Implemented
 
@@ -24,10 +24,10 @@ The native smoke uses a synthetic certificate trusted only by its child processe
 
 Device testing found Windows packaged DPAPI startup exceeded the original hook deadline. The corrected artifact passed automatic context delivery in a fresh Claude conversation. Windows now has a 2.5-second processing budget; macOS/Linux retain 1.5 seconds, all within the existing five-second host timeout.
 
-## Remaining release gates
+## Validation limits
 
 - The installed Windows/macOS companion visual workflow, including a person reviewing a candidate in the native dialog. Device tests automated its authenticated backend, not the window.
 - Clean VM/LXC installation and interrupted application upgrade rehearsal using the distributed artifact. Private Tailscale deployment and core backup restoration were exercised on owned devices.
-- Final publication/signing and upgrade verification for a new 0.1.2 release. Version/package changes do not mean release artifacts have been published.
+- Signed packaging, notarization, packaged-app smoke tests, and publication are enforced by the explicit Companion application release workflow. They do not establish every manual upgrade scenario.
 
-CI on the final PR commit must reach a terminal state before handoff. Keep the PR as a draft until the external release checks have a recorded disposition. Do not describe a generated fixture event as an actual host conversation.
+PR #6 is merged. The owner authorized publication of the current 0.1.2 version with the manual scenarios above still unverified. Automated release checks must finish successfully before publication; generated fixture events are not counted as actual host conversations.

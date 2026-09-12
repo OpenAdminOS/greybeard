@@ -2,7 +2,7 @@
 # Install a checksum-verified companion release. No Node, Git, npm, or developer tools required.
 set -eu
 umask 077
-release="${GREYBEARD_RELEASE_TAG:-v0.1.1}"
+release="${GREYBEARD_RELEASE_TAG:-v0.1.2}"
 expected="${GREYBEARD_RELEASE_SHA256:-}"
 local_asset="${GREYBEARD_RELEASE_FILE:-}"
 if [ -z "$expected" ]; then
