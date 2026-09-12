@@ -41,7 +41,7 @@ The desktop updater downloads the complete application using electron-updater. N
 
 Before replacement, the companion copies the complete current application into its private application-recovery folder. If backup fails, installation does not proceed. Open the previous application backup from App preferences, quit Greybeard and its AI clients, and reinstall/open the retained version if needed. This is manual recovery, not automatic failure detection. Memory is not restored from an old snapshot, so newer decisions remain. Cross-version schema compatibility must be checked before using a much older runtime.
 
-Public source access alone does not enable application updates. The release feed must also contain signed companion installers and update manifests. No shared GitHub token is bundled with the application; feed failures are shown and manual verified installation remains possible. This source work does not replace the already published 0.1 download.
+The public companion release includes installers and update manifests. No shared GitHub token is bundled with the application; feed failures are shown and manual verified installation remains possible. Users of the earlier standalone executable must install the companion manually before using its whole-application updater.
 
 ## Application boundary
 
