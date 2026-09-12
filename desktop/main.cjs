@@ -6,6 +6,8 @@ const { autoUpdater } = require('electron-updater');
 const { createUpdateController } = require('./updates.cjs');
 
 app.setName('Greybeard');
+// Match the NSIS Start Menu shortcut identity used by native Windows notifications.
+if (process.platform === 'win32') app.setAppUserModelId('com.ugurlabs.greybeard');
 const startup = require('./startup.cjs').createStartupController(app);
 let window, child, serverUrl, stopping = false, updater, mentorNotifications, tray;
 const root = resolve(__dirname, '..');

@@ -3,7 +3,7 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 ROOT=Path(__file__).resolve().parents[3];OUT=Path(__file__).resolve().parent
 failures=[]
-for host in ['copilot','gemini']:
+for host in ['claude','copilot','gemini']:
  requests=[];phase="recall"
  class Handler(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
@@ -17,6 +17,14 @@ for host in ['copilot','gemini']:
     result={'candidates':[{'content':{'role':'model','parts':[{'text':'Synthetic transport acknowledgement.'}]},'finishReason':'STOP'}],'usageMetadata':{'promptTokenCount':1,'candidatesTokenCount':1,'totalTokenCount':2},'modelVersion':'gemini-2.5-flash'}
     stream='streamGenerateContent' in self.path
     self.send_header('Content-Type','text/event-stream' if stream else 'application/json');self.end_headers();self.wfile.write(('data: '+json.dumps(result)+'\n\n' if stream else json.dumps(result)).encode())
+   elif host=='claude':
+    self.send_header('Content-Type','text/event-stream' if payload.get('stream') else 'application/json');self.end_headers()
+    message={'id':'msg_fixture','type':'message','role':'assistant','content':[{'type':'text','text':'Synthetic transport acknowledgement.'}],'model':payload.get('model','fixture'),'stop_reason':'end_turn','stop_sequence':None,'usage':{'input_tokens':1,'output_tokens':1}}
+    if self.path.endswith('count_tokens'):self.wfile.write(b'{"input_tokens":1}')
+    elif payload.get('stream'):
+     events=[('message_start',{'type':'message_start','message':{**message,'content':[],'stop_reason':None}}),('content_block_start',{'type':'content_block_start','index':0,'content_block':{'type':'text','text':''}}),('content_block_delta',{'type':'content_block_delta','index':0,'delta':{'type':'text_delta','text':'Synthetic transport acknowledgement.'}}),('content_block_stop',{'type':'content_block_stop','index':0}),('message_delta',{'type':'message_delta','delta':{'stop_reason':'end_turn','stop_sequence':None},'usage':{'output_tokens':1}}),('message_stop',{'type':'message_stop'})]
+     self.wfile.write(''.join('event: '+name+'\ndata: '+json.dumps(body)+'\n\n' for name,body in events).encode())
+    else:self.wfile.write(json.dumps(message).encode())
    else:
     stream=payload.get('stream',False);self.send_header('Content-Type','text/event-stream' if stream else 'application/json');self.end_headers()
     result={'id':'fixture','object':'chat.completion.chunk' if stream else 'chat.completion','created':int(time.time()),'model':'gpt-4.1','choices':[{'index':0,('delta' if stream else 'message'):{'role':'assistant','content':'Synthetic transport acknowledgement.'},'finish_reason':'stop'}]}
@@ -28,7 +36,15 @@ for host in ['copilot','gemini']:
   subprocess.run(['node',str(ROOT/'scripts/evaluate-installed-host.mjs'),str(home),str(app),host,'automatic'],check=True,capture_output=True,cwd=ROOT)
   env={k:v for k,v in os.environ.items() if k in ['PATH','USER','LOGNAME','LANG','LC_ALL','TERM']};env.update(HOME=str(home),COPILOT_HOME=str(home/'.copilot'),GEMINI_CLI_HOME=str(home),CI='true',NO_PROXY='127.0.0.1,localhost')
   endpoint='http://127.0.0.1:'+str(server.server_port);prompt='Plan a Windows compliance rollout for every device. Do not use tools or change anything.';binary=str(Path(os.environ.get('GREYBEARD_HOST_BIN_DIR','/tmp/greybeard-host-verification/node_modules/.bin'))/host)
-  if host=='copilot':
+  if host=='claude':
+   import shutil
+   (home/'.claude.json').write_text('{}')
+   (home/'.claude/CLAUDE.md').unlink(missing_ok=True)
+   shutil.rmtree(home/'.claude/skills',ignore_errors=True)
+   binary=os.environ.get('GREYBEARD_CLAUDE_BINARY') or shutil.which('claude') or str(Path.home()/'.local/bin/claude')
+   env.update(CLAUDE_CONFIG_DIR=str(home/'.claude'),ANTHROPIC_API_KEY='synthetic-local-endpoint',ANTHROPIC_BASE_URL=endpoint,ENABLE_CLAUDEAI_MCP_SERVERS='false',CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC='1')
+   cmd=[binary,'-p',prompt,'--output-format','stream-json','--verbose','--no-session-persistence','--tools','']
+  elif host=='copilot':
    env.update(COPILOT_OFFLINE='true',COPILOT_PROVIDER_BASE_URL=endpoint+'/v1',COPILOT_PROVIDER_TYPE='openai',COPILOT_MODEL='gpt-4.1')
    cmd=[binary,'-p',prompt,'--output-format','json','--no-auto-update','--disable-builtin-mcps']
   else:
