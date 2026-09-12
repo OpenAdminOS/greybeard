@@ -21,10 +21,12 @@ const tracked = execFileSync("git", ["ls-files"], { encoding: "utf8" })
 // Continue checking authored evaluation scripts and README documentation.
 const recordedEvaluation = /^evaluations\/mentor-100\/(?:(?:runs|baselines|skill-rechecks|smoke-failures)\/|manual-[^/]+\.json$|paired-baselines\.json$|review\.html$)/u;
 
+const automaticTranscript = /^evaluations\/automatic-0\.1\/(?:(?:claude-installed|codex-installed)\/\d+\/(?:events\.jsonl|response\.md|mcp-inspection\.txt|stderr\.txt|result\.json)|(?:codex-hooks-only|codex-untrusted|copilot|gemini)\/result\.json)$/u;
+
 const failures = [];
 
 for (const file of tracked) {
-  if (recordedEvaluation.test(file) || /^evaluations\/next-build\/(?!README\.md$|cases\.json$|summary\.json$)/u.test(file)) continue;
+  if (recordedEvaluation.test(file) || automaticTranscript.test(file) || /^evaluations\/next-build\/(?!README\.md$|cases\.json$|summary\.json$)/u.test(file)) continue;
   const contents = readFileSync(file);
   if (contents.includes(0)) {
     continue;
