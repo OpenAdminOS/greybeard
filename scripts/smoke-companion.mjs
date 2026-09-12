@@ -21,19 +21,21 @@ try {
   const errors = []; window.on('pageerror', e => errors.push(e.message));
   // Hold the first scan response to reproduce a slow Windows startup. Navigation
   // must not be enabled until that response can no longer override the user's choice.
+  await expect(window.locator('#setup-later')).toBeEnabled();
   const sessionToken=await window.evaluate('token');
-  let releaseInitialScan, initialScanCaptured;
+  let releaseInitialScan, initialScanCaptured=false;
   const scanGate=new Promise(resolve=>{releaseInitialScan=resolve;});
-  const scanCaptured=new Promise(resolve=>{initialScanCaptured=resolve;});
   let firstScan=true;
   await window.route('**/state',async route=>{
     if(!firstScan){await route.continue();return;}
-    firstScan=false;const response=await route.fetch();initialScanCaptured();
+    firstScan=false;const response=await route.fetch();initialScanCaptured=true;
     await scanGate;await route.fulfill({response});
   });
-  await window.goto(new URL('?slow-initial-scan=1#'+sessionToken,window.url()).href);
-  await scanCaptured;
-  try { await expect(window.locator('#setup-later')).toBeDisabled(); }
+  try {
+    await window.goto(new URL('?slow-initial-scan=1#'+sessionToken,window.url()).href);
+    await expect.poll(()=>initialScanCaptured,{timeout:10000,message:'The reloaded window must request its initial state'}).toBe(true);
+    await expect(window.locator('#setup-later')).toBeDisabled();
+  }
   finally {releaseInitialScan();}
   await expect(window.locator('#setup-later')).toBeEnabled();
   await window.unroute('**/state');
