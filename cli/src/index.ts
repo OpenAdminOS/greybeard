@@ -31,6 +31,7 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
     const { runCompanion } = await import("./companion.js");
     return runCompanion(runtime);
   }
+  if (args.command === "server" || args.command === "shared-memory") return (await import("./sharedCommands.js")).runSharedCommands(args, runtime);
   if (args.command === "mentor") return runMentor(args, runtime);
   if (args.command === "uninstall") return runUninstall(args, runtime);
   if (args.command === "connect") return runConnect(args, runtime);
@@ -39,7 +40,8 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
       const { MemoryService, createGreybeardMemoryMcpServer } = await import("@greybeard/memory");
       const { getGreybeardAppDataPath } = await import("@greybeard/graph");
       const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
-      const service = new MemoryService({ appDataPath: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(), profileId: runtime.env.GREYBEARD_PROFILE_ID });
+      const { openMemoryBackend } = await import("./sharedMemory.js");
+      const service = await openMemoryBackend({ appDataPath: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() });
       const server = createGreybeardMemoryMcpServer(service);
       server.server.onclose = () => service.close();
       await server.connect(new StdioServerTransport());
@@ -100,6 +102,7 @@ function printHelp(runtime: CliRuntime): void {
     "setup [--ui] [--yes] [--client <name>] [--no-memory-hook] [--update-mode notify|automatic|manual]",
     "connect --help",
     "memory list|candidates|add|confirm|correct|export|pause|resume|forget",
+    "server start|enroll|devices|revoke|backup|reset-credentials (advanced)", "shared-memory status|disconnect",
     "doctor", "update", "skills pack [--out <directory>]", "uninstall"
   ]) writeLine(runtime.stdout, `  greybeard ${command}`);
   writeLine(runtime.stdout, "");

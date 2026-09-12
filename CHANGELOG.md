@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Planned for 0.1.2
+
+- Add optional private shared memory across computers, with an explicit headless server, Advanced connection settings, automatic mentoring, and shared human review. Local setup remains the default.
+- Allow for Windows protected-credential startup when retrieving automatic shared-memory advice, while retaining a bounded hook deadline.
+- Keep device credentials protected and independently revocable, preserve local memories on disconnect, and bound hook failures when a server is unavailable.
+
 ## 0.1.1 - 2026-09-12
 
 - Add client-secret authentication to Infrastructure alongside certificates, with protected OS storage, masked input, credential rotation and disconnect cleanup.

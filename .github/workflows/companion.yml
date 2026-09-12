@@ -88,7 +88,7 @@ jobs:
         run: npm run ci
       - name: Install Linux display dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libsecret-tools gnome-keyring dbus-x11 openssl
       - name: Prepare Apple Developer ID and sign embedded SQLite
         if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release
         env:
@@ -119,6 +119,9 @@ jobs:
         run: node scripts/macos-signing.mjs sign
       - name: Exercise bundled CLI outside checkout
         run: npm run test:executable
+      - name: Exercise private shared memory with TLS and native credentials
+        if: runner.os == 'Linux'
+        run: bash scripts/smoke-shared-memory.sh
       - name: Exercise actual companion interactions on Linux
         if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:companion

@@ -6,6 +6,7 @@ import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig,
 import { companionPage } from "./companionUi.js";
 import { discoveryRuntime, inspectWorkspace, readAutomaticActivity } from "./workspaceStatus.js";
 import { AutomaticMentorStore, MemoryService } from "@greybeard/memory";
+import { readMemoryBinding, bindingKey, openMemoryBackend, RemoteMemory, pairMemory, disconnectMemory, type MemoryBackend } from "./sharedMemory.js";
 import { buildMemoryMap } from "./memoryMapData.js";
 import { previewSetupRepair, repairSetup } from "./setupRepair.js";
 import { detectAllClients } from "./clients.js";
@@ -43,7 +44,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
       return;
     }
     if (request.method !== "POST" || request.headers.origin !== origin || request.headers["content-type"] !== "application/json" || typeof request.headers["x-greybeard-session"] !== "string" || !sameSecret(request.headers["x-greybeard-session"], session)) return fail(403, "Open the setup link printed in your terminal.");
-    let service: MemoryService | undefined;
+    let service: MemoryBackend | undefined;
     try {
       const body = JSON.parse(await readBoundedInput(request)) as Record<string, unknown>;
       if (!body || typeof body !== "object" || Array.isArray(body)) return fail(400, "Invalid request.");
@@ -52,10 +53,34 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         const config = await readGreybeardConfig(appDataPath);
         const toolStatus = await inspectWorkspace(runtime, appDataPath);
         const configuredClients = toolStatus.filter(c => c.configured).map(c => c.name);
-        result = { toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { authMethod: config.appOnlyProfile.authMethod ?? "certificate", tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+        const memoryBinding = await readMemoryBinding(appDataPath);
+        result = { memoryBackend: memoryBinding ? { mode: "remote", url: memoryBinding.url, profile: memoryBinding.profile, tenant: memoryBinding.tenant, review: Boolean(memoryBinding.reviewRef) } : { mode: "local" }, memoryBinding: bindingKey(memoryBinding), toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { authMethod: config.appOnlyProfile.authMethod ?? "certificate", tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+      } else if (path === "/shared-pair") {
+        if (body.acceptDisclosure !== true || typeof body.url !== "string" || typeof body.code !== "string") return fail(400, "Read and accept the shared memory disclosure, then enter the server URL and pairing code.");
+        const binding = await pairMemory(appDataPath, body.url, body.code);
+        result = { connected: true, memoryBinding: bindingKey(binding), message: "Shared memory connected. Restart AI clients. Existing local memories have been retained." };
+      } else if (path === "/shared-disconnect") {
+        result = await disconnectMemory(appDataPath);
+      } else if (path === "/shared-status" || path === "/shared-pause") {
+        const binding = await readMemoryBinding(appDataPath);
+        if (!binding) result = { mode: "local" };
+        else {
+          if (body.memoryBinding !== bindingKey(binding)) return fail(409, "Memory store changed. Refresh before continuing.");
+          const remote = new RemoteMemory(appDataPath, binding, path === "/shared-pause");
+          if (path === "/shared-pause") {
+            if (typeof body.paused !== "boolean") return fail(400, "Choose a shared pause state.");
+            result = (await remote.request("/review", {method:"pause",input:{paused:body.paused}})).result;
+          } else result = { mode: "remote", ...(await remote.status()) };
+        }
       } else if (path === "/mentoring") {
         const config = await readGreybeardConfig(appDataPath);
-        result = {...readAutomaticActivity(appDataPath,config.profileId ?? "local",config.activeTenantId ?? "local"),paused:config.learningEnabled === false || config.memoryHook === false};
+        const binding = await readMemoryBinding(appDataPath);
+        if (binding) {
+          const remote = new RemoteMemory(appDataPath, binding, true);
+          const activity = (await remote.request("/review", {method:"activity",input:{}})).result;
+          const devicePaused = config.learningEnabled === false || config.memoryHook === false;
+          result = { ...activity, memoryBinding: bindingKey(binding), sharedPaused: activity.paused, paused: activity.paused || devicePaused, devicePaused };
+        } else result = {memoryBinding:"local",...readAutomaticActivity(appDataPath,config.profileId ?? "local",config.activeTenantId ?? "local"),paused:config.learningEnabled === false || config.memoryHook === false};
       } else if (path === "/diagnostics") {
         const { assembleDoctorFindings } = await import("./doctor.js");
         result = await assembleDoctorFindings(parseArgs(["doctor", "--app-data", appDataPath]), runtime);
@@ -139,10 +164,12 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
       } else {
         // Confirmation lives only in this authenticated local UI; never exposed through MCP.
         const memoryConfig = await readGreybeardConfig(appDataPath);
-        const currentTenant = memoryConfig.activeTenantId ?? "local";
+        const binding = await readMemoryBinding(appDataPath);
+        if ((binding || body.memoryBinding !== undefined) && body.memoryBinding !== bindingKey(binding)) return fail(409, "Memory store changed. Refresh and review again.");
+        const currentTenant = binding?.tenant ?? memoryConfig.activeTenantId ?? "local";
         const tenantId = typeof body.memoryTenant === "string" ? body.memoryTenant : currentTenant;
         if (tenantId !== "local" && tenantId !== currentTenant) return fail(400, "Select local memory or the configured tenant.");
-        service = new MemoryService({ appDataPath, profileId: memoryConfig.profileId ?? "local", tenantId });
+        service = await openMemoryBackend({ appDataPath, profileId: binding?.profile ?? memoryConfig.profileId ?? "local", tenantId }, true, binding ?? null);
         if (path === "/memories") result = await service.list({ limit: 50, ...(typeof body.cursor === "number" ? { cursor: body.cursor } : {}), ...(typeof body.query === "string" && body.query ? { query: body.query } : {}), ...(typeof body.scope === "string" && body.scope ? { scope: body.scope } : {}), ...(["query", "preference", "script", "fact", "scope", "decision"].includes(String(body.type)) ? { type: body.type as "fact" } : {}), ...(["candidate", "confirmed"].includes(String(body.status)) ? { status: body.status as "candidate" } : {}) });
         else if (path === "/add") {
           if (!["query", "preference", "script", "fact", "scope", "decision"].includes(String(body.type)) || typeof body.content !== "string" || !body.content.trim()) return fail(400, "Choose a type and write a memory.");
@@ -152,7 +179,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
           const nodes = (await service.export()).nodes.filter(node => node.supersededAt === null);
           result = { active: nodes.length, confirmed: nodes.filter(node => node.status === "confirmed").length, candidates: nodes.filter(node => node.status === "candidate").length };
         } else if (path === "/metrics") result = { ...(await service.adviceMetrics()), recent: await service.adviceHistory() };
-        else if (path === "/clear-metrics") { await service.clearAdviceMetrics(); const activity = new AutomaticMentorStore(appDataPath,memoryConfig.profileId ?? "local",tenantId); try { activity.clear(); } finally { activity.close(); } result = { cleared: true }; }
+        else if (path === "/clear-metrics") { await service.clearAdviceMetrics(); if (!(service instanceof RemoteMemory)) { const activity = new AutomaticMentorStore(appDataPath,memoryConfig.profileId ?? "local",tenantId); try { activity.clear(); } finally { activity.close(); } } result = { cleared: true }; }
         else if (path === "/feedback") {
           if (typeof body.recallId !== "string" || !["accepted", "ignored", "irrelevant"].includes(String(body.feedback))) return fail(400, "Select an advice event and rating.");
           result = await service.recordAdviceFeedback({ recallId: body.recallId, feedback: body.feedback as "accepted" });
@@ -170,12 +197,12 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
             const node = (await service.export()).nodes.find(n => n.id === body.id);
             if (!node || node.revision !== body.revision || node.content !== body.content) return fail(409, "Memory changed. Refresh and review again before forgetting.");
           }
-          result = await service.forget({ id: body.id as number });
+          result = await service.forget({ id: body.id as number, ...(service instanceof RemoteMemory ? { expectedRevision: body.revision } : {}) });
         } else if (path === "/correct") {
           if (!Number.isSafeInteger(body.id) || typeof body.content !== "string" || !body.content.trim()) return fail(400, "Choose a memory and provide replacement text.");
           const node = (await service.export()).nodes.find(n => n.id === body.id);
-          if (!node || node.status !== "confirmed" || node.supersededAt !== null) return fail(409, "Correct a current confirmed memory.");
-          result = await service.remember({ type: node.type, scope: node.scope, content: body.content, supersedes: node.id, source: "local-ui", evidenceKind: node.evidenceKind, ...(node.observedAt !== null && node.observedAt !== undefined ? { observedAt: node.observedAt } : {}), ...(node.outcome ? { outcome: node.outcome } : {}) });
+          if (!node || node.status !== "confirmed" || node.supersededAt !== null || service instanceof RemoteMemory && node.revision !== body.revision) return fail(409, "Correct a current confirmed memory.");
+          result = await service.remember({ type: node.type, scope: node.scope, content: body.content, supersedes: node.id, ...(service instanceof RemoteMemory ? { expectedOriginalRevision: node.revision } : {}), source: "local-ui", evidenceKind: node.evidenceKind, ...(node.observedAt !== null && node.observedAt !== undefined ? { observedAt: node.observedAt } : {}), ...(node.outcome ? { outcome: node.outcome } : {}) });
         } else if (path === "/memory-map") result = buildMemoryMap(await service.export(), body);
         else if (path === "/export") result = await service.export();
         else return fail(404, "Unknown action.");

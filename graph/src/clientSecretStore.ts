@@ -7,9 +7,9 @@ const SERVICE = "greybeard-app-secret";
 const failure = () => new Error("The OS credential store is unavailable or locked. Unlock your keychain or credential service and try again. No plaintext fallback is used.");
 
 // Credential input goes through stdin, never command arguments or diagnostics.
-function command(file: string, args: string[], input = ""): Promise<string> {
+function command(file: string, args: string[], input = "", signal?: AbortSignal): Promise<string> {
   return new Promise((done, reject) => {
-    const child = execFile(file, args, { windowsHide: true, timeout: 20_000, maxBuffer: 64 * 1024 }, (error, stdout) => {
+    const child = execFile(file, args, { windowsHide: true, signal, timeout: 20_000, maxBuffer: 64 * 1024 }, (error, stdout) => {
       if (error) reject(failure()); else done(stdout);
     });
     child.stdin?.on("error", () => { /* Process completion supplies a sanitized failure. */ });
@@ -33,9 +33,9 @@ function powershell(): string {
   return win32.join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
 }
 
-async function dpapi(value: string, encrypt: boolean): Promise<string> {
+async function dpapi(value: string, encrypt: boolean, signal?: AbortSignal): Promise<string> {
   const script = `$ErrorActionPreference='Stop'; try { Add-Type -AssemblyName System.Security; $data=[Convert]::FromBase64String([Console]::In.ReadToEnd()); $result=[System.Security.Cryptography.ProtectedData]::${encrypt ? "Protect" : "Unprotect"}($data,$null,[System.Security.Cryptography.DataProtectionScope]::CurrentUser); [Console]::Out.Write([Convert]::ToBase64String($result)) } catch { exit 1 }`;
-  const result = await command(powershell(), ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], value);
+  const result = await command(powershell(), ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], value, signal);
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(result)) throw failure();
   return result;
 }
@@ -65,16 +65,16 @@ export async function saveClientSecret(appDataPath: string, secret: string): Pro
   }
 }
 
-export async function loadClientSecret(appDataPath: string, ref: string): Promise<string> {
+export async function loadClientSecret(appDataPath: string, ref: string, signal?: AbortSignal): Promise<string> {
   validateRef(ref);
   try {
     let secret: string;
-    if (process.platform === "darwin") secret = (await command("/usr/bin/security", ["find-generic-password", "-a", ref, "-s", SERVICE, "-w"])).replace(/\r?\n$/u, "");
-    else if (process.platform === "linux") secret = (await command("secret-tool", ["lookup", "service", SERVICE, "account", ref])).replace(/\r?\n$/u, "");
+    if (process.platform === "darwin") secret = (await command("/usr/bin/security", ["find-generic-password", "-a", ref, "-s", SERVICE, "-w"], "", signal)).replace(/\r?\n$/u, "");
+    else if (process.platform === "linux") secret = (await command("secret-tool", ["lookup", "service", SERVICE, "account", ref], "", signal)).replace(/\r?\n$/u, "");
     else if (process.platform === "win32") {
       const encoded = await readFile(join(appDataPath, "credentials", ref), "utf8");
       if (encoded.length > 32 * 1024 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw failure();
-      secret = Buffer.from(await dpapi(encoded, false), "base64").toString("utf8");
+      secret = Buffer.from(await dpapi(encoded, false, signal), "base64").toString("utf8");
     } else throw failure();
     validateClientSecret(secret);
     return secret;
