@@ -114,3 +114,21 @@ it("recognizes administrative PowerShell cmdlets even without a separate domain 
   }
   expect(reminderRules("Explain a Python tuple.")).toEqual([]);
 });
+
+it("retrieves the user task from Gemini's native session-context prefix and ignores preferences inside that prefix",async()=>{
+  const appData=await mkdtemp(join(tmpdir(),"greybeard-gemini-context-"));
+  const service=new MemoryService({appDataPath:appData});
+  try {
+    const saved=await service.remember({type:"decision",content:"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."});
+    const node=(await service.export()).nodes[0];await service.confirm({id:saved.id,expectedRevision:node.revision});
+    const prefix="<hook_context>"+"Unrelated startup context. ".repeat(30)+"\nWe always follow this unconfirmed hook preference.</hook_context>\n\n";
+    const advice=await processMentorEvent({appData,profile:"local",tenant:"local",host:"gemini",kind:"prompt",input:{session_id:"gemini-native",prompt:prefix+"Plan a Windows compliance rollout for every device."}});
+    expect(advice.context).toContain("48 hours");expect(advice.candidateId).toBeUndefined();
+    const stop=await processMentorEvent({appData,profile:"local",tenant:"local",host:"gemini",kind:"stop",input:{session_id:"gemini-native",prompt:prefix+"Plan a Windows compliance rollout."}});
+    expect(stop.candidateId).toBeUndefined();
+    const proposal=await processMentorEvent({appData,profile:"local",tenant:"local",host:"gemini",kind:"prompt",input:{session_id:"gemini-native-preference",prompt:prefix+"We always name a recovery owner before production rollouts."}});
+    expect(proposal.candidateId).toBeTypeOf("number");
+    const candidates=(await service.export()).nodes.filter(n=>n.status==="candidate");
+    expect(candidates).toHaveLength(1);expect(candidates[0].content).toContain("recovery owner");
+  } finally {service.close();await rm(appData,{recursive:true,force:true});}
+});

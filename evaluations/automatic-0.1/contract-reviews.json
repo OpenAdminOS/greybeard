@@ -1,7 +1,7 @@
 {
   "method": "100 distinct prompts, five adapters each, synthetic local profiles. 500 deterministic prompt checks; no paid model or tenant calls.",
   "sourceHashes": {
-    "cli/dist/automaticMentor.js": "bb1ae48e5a067e7e1fad5817c89574286a6c4544a7368ff1e819ea0ac4cb5f11",
+    "cli/dist/automaticMentor.js": "757ad77a474972631be5626e5374bee13da70ddf624caba06a2340853d379536",
     "cli/dist/automaticHooks.js": "ce093d490c04c88bf30c397c197a95db40e45cd88561f2e11471353120aba960",
     "memory/dist/automatic.js": "42e6eddd6b294573f7fcca90718e0ed5b7cd4149b6b73494eafba534f7d557e0"
   },
@@ -29,7 +29,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 4,
+          "elapsedMs": 5,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -50,7 +50,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 3,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -113,7 +113,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -257,7 +257,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -275,7 +275,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -535,7 +535,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -566,7 +566,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 3,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -602,7 +602,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -620,7 +620,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -751,7 +751,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 3,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -885,7 +885,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -988,7 +988,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1095,7 +1095,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 4,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1117,7 +1117,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 3,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1161,7 +1161,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1214,7 +1214,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1268,7 +1268,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1286,7 +1286,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 3,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1319,7 +1319,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1551,7 +1551,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1842,7 +1842,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -1945,7 +1945,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2048,7 +2048,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2179,7 +2179,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2202,7 +2202,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2225,7 +2225,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2248,7 +2248,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2305,7 +2305,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2327,7 +2327,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2551,7 +2551,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2573,7 +2573,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2617,7 +2617,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2674,7 +2674,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2696,7 +2696,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2718,7 +2718,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2841,7 +2841,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2942,7 +2942,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2964,7 +2964,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -2986,7 +2986,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -3043,7 +3043,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -3614,7 +3614,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 5,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -3807,7 +3807,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 4,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -3930,7 +3930,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -4066,7 +4066,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -4177,7 +4177,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -4280,7 +4280,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -4385,7 +4385,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -5037,7 +5037,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -5059,7 +5059,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -5515,7 +5515,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -5588,7 +5588,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -5915,7 +5915,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6018,7 +6018,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6121,7 +6121,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6175,7 +6175,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6193,7 +6193,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6327,7 +6327,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -6430,7 +6430,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7017,7 +7017,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7037,7 +7037,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7170,7 +7170,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7263,7 +7263,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7384,7 +7384,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 5,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7459,7 +7459,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7479,7 +7479,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7632,7 +7632,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 2,
+          "elapsedMs": 1,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7969,7 +7969,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -7991,7 +7991,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -8044,7 +8044,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -8227,7 +8227,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -8564,7 +8564,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9192,7 +9192,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9295,7 +9295,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9398,7 +9398,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9519,7 +9519,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9707,7 +9707,7 @@
           "memoryIds": [],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -9975,7 +9975,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -10530,7 +10530,7 @@
           ],
           "ruleIds": [],
           "candidateId": null,
-          "elapsedMs": 1,
+          "elapsedMs": 4,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,
@@ -10698,7 +10698,7 @@
             "access"
           ],
           "candidateId": null,
-          "elapsedMs": 5,
+          "elapsedMs": 2,
           "checks": {
             "bounded": true,
             "confirmedOnly": true,

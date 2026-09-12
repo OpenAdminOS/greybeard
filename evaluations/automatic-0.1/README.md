@@ -12,6 +12,10 @@ This directory keeps actual host observations separate from deterministic adapte
 
 The first rollout run initially injected 3,150 bytes. After repeated-context suppression and skill reuse, the saved run injected 1,350 bytes with the same remembered condition. This is an observed context reduction, not a billing benchmark. Usage records describe the complete host turn, including unrelated instruction/tool overhead.
 
+## Additional native host evidence
+
+[Native transport verification](transport/README.md) now proves actual Gemini and Copilot CLI hook execution, confirmed-lesson delivery and automatic candidate proposals using local synthetic model responses. This is stronger than calling the adapter functions directly, but does not evaluate model reasoning or establish account access. The check found and verified a fix for Gemini's native session-context prefix displacing the user's recall query.
+
 ## External limitations
 
 - Claude Code reached the configured memory connection but model authentication failed: **OAuth session expired and could not be refreshed**. Refresh local Claude authentication before repeating. Desktop Code shares local hooks, but a Desktop Code conversation was not driven here.
@@ -31,6 +35,8 @@ The first rollout run initially injected 3,150 bytes. After repeated-context sup
 8. Shared Desktop Code hooks could be removed while disconnecting ordinary Desktop Chat: uninstall keeps those integrations separate.
 
 9. Bare PowerShell cmdlet names can contain the domain word inside a longer identifier: the event matcher now recognizes administrative cmdlet syntax and retains destructive-change reminders without requiring an extra word in the prompt.
+
+10. Gemini prepends session-hook output to prompt events: normalization now excludes those native context blocks from user-task retrieval and preference capture, including turn completion. Actual CLI transport and regression checks cover the fix.
 
 ## Follow-up verification
 

@@ -2,6 +2,8 @@
 
 ## Unreleased improvements to 0.1
 
+- Preserve Gemini user-task retrieval and reviewed preference learning when the host prepends session-hook context. Verify real Gemini and Copilot hook delivery with isolated local transport checks.
+
 - Add automatic event-based mentoring for Claude Code and Desktop Code, Codex, Gemini, Copilot CLI, and Cursor's supported companion/context channels. Keep ordinary Desktop Chat explicitly MCP-assisted.
 - Propose explicit operating preferences automatically for exact review, share confirmed lessons across tools, suppress repeated context, and retain a 2 KB hook context ceiling without separate background model calls.
 - Show actual host events, delivery channels, pause and errors in the companion. Add private native notifications, background tray behavior and optional Mac/Windows login startup.

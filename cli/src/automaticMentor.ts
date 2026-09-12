@@ -19,10 +19,15 @@ export function shortUtf8(text: string, bytes: number): string {
   return result;
 }
 function string(value: unknown) { return typeof value === "string" ? value : ""; }
-export function eventText(input: Record<string,unknown>, kind: EventKind): string {
-  if (kind === "prompt") return string(input.prompt);
+export function eventText(input: Record<string,unknown>, kind: EventKind, host?: MentorHost): string {
+  if (kind === "prompt" || kind === "stop") {
+    let prompt = string(input.prompt);
+    // Gemini prepends SessionStart output to BeforeAgent.prompt in native
+    // hook_context blocks. Search and learn from the user's text, not those blocks.
+    if (host === "gemini") prompt = prompt.replace(/^(?:<hook_context>[\s\S]*?<\/hook_context>\s*)+/u, "");
+    return prompt;
+  }
   if (kind === "start") return string(input.initialPrompt ?? input.initial_prompt);
-  if (kind === "stop") return string(input.prompt); // Never treat an assistant's claims as the user's preference.
   const tool = input.tool_input ?? input.toolArgs;
   return string(input.tool_name ?? input.toolName) + " " + (typeof tool === "string" ? tool : tool && typeof tool === "object" ? JSON.stringify(tool) : string(input.command));
 }
@@ -49,7 +54,7 @@ export async function processMentorEvent(options: { appData: string; profile: st
   store.db.pragma("busy_timeout = 200");
   const service = new MemoryService({ appDataPath: appData, profileId:profile, tenantId:tenant, db:store.db });
   const session = string(input.session_id ?? input.sessionId ?? input.conversation_id);
-  const text = eventText(input,kind);
+  const text = eventText(input,kind,host);
   const fingerprint = digest(JSON.stringify([host,kind,session,input.turn_id ?? input.generation_id ?? input.tool_use_id ?? "",text]));
   try {
     const config = await readGreybeardConfig(appData);
