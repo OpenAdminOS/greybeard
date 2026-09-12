@@ -76,11 +76,25 @@ try {
   await window.getByRole('button', { name: 'Memory map', exact: true }).click();
   await expect(window.locator('#map-select option')).toHaveCount(67);
   await expect(window.locator('#memory-globe g[data-memory-id]')).toHaveCount(67);
+  await expect(window.locator('#map-detail')).not.toBeVisible();
+  await expect(window.locator('#memory-globe text')).toHaveCount(0);
+  const stageWidth=await window.locator('.map-stage').evaluate(e=>e.getBoundingClientRect().width);
+  const workspaceWidth=await window.locator('#view-map').evaluate(e=>e.getBoundingClientRect().width);
+  expect(stageWidth/workspaceWidth).toBeGreaterThan(.98);
+  const frontId=await window.evaluate(()=>[...mapPositions.values()].sort((a,b)=>b.z-a.z)[0].node.id);
+  await window.locator('#memory-globe g[data-memory-id="'+frontId+'"] circle').last().click();
+  await expect(window.locator('#map-detail')).toBeVisible();
+  await window.keyboard.press('Escape');
+  await expect(window.locator('#map-detail')).not.toBeVisible();
+  await window.locator('#map-index summary').click();
+  await window.locator('#map-select').selectOption('67');
+  await window.locator('#map-inspect').click();
   await expect(window.locator('#map-detail')).toContainText('72 hours');
   await window.locator('#map-detail').getByRole('button', { name: 'Corrects #66', exact: true }).click();
   await expect(window.locator('#map-detail')).toContainText('<img src=x onerror=alert(1)>');
   await expect(window.locator('#map-detail img')).toHaveCount(0);
   await expect(window.locator('#map-detail')).toContainText('Superseded');
+  await window.locator('#map-close').click();
   await window.locator('#map-time').fill('0');
   await expect.poll(() => window.locator('#map-select option').count()).toBeLessThan(67);
   await window.locator('#map-reset').click();
@@ -93,12 +107,9 @@ try {
   await expect(window.locator('#memory-globe')).not.toBeVisible();
   await expect(window.locator('#map-select')).toBeVisible();
   await window.locator('#map-flat').click();
-  await window.locator('#map-source').selectOption('local-ui');
-  await expect(window.locator('#map-select option')).toHaveCount(2);
   await window.locator('#map-status').selectOption('superseded');
   await expect(window.locator('#map-select option')).toHaveCount(1);
   await window.locator('#map-status').selectOption('');
-  await window.locator('#map-source').selectOption('');
   await expect(window.locator('#map-select option')).toHaveCount(67);
   if (report) { await mkdir(report, { recursive: true }); await window.evaluate(() => window.scrollTo(0, 0)); await window.screenshot({ animations: 'disabled', fullPage: true, path: join(report, 'companion-memory-map.png') }); }
   await window.locator('#map-query').fill('No matching synthetic memory');
@@ -107,7 +118,7 @@ try {
   await window.route('**/memory-map', route => route.abort());
   await window.locator('#map-refresh').click();
   await expect(window.locator('#map-feedback')).toContainText('Could not load');
-  await expect(window.locator('#map-detail')).toContainText('Select a memory');
+  await expect(window.locator('#map-detail')).not.toBeVisible();
   await window.unroute('**/memory-map');
 
   await window.locator('#map-query').fill('');

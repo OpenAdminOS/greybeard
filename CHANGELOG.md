@@ -2,6 +2,8 @@
 
 ## Unreleased improvements to 0.1
 
+- Enlarge the memory globe to the full workspace width with a midnight-blue, teal and coral palette. Remove tool labels and source lines; open memory details on selection, with keyboard access and an uncluttered empty state.
+
 - Add a local Memory map with a rotatable perspective globe, recorded sources and correction links, a saved-time filter, exact-text details and an accessible flat view. Filter before applying the visible-memory limit; retain the existing review controls.
 - Accept Cursor's Windows UTF-8 byte-order marker and preserve Unicode across input chunks. Run Windows mentoring wrappers with a hidden window and upgrade existing wrappers without duplicating user hooks.
 - Verify real Claude Desktop Code learning and later recall on Windows, plus Cursor automatic proposals, native companion notifications and post-tool context delivery.

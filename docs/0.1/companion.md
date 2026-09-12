@@ -21,11 +21,13 @@ The companion labels local configuration checks separately from a running host c
 
 ## Memory map
 
-Memory map is a second view of the selected local memory environment. Rotate the globe with a pointer or arrow keys, select a memory, and inspect its exact text, saved/confirmed/last-used/observed timestamps, source, scope and recorded connections. The memory list below the globe and Flat view provide keyboard access without rotation. Review and editing remain in Your memory.
+The map gives the globe the full workspace width, with a midnight-blue canvas and teal, coral and slate memories. Color and outline indicate confirmation status. There are no tool-name hubs or source lines on the canvas; only recorded memory relationships and corrections appear.
 
-Solid lines show stored relationships or correction references. Pending replacements are labeled as proposals. Dashed lines connect records to their recorded source. Globe positions are visual layout, not geographic locations or inferred semantic similarity. A generic MCP source remains “AI tool · host not recorded”; the map never invents missing host provenance. Storage means this computer's selected profile, not a cloud destination.
+Click a memory to open its exact text, saved and confirmed dates, scope and connections in a focused dialog. Close the dialog or press Escape to return to the globe. Source and other recorded timestamps remain available under More about this memory. Follow a connection inside the dialog or open the record in Your memory for review and editing. Nothing is selected automatically on first load.
 
-Search, source and status filters run before the 200/500/1,000-record limit. The count shows when results are truncated. The timeline filters the loaded records by saved date; narrowing the search or increasing the limit may be necessary to see older history. Refresh reloads the selected environment; forgetting removes the record and its visible links on the next load. Profile changes clear old map data. No graph service, model call, telemetry or continuously running animation is introduced.
+Drag or use arrow keys to rotate; Enter opens the selected or foremost memory. Browse memories as a list and Flat view support keyboard selection without rotation. Search and status filters run before the 200/500/1,000-record limit; counts identify truncated results. The timeline filters loaded records by saved date. Refresh reloads the selected environment, and profile changes clear old data. An empty result displays a message instead of an empty globe.
+
+Globe positions are visual layout, not geography or inferred similarity. No graph service, model call, telemetry or continuously running animation is introduced. The existing exact confirmation and forgetting controls stay in Your memory.
 
 ## Installation and CLI
 
