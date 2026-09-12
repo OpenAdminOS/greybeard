@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -101,7 +101,7 @@ test('embedded Authenticode signer and timestamp regressions', t => {
 
 test('publication stages complete checksummed assets and refuses changed payloads', { skip: process.platform === 'win32' }, async () => {
   // Publication runs on Ubuntu; the local gh fixture never contacts GitHub.
-  const root = await mkdtemp(join(tmpdir(), 'greybeard-publication-'));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'greybeard-publication-')));
   try {
     const directory = join(root, 'dist/companion');
     const tools = join(root, 'tools');
