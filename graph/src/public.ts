@@ -51,3 +51,5 @@ export { previewCapabilities } from "./capabilityPreview.js";
 export type { CapabilityReadiness } from "./capabilityPreview.js";
 export { runReadRecipe, READ_RECIPES } from "./readRecipes.js";
 export type { GraphReader, ReadRecipeInput, ReadRecipe } from "./readRecipes.js";
+
+export { saveClientSecret, loadClientSecret, removeClientSecret, validateClientSecret } from "./clientSecretStore.js";

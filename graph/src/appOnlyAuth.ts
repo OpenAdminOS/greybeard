@@ -1,3 +1,4 @@
+import { loadClientSecret, validateClientSecret } from "./clientSecretStore.js";
 import { readWindowsProtectedKey } from "./windowsCredential.js";
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
@@ -15,6 +16,11 @@ export const APPLICATION_CAPABILITIES = {
   "conditional-access": { permission: "Policy.Read.ConditionalAccess", path: "/identity/conditionalAccess/policies", select: "id,displayName,state,conditions,grantControls", label: "Conditional Access policy review (minimal grant validation pending)" }
 } as const;
 export type ApplicationCapability = keyof typeof APPLICATION_CAPABILITIES;
+
+function sameProfile(a: AppOnlyProfile | undefined, b: AppOnlyProfile): boolean {
+  const fields = (p: AppOnlyProfile) => [p.tenantId, p.clientId, p.authMethod ?? "certificate", p.certificatePath, p.privateKeyPath, p.secretRef, p.capabilities];
+  return Boolean(a && JSON.stringify(fields(a)) === JSON.stringify(fields(b)));
+}
 
 export function validateAppOnlyProfile(profile: AppOnlyProfile): void {
   const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,8 +71,18 @@ async function readCredentialFile(path: string, privateKey: boolean): Promise<st
 export class AppOnlyGraphAuthProvider implements GraphAuthProvider {
   private constructor(private readonly profile: AppOnlyProfile, private readonly app: Pick<ConfidentialClientApplication, "acquireTokenByClientCredential">, private readonly appDataPath?: string, private readonly certificateExpiresAt = Number.POSITIVE_INFINITY) {}
 
-  static async create(profile: AppOnlyProfile, appDataPath?: string): Promise<AppOnlyGraphAuthProvider> {
+  static async create(profile: AppOnlyProfile, appDataPath?: string, suppliedSecret?: string): Promise<AppOnlyGraphAuthProvider> {
     validateAppOnlyProfile(profile);
+    if (profile.authMethod === "client-secret") {
+      if (!/^[a-f0-9]{64}$/.test(profile.secretRef)) throw new Error("Invalid local credential reference.");
+      const clientSecret = suppliedSecret ?? (appDataPath ? await loadClientSecret(appDataPath, profile.secretRef) : undefined);
+      if (!clientSecret) throw new Error("Client secret is unavailable. Reconnect using the companion.");
+      validateClientSecret(clientSecret);
+      const app = new ConfidentialClientApplication({ auth: { clientId: profile.clientId,
+        authority: `https://login.microsoftonline.com/${profile.tenantId}`, clientSecret },
+        system: { loggerOptions: { piiLoggingEnabled: false, loggerCallback: () => {} } } });
+      return new AppOnlyGraphAuthProvider(structuredClone(profile), app, appDataPath);
+    }
     const certificate = new X509Certificate(await readCredentialFile(profile.certificatePath, false));
     const privateKey = await readCredentialFile(profile.privateKeyPath, true);
     const now = Date.now();
@@ -76,18 +92,20 @@ export class AppOnlyGraphAuthProvider implements GraphAuthProvider {
       clientId: profile.clientId,
       authority: `https://login.microsoftonline.com/${profile.tenantId}`,
       clientCertificate: { thumbprintSha256: certificate.fingerprint256.replaceAll(":", ""), privateKey }
-    }, system: { loggerOptions: { piiLoggingEnabled: false } } });
+    }, system: { loggerOptions: { piiLoggingEnabled: false, loggerCallback: () => {} } } });
     return new AppOnlyGraphAuthProvider(structuredClone(profile), app, appDataPath, Date.parse(certificate.validTo));
   }
 
   async getToken(_scopes: string[]): Promise<AuthToken> {
     if (this.appDataPath) {
       const current = (await readGreybeardConfig(this.appDataPath)).appOnlyProfile;
-      if (JSON.stringify(current) !== JSON.stringify(this.profile)) throw new Error("Tenant connection changed or was removed. Reconnect the AI client before another tenant read.");
+      if (!sameProfile(current, this.profile)) throw new Error("Tenant connection changed or was removed. Reconnect the AI client before another tenant read.");
     }
     if (Date.now() >= this.certificateExpiresAt) throw new Error("Certificate has expired. Reconfigure the connection with a valid customer certificate.");
-    const result = await this.app.acquireTokenByClientCredential({ scopes: ["https://graph.microsoft.com/.default"] });
-    if (this.appDataPath && JSON.stringify((await readGreybeardConfig(this.appDataPath)).appOnlyProfile) !== JSON.stringify(this.profile)) throw new Error("Tenant connection changed during authentication. Reconnect the AI client.");
+    const result = await this.app.acquireTokenByClientCredential({ scopes: ["https://graph.microsoft.com/.default"] }).catch(() => {
+      throw new Error("Application authentication failed. Check the tenant ID, application ID, credential value and expiry in Entra, then reconnect. Existing configuration was not changed.");
+    });
+    if (this.appDataPath && !sameProfile((await readGreybeardConfig(this.appDataPath)).appOnlyProfile, this.profile)) throw new Error("Tenant connection changed during authentication. Reconnect the AI client.");
     if (!result?.accessToken) throw new Error("Application authentication returned no access token.");
     const roles = inspectApplicationToken(result.accessToken, this.profile);
     return { accessToken: result.accessToken, account: `application:${this.profile.clientId}`, tenantId: this.profile.tenantId,

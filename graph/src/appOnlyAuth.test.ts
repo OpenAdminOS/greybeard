@@ -7,9 +7,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { AppOnlyGraphAuthProvider, validateAppOnlyProfile } from "./appOnlyAuth.js";
 import type { AppOnlyProfile } from "./writeGateTypes.js";
 
-const mocked = vi.hoisted(() => ({ acquire: vi.fn() }));
+const mocked = vi.hoisted(() => ({ acquire: vi.fn(), configurations: [] as unknown[] }));
 vi.mock("@azure/msal-node", () => ({
-  ConfidentialClientApplication: class { acquireTokenByClientCredential = mocked.acquire; }
+  ConfidentialClientApplication: class { constructor(config: unknown) { mocked.configurations.push(config); } acquireTokenByClientCredential = mocked.acquire; }
 }));
 
 // All certificates and keys are generated for this suite in a temporary local
@@ -121,3 +121,19 @@ function fakeToken(profile: AppOnlyProfile): string {
   const payload = { tid: profile.tenantId, appid: profile.clientId, aud: "00000003-0000-0000-c000-000000000000", roles: ["User.Read.All"], exp: Math.floor(Date.now() / 1000) + 3600 };
   return `fixture.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.fixture`;
 }
+
+
+it("authenticates with a supplied secret and sanitizes credential acquisition errors", async () => {
+  const profile: AppOnlyProfile = { tenantId: base.tenantId, clientId: base.clientId, capabilities: ["users"], authMethod: "client-secret", secretRef: "a".repeat(64) };
+  const secret = "synthetic-client-secret";
+  const provider = await AppOnlyGraphAuthProvider.create(profile, undefined, secret);
+  expect(mocked.configurations.at(-1)).toMatchObject({ auth: { clientSecret: secret } });
+  mocked.acquire.mockResolvedValueOnce({accessToken: fakeToken(profile)});
+  const status = await provider.getStatus();
+  expect(JSON.stringify(status)).not.toContain(secret);
+  expect(status.signedIn).toBe(true);
+  mocked.acquire.mockRejectedValueOnce(new Error("MSAL diagnostic contains " + secret));
+  const error = await provider.getToken([]).catch(e=>e);
+  expect(error.message).toContain("Application authentication failed");
+  expect(error.message).not.toContain(secret);
+});

@@ -115,10 +115,9 @@ export type GreybeardConfig = {
 export type AppOnlyProfile = {
   tenantId: string;
   clientId: string;
-  certificatePath: string;
-  privateKeyPath: string;
   capabilities: string[];
-};
+} & ({ authMethod?: "certificate"; certificatePath: string; privateKeyPath: string; secretRef?: never }
+  | { authMethod: "client-secret"; secretRef: string; certificatePath?: never; privateKeyPath?: never });
 
 export type ScopeLease = {
   scope: string;

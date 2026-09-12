@@ -119,12 +119,18 @@ async function withConfigLock<T>(appDataPath: string, action: () => Promise<T>):
 
 function parseAppOnlyProfile(value: unknown): GreybeardConfig["appOnlyProfile"] {
   if (value === undefined) return undefined;
-  if (!isObject(value) || ![value.tenantId, value.clientId, value.certificatePath, value.privateKeyPath].every(isNonEmptyString)
+  if (!isObject(value) || ![value.tenantId, value.clientId].every(isNonEmptyString)
       || !Array.isArray(value.capabilities) || !value.capabilities.every((item) => typeof item === "string")) {
     throw new Error("Invalid app-only connection configuration. Reconfigure the connection locally.");
   }
-  return { tenantId: value.tenantId as string, clientId: value.clientId as string, certificatePath: value.certificatePath as string,
-    privateKeyPath: value.privateKeyPath as string, capabilities: value.capabilities as string[] };
+  const common = { tenantId: value.tenantId as string, clientId: value.clientId as string, capabilities: value.capabilities as string[] };
+  if (value.authMethod === "client-secret" && typeof value.secretRef === "string" && /^[a-f0-9]{64}$/.test(value.secretRef)
+      && value.certificatePath === undefined && value.privateKeyPath === undefined) return { ...common, authMethod: "client-secret", secretRef: value.secretRef };
+  if ((value.authMethod === undefined || value.authMethod === "certificate") && isNonEmptyString(value.certificatePath)
+      && isNonEmptyString(value.privateKeyPath) && value.secretRef === undefined) return { ...common,
+    ...(value.authMethod === "certificate" ? { authMethod: "certificate" as const } : {}),
+    certificatePath: value.certificatePath as string, privateKeyPath: value.privateKeyPath as string };
+  throw new Error("Invalid app-only credential configuration. Reconfigure the connection locally.");
 }
 
 export function activeScopeLeases(config: GreybeardConfig, now = Date.now()): ScopeLease[] {

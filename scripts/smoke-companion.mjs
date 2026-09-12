@@ -161,6 +161,18 @@ try {
   await expect(window.locator('#automatic-events')).toContainText('codex');
 
   await window.getByRole('button', { name: 'Infrastructure', exact: true }).click();
+  await expect(window.locator('#auth-method')).toHaveValue('client-secret');
+  await expect(window.locator('#client-secret')).toHaveAttribute('type','password');
+  await expect(window.locator('#certificate-fields')).toBeHidden();
+  await window.locator('#client-secret').fill('synthetic-not-submitted');
+  await window.locator('#auth-method').selectOption('certificate');
+  await expect(window.locator('#client-secret')).toHaveValue('');
+  await expect(window.locator('#certificate-fields')).toBeVisible();
+  await window.locator('#auth-method').selectOption('client-secret');
+  await window.locator('#client-secret').fill('synthetic-invalid-form');
+  await window.locator('#connect').click();
+  await expect(window.locator('#client-secret')).toHaveValue('');
+  await expect(window.locator('#status')).toContainText('Enter tenant ID');
   await window.locator('#check-capabilities').click();
   await expect(window.locator('#capability-results')).toContainText('not-selected');
   await window.getByRole('button', { name: 'Your memory', exact: true }).click();

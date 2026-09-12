@@ -45,6 +45,13 @@ it("authenticates local companion actions and preserves exact confirmation and c
     expect(map.edges).toEqual([{ source: memories[0].id, target: node.id, relation: "corrects", weight: 1, kind: "correction" }]);
     expect((await call("/memory-map", { status: "confirmed" })).data.edges).toEqual([]);
 
+    const secretInput = { authMethod: "client-secret", tenant: "invalid", clientId: "invalid", clientSecret: "synthetic-ui-secret", capabilities: ["users"] };
+    const invalidSecretConnection = await call("/connect", secretInput);
+    expect(invalidSecretConnection.status).toBe(400);
+    expect(invalidSecretConnection.data.error).toContain("GUIDs");
+    expect(JSON.stringify(invalidSecretConnection.data)).not.toContain(secretInput.clientSecret);
+    expect((await call("/connect", { ...secretInput, certificate: "conflicting.pem" })).status).toBe(400);
+    expect((await call("/connect", { ...secretInput, authMethod: "unrecognized" })).status).toBe(400);
     expect((await call("/capability-preview")).data.configured).toBe(false);
     await call("/pause", { paused: true });
     expect((await call("/outcome", { lesson: "Review rollout evidence", outcome: "Helpdesk identified a kiosk issue." })).status).toBe(400);

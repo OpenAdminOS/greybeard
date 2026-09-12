@@ -50,3 +50,16 @@ The renderer has no Node access and cannot navigate to other origins, open arbit
 Windows certificate reading checks ownership and access control on the same file handle, rejects reparse paths/hard links and shared access, and permits only the current user plus the OS SYSTEM/Administrators recovery boundary. POSIX keys remain owner-only files. Minimum Graph permission combinations still need separate verification using a registration with only those exact grants; broad existing lab access does not establish this.
 
 References: [Electron security](https://www.electronjs.org/docs/latest/tutorial/security), [whole-application updates](https://www.electron.build/docs/features/auto-update/), [publisher verification](https://www.electron.build/docs/features/security/).
+
+
+## Connect with your app registration
+
+In **Infrastructure**, enter your directory (tenant) ID and application (client) ID, then choose **Client secret** or **Certificate**. Client secret is the default for a new connection; existing certificate connections retain their method. Paste the secret **Value**, not its ID, into the masked field. The field clears on submission, method change and navigation away.
+
+Greybeard checks application identity, exact selected roles and selected read probes before saving the new connection. Failed authentication or probes preserve a previous connection. Both methods use the same permission checks and `/beta` read restrictions; changing authentication does not grant consent or enable writes. The secret flow follows [Microsoft's MSAL confidential-client configuration](https://learn.microsoft.com/en-us/entra/msal/javascript/node/initialize-confidential-client-application).
+
+Secrets are held in macOS Keychain, encrypted with Windows DPAPI for the current user, or stored through Linux Secret Service. Linux requires `secret-tool` and an unlocked desktop Secret Service. There is no plaintext fallback. Configuration contains a random credential reference; secrets are excluded from memory, status responses and command arguments. Authentication sends the credential directly to Microsoft's token service. Processes running as your OS account remain within the local trust boundary.
+
+To rotate a secret, enter its new value and connect again. Successful replacement removes the old saved credential. Disconnect removes the connection and attempts to delete its saved secret; if the OS store is locked, Greybeard reports that cleanup needs attention. Customer-owned certificate files are retained. The CLI supports `--client-secret-stdin` in place of `--certificate` and `--private-key`; pipe from a credential manager rather than placing values in shell history.
+
+Read-only Lokka verification for this change covered the `/beta/users` selected fields, nullable organizational fields, next-page response and a 400 invalid-query response using the active app-only lab connection. Its broader grants do not establish isolated minimum permissions. Local authentication tests use synthetic credentials; native platform checks exercise protected storage without tenant changes.

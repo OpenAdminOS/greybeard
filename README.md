@@ -111,7 +111,7 @@ Local storage is not a promise that data stays off the network: your AI client m
 
 ## Optional tenant connection
 
-Use your own app registration and customer-provisioned certificate. Start with:
+Use your own app registration with a client secret or customer-provisioned certificate. In the companion, open **Infrastructure**, choose the authentication method, enter your tenant and application IDs, and select the read capabilities. Client secrets use protected OS storage; paste the secret **Value**, not its ID. See [connection setup and rotation](docs/0.1/companion.md#connect-with-your-app-registration). For CLI setup, start with:
 
 ```sh
 greybeard connect capabilities

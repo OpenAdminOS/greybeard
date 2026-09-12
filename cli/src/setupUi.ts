@@ -52,7 +52,7 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         const config = await readGreybeardConfig(appDataPath);
         const toolStatus = await inspectWorkspace(runtime, appDataPath);
         const configuredClients = toolStatus.filter(c => c.configured).map(c => c.name);
-        result = { toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
+        result = { toolStatus, setupCompleted: config.companionSetupCompleted === true, connection: config.appOnlyProfile ? { authMethod: config.appOnlyProfile.authMethod ?? "certificate", tenant: config.appOnlyProfile.tenantId, clientId: config.appOnlyProfile.clientId, certificate: config.appOnlyProfile.certificatePath, privateKey: config.appOnlyProfile.privateKeyPath, capabilities: config.appOnlyProfile.capabilities } : null, configuredClients, clients: toolStatus.filter(c => c.detected).map(c => c.name), learningEnabled: config.learningEnabled !== false, updateMode: config.updateMode ?? "notify", profileId: config.profileId ?? "local", tenantId: config.activeTenantId ?? "local", tenantConfigured: Boolean(config.appOnlyProfile), connectionSupported: true, capabilities: Object.entries(APPLICATION_CAPABILITIES).map(([id, capability]) => ({ id, label: capability.label, permission: capability.permission })) };
       } else if (path === "/mentoring") {
         const config = await readGreybeardConfig(appDataPath);
         result = {...readAutomaticActivity(appDataPath,config.profileId ?? "local",config.activeTenantId ?? "local"),paused:config.learningEnabled === false || config.memoryHook === false};
@@ -108,12 +108,16 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
         await updateGreybeardConfig(appDataPath, current => ({ ...current, companionSetupCompleted: true }));
         result = { saved: true };
       } else if (path === "/connect") {
-        for (const key of ["tenant", "clientId", "certificate", "privateKey"]) if (typeof body[key] !== "string" || !(body[key] as string).trim()) return fail(400, "Tenant ID, application ID and both certificate file paths are required.");
+        const method = body.authMethod ?? "certificate";
+        if (method !== "certificate" && method !== "client-secret") return fail(400, "Choose client secret or certificate authentication.");
+        if (method === "client-secret" && (body.certificate || body.privateKey) || method === "certificate" && body.clientSecret !== undefined) return fail(400, "Choose one authentication method.");
+        for (const key of ["tenant", "clientId", ...(method === "client-secret" ? ["clientSecret"] : ["certificate", "privateKey"])]) if (typeof body[key] !== "string" || !(body[key] as string).trim()) return fail(400, "Enter tenant ID, application ID and the credentials for your selected authentication method.");
         if (!Array.isArray(body.capabilities) || !body.capabilities.length || body.capabilities.some(key => typeof key !== "string" || !Object.hasOwn(APPLICATION_CAPABILITIES, key))) return fail(400, "Choose at least one read capability.");
         const { runConnect } = await import("./connect.js");
         let output = "";
         const sink = { write: (text: string) => { output += text; return true; } };
-        const code = await runConnect(parseArgs(["connect", "--app-data", appDataPath, "--tenant", body.tenant as string, "--client-id", body.clientId as string, "--certificate", body.certificate as string, "--private-key", body.privateKey as string, ...(body.capabilities as string[]).flatMap(key => ["--capability", key])]), { ...runtime, stdout: sink, stderr: sink });
+        const code = await runConnect(parseArgs(["connect", "--app-data", appDataPath, "--tenant", body.tenant as string, "--client-id", body.clientId as string, ...(method === "certificate" ? ["--certificate", body.certificate as string, "--private-key", body.privateKey as string] : []), ...(body.capabilities as string[]).flatMap(key => ["--capability", key])]), { ...runtime, stdout: sink, stderr: sink }, method === "client-secret" ? body.clientSecret as string : undefined);
+        delete body.clientSecret;
         if (code !== 0) return fail(400, output.trim());
         result = { connected: true, message: output.trim() };
       } else if (path === "/capability-preview") {
