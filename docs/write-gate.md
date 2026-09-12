@@ -1,3 +1,5 @@
+> Historical engine design. Production write tools are disabled in Greybeard 0.1. The retained engine has regression checks for approval expiry and credential binding, but this document is not an instruction to enable or execute writes. See [current MCP tools](mcp-tools.md).
+
 # Write Gate Protocol
 
 Component: greybeard-graph MCP server

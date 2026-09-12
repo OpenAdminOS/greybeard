@@ -1,0 +1,38 @@
+{
+  "method": "Hooks only, no MCP, installed skills or host instructions. Isolated vetted scripts use the documented automation-only trust bypass for the trusted comparison; normal installation never does.",
+  "trustedFixture": false,
+  "prompt": "Plan a Windows compliance rollout to every device. Include the known pilot duration and review condition if available. Do not use tools or change anything. Keep it short.",
+  "exitCode": 0,
+  "response": "Roll out Windows compliance to every device in stages:\n\n1. Inventory devices and define compliance policies, exceptions, and owners.\n2. Pilot on a representative device group.\n3. Review pilot results before expanding; resolve critical failures and confirm support readiness.\n4. Deploy in successive waves until every device is covered, tracking failures and exceptions.\n\nThe pilot duration and any previously agreed review condition aren\u2019t available in this conversation.",
+  "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"<isolated-evaluation>/home/.codex\"))\n",
+  "automatic": {
+    "activity": {
+      "hosts": [],
+      "recent": [],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "308da29c-333c-4636-9590-f6b11f623cfa",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207649,
+        "lastUsedAt": 1789207649,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207649,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "004",
+  "category": "cold-start",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 41.88,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32576,
+      "cached_input_tokens": 21120,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 512,
+      "reasoning_output_tokens": 143
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Offline safety review for an all-device deployment without tenant access"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard memory for any confirmed, relevant deployment-safety context, then give an offline-only assessment with explicit evidence limits.\n\nYes, but only as a design-level safety review.\n\nGreybeard found no relevant confirmed memory (`recallStatus: no-match`), so there is no memory ID or prior tenant experience to apply.\n\nWithout tenant access, I cannot verify:\n\n- Device inventory, ownership, platforms, or compliance state\n- Existing policy conflicts, assignments, exclusions, or filters\n- Deployment readiness, licensing, dependencies, or current failures\n- Microsoft Graph endpoint behavior or tenant-specific responses\n- Actual monitoring and rollback capability\n\nAn all-device deployment is unsafe by default unless it includes:\n\n- Explicit platform and device-type targeting\n- Exclusions for critical, shared, kiosk, privileged, and unsupported devices\n- A representative pilot ring, then phased expansion\n- Success and failure thresholds with automatic pause criteria\n- Tested rollback or uninstall procedures\n- Conflict analysis and dependency validation\n- Change window, owner, communications, and post-deployment monitoring\n\nI can review a sanitized deployment plan, exported configuration, assignment snapshot, and rollback runbook offline. Any resulting conclusion should be conditional, not presented as tenant-verified approval."
+}

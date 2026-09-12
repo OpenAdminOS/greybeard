@@ -1,0 +1,9 @@
+{
+  "id": "09",
+  "verdict": "pass",
+  "review": "Discovered the devices scope from a natural Windows compliance task, explicitly recalled that scope, and applied its confirmed 48-hour rule with source and environment limits.",
+  "resultSha256": "40ffab1785d787f29d3ea698b22e44d4bfc603def1661ec4f6f4bfadf2b622e1",
+  "exitCode": 0,
+  "mcpCalls": 2,
+  "method": "Agent-authored semantic review of recorded behavior; not an independent human assessment or general guarantee."
+}

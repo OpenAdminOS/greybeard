@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { GRAPH_CLI_CLIENT_ID } from "./types.js";
 import { GreybeardConfig, ScopeLease } from "./writeGateTypes.js";
@@ -14,6 +15,11 @@ export async function readGreybeardConfig(appDataPath: string): Promise<Greybear
     const clients = isObject(parsed.clients) ? parsed.clients : undefined;
     const gate = isObject(parsed.gate) ? parsed.gate : undefined;
     return {
+      profileId: typeof parsed.profileId === "string" ? parsed.profileId : undefined,
+      learningEnabled: typeof parsed.learningEnabled === "boolean" ? parsed.learningEnabled : undefined,
+      companionSetupCompleted: parsed.companionSetupCompleted === true,
+      updateMode: parsed.updateMode === "automatic" || parsed.updateMode === "notify" || parsed.updateMode === "manual" ? parsed.updateMode : undefined,
+      appOnlyProfile: parseAppOnlyProfile(parsed.appOnlyProfile),
       configRevision: typeof parsed.configRevision === "number" && Number.isSafeInteger(parsed.configRevision)
         ? parsed.configRevision
         : undefined,
@@ -56,27 +62,75 @@ export async function readGreybeardConfig(appDataPath: string): Promise<Greybear
 }
 
 export async function writeGreybeardConfig(appDataPath: string, config: GreybeardConfig): Promise<void> {
-  await mkdir(appDataPath, { recursive: true });
+  await withConfigLock(appDataPath, () => writeConfigUnlocked(appDataPath, config));
+}
+
+async function writeConfigUnlocked(appDataPath: string, config: GreybeardConfig): Promise<void> {
   const path = join(appDataPath, "config.json");
-  const tempPath = join(appDataPath, `config.json.${process.pid}.tmp`);
+  const tempPath = join(appDataPath, `config.json.${process.pid}.${randomUUID()}.tmp`);
+  try {
   await writeFile(tempPath, `${JSON.stringify(config, null, 2)}\n`, {
     encoding: "utf8",
     mode: 0o600
   });
   await rename(tempPath, path);
+  } finally {
+    await rm(tempPath, { force: true });
+  }
 }
 
 export async function updateGreybeardConfig(
   appDataPath: string,
   updater: (config: GreybeardConfig) => GreybeardConfig
 ): Promise<GreybeardConfig> {
+  return withConfigLock(appDataPath, async () => {
   const current = await readGreybeardConfig(appDataPath);
   const next = {
     ...updater(current),
     configRevision: (current.configRevision ?? 0) + 1
   };
-  await writeGreybeardConfig(appDataPath, next);
+  await writeConfigUnlocked(appDataPath, next);
   return next;
+  });
+}
+
+async function withConfigLock<T>(appDataPath: string, action: () => Promise<T>): Promise<T> {
+  await mkdir(appDataPath, { recursive: true, mode: 0o700 });
+  const path = join(appDataPath, "config.lock");
+  const deadline = Date.now() + 10_000;
+  let lock;
+  while (!lock) {
+    try {
+      lock = await open(path, "wx", 0o600);
+    } catch (error) {
+      if (!isNodeError(error) || error.code !== "EEXIST") throw error;
+      if (Date.now() >= deadline) throw new Error("Configuration is locked. Close other Greybeard processes; remove config.lock only if a crashed process left it behind.");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+  try {
+    await lock.writeFile(String(process.pid));
+    return await action();
+  } finally {
+    await lock.close();
+    await rm(path, { force: true });
+  }
+}
+
+function parseAppOnlyProfile(value: unknown): GreybeardConfig["appOnlyProfile"] {
+  if (value === undefined) return undefined;
+  if (!isObject(value) || ![value.tenantId, value.clientId].every(isNonEmptyString)
+      || !Array.isArray(value.capabilities) || !value.capabilities.every((item) => typeof item === "string")) {
+    throw new Error("Invalid app-only connection configuration. Reconfigure the connection locally.");
+  }
+  const common = { tenantId: value.tenantId as string, clientId: value.clientId as string, capabilities: value.capabilities as string[] };
+  if (value.authMethod === "client-secret" && typeof value.secretRef === "string" && /^[a-f0-9]{64}$/.test(value.secretRef)
+      && value.certificatePath === undefined && value.privateKeyPath === undefined) return { ...common, authMethod: "client-secret", secretRef: value.secretRef };
+  if ((value.authMethod === undefined || value.authMethod === "certificate") && isNonEmptyString(value.certificatePath)
+      && isNonEmptyString(value.privateKeyPath) && value.secretRef === undefined) return { ...common,
+    ...(value.authMethod === "certificate" ? { authMethod: "certificate" as const } : {}),
+    certificatePath: value.certificatePath as string, privateKeyPath: value.privateKeyPath as string };
+  throw new Error("Invalid app-only credential configuration. Reconfigure the connection locally.");
 }
 
 export function activeScopeLeases(config: GreybeardConfig, now = Date.now()): ScopeLease[] {

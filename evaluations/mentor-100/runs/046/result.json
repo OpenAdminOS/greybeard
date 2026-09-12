@@ -1,0 +1,57 @@
+{
+  "id": "046",
+  "category": "profile-isolation",
+  "fixture": "other-profile",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 10.23,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32456,
+      "cached_input_tokens": 20992,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 217,
+      "reasoning_output_tokens": 47
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Profile B Windows compliance rollout rule"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-b\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-b",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "Greybeard found no matching confirmed guidance for the Windows compliance rollout rule in profile B. No memory ID or useful remembered contribution is available.\n\nI also have no live tenant connection or supplied snapshot, so the rollout rule cannot be determined from available evidence. Please provide the profile B policy snapshot or the documented rollout rule."
+}

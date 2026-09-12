@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { toPortablePath } from "./portablePath.js";
 import {
   FetchLike,
   MsalGraphAuthProvider,
@@ -38,6 +39,7 @@ export type CliRuntime = {
   homeDir: string;
   platform: NodeJS.Platform;
   nodePath: string;
+  packaged?: boolean;
   repoRoot: string;
   stdin: NodeJS.ReadStream;
   stdout: OutputStream;
@@ -65,6 +67,7 @@ export function createRuntime(): CliRuntime {
     homeDir: env.GREYBEARD_HOME || homedir(),
     platform,
     nodePath: process.execPath,
+    packaged: process.env.GREYBEARD_PACKAGED === "1",
     repoRoot: env.GREYBEARD_REPO_DIR || defaultRepoRoot(),
     stdin: process.stdin,
     stdout: process.stdout,
@@ -78,7 +81,7 @@ export function createRuntime(): CliRuntime {
 }
 
 export function defaultRepoRoot(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+  return process.env.GREYBEARD_ASSET_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 }
 
 export function writeLine(stream: OutputStream, line = ""): void {
@@ -294,4 +297,11 @@ export function runCommand(command: string, args: string[], options: {
       child.stdin.end();
     }
   });
+}
+
+/** Command used by client integrations; packaged users never need a Node installation. */
+export function runtimeCommand(runtime: CliRuntime, args: string[]): { command: string; args: string[] } {
+  return runtime.packaged
+    ? { command: runtime.nodePath, args }
+    : { command: runtime.nodePath, args: [toPortablePath(resolve(runtime.repoRoot, "cli/dist/index.js")), ...args] };
 }

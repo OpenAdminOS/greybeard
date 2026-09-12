@@ -1,49 +1,14 @@
-import {
-  DEFAULT_TIER1_SCOPES,
-  DEFAULT_WRITE_SCOPES,
-  GRAPH_CLI_CLIENT_ID,
-  getGreybeardAppDataPath,
-  readGreybeardConfig,
-  scopeJustification,
-  TIER2_SCOPES
-} from "@greybeard/graph";
-import { flagValue, ParsedArgs } from "./args.js";
-import { CliRuntime, writeInfoLine, writeLine, writeSection } from "./runtime.js";
+import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath } from "@greybeard/graph";
+import { flagValue, type ParsedArgs } from "./args.js";
+import { getConnectionPreview } from "./connectionPreview.js";
+import { type CliRuntime, writeLine } from "./runtime.js";
 
 export async function runScopes(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
   const appDataPath = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
-  const config = await readGreybeardConfig(appDataPath);
-
-  writeLine(runtime.stdout, "Delegated Microsoft Graph scopes Greybeard can request");
-  writeLine(runtime.stdout, "");
-  writeLine(runtime.stdout, "Read-only sign-in uses the first-party Microsoft Graph Command Line Tools");
-  writeLine(runtime.stdout, `app, client ID ${GRAPH_CLI_CLIENT_ID}. Greybeard registers no`);
-  writeLine(runtime.stdout, "app of its own unless you explicitly run greybeard setup --writes.");
-
-  writeSection(runtime.stdout, "Tier 1, requested at first sign-in");
-  for (const scope of DEFAULT_TIER1_SCOPES) {
-    writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
-  }
-
-  writeSection(runtime.stdout, "Tier 2, requested only when a skill needs it");
-  for (const scope of TIER2_SCOPES) {
-    writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
-  }
-
-  writeSection(runtime.stdout, "Write scopes, only with greybeard setup --writes");
-  writeLine(runtime.stdout, "Writes use a tenant-owned workspace app and always require an approved plan.");
-  for (const scope of DEFAULT_WRITE_SCOPES) {
-    writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
-  }
-
-  const defaultWriteScopes = new Set<string>(DEFAULT_WRITE_SCOPES);
-  const customWriteScopes = (config.requestedWriteScopes ?? []).filter((scope) => !defaultWriteScopes.has(scope));
-  if (customWriteScopes.length > 0) {
-    writeSection(runtime.stdout, "Custom write scopes configured on this install");
-    for (const scope of customWriteScopes) {
-      writeInfoLine(runtime.stdout, scope, scopeJustification(scope), 40);
-    }
-  }
-
+  writeLine(runtime.stdout, "Optional application permissions on your own app registration. Mentor-only mode requires none.");
+  for (const [key, capability] of Object.entries(APPLICATION_CAPABILITIES)) writeLine(runtime.stdout, `${key}: ${capability.permission} - ${capability.label}`);
+  writeLine(runtime.stdout, "These are candidate mappings, not isolated minimum-grant certifications. Greybeard never grants consent or narrows pre-existing grants. Production writes are disabled.");
+  writeLine(runtime.stdout, JSON.stringify(await getConnectionPreview(appDataPath), null, 2));
+  writeLine(runtime.stdout, "Use greybeard connect status --verify for explicit live read probes. Configuration alone does not establish readiness.");
   return 0;
 }

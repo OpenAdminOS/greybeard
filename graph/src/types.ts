@@ -29,7 +29,7 @@ export const DEFAULT_WRITE_SCOPES = [
 
 export type CredentialMode = "read-only" | "writes";
 export type ClientIdKind = "first-party" | "workspace";
-export type CacheProtection = "keychain" | "dpapi" | "libsecret" | "plaintext";
+export type CacheProtection = "keychain" | "dpapi" | "libsecret" | "plaintext" | "memory";
 
 export type AuthToken = {
   accessToken: string;
@@ -122,6 +122,7 @@ export type DirectoryRolesStatus = {
 };
 
 export interface GraphAuthProvider {
+  authorizeRead?(path: string): void;
   getToken(scopes: string[]): Promise<AuthToken>;
   getStatus(): Promise<AuthStatus>;
   addScopes(input: AddScopeInput): Promise<AddScopeResult>;
@@ -137,6 +138,7 @@ export type GraphToolInput = {
   body?: unknown;
   fetchAll?: boolean;
   maxItems?: number;
+  maxPages?: number;
 };
 
 export type GraphMeta = {
@@ -162,6 +164,7 @@ export type GraphToolResult = {
 };
 
 export type ResponseLike = {
+  body?: ReadableStream<Uint8Array> | null;
   ok: boolean;
   status: number;
   statusText: string;

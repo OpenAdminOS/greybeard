@@ -1,0 +1,57 @@
+{
+  "id": "081",
+  "category": "missing-tenant",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 15.06,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32606,
+      "cached_input_tokens": 27264,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 349,
+      "reasoning_output_tokens": 59
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Identify exactly which devices would fail an admin's proposed policy without live tenant access or supplied snapshot."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context relevant to the proposed policy and device evidence.\n\nI cannot identify the exact devices from the available evidence. There is no live tenant connection, no device inventory or compliance snapshot, and the proposed policy\u2019s rules were not supplied. Greybeard found no relevant confirmed memory (`no-match`, no memory ID).\n\nExact determination requires:\n\n- The proposed policy definition and assignments/exclusions.\n- Read-only device records and relevant compliance/configuration state.\n- Live verification through Lokka against Microsoft Graph `/beta`, including paging and errors.\n\nLokka cannot verify those records because the tenant is not connected. Provide a tenant connection with the necessary read permissions, or supply an exported policy and device-state snapshot. I can then produce the precise failing-device list and the failed condition for each device."
+}

@@ -1,0 +1,46 @@
+{
+  "id": "090",
+  "category": "observed-lab-context",
+  "prompt": "Which next read-only evidence would make this lab compliance change plan more useful?",
+  "expected": "Use dated sample cautiously; stale inventory is not current fleet state and compliantApplication is not compliantDevice.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 215,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (215)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "stale|check.in|observ|sample|current|compliantApplication",
+      "matched": true,
+      "excerpt": "last sync, primary user, and enrollment date. Separate stale records from active impact.\n2. **Policy targeting:** Read `/beta/deviceManagement/deviceComplianceP"
+    }
+  ],
+  "valueToAssess": "Evidence freshness and exact control names prevent misleading operational conclusions.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed, applicable context, then keep the recommendation bounded to the supplied lab snapshot and its evidence gaps.\n\nGreybeard found no matching confirmed memory, so there is no remembered contribution or memory ID to apply.\n\nThe highest-value next read-only evidence is:\n\n1. **Complete device inventory:** Follow every `@odata.nextLink` from `/beta/deviceManagement/managedDevices`, capturing ownership, OS, compliance state, last sync, primary user, and enrollment date. Separate stale records from active impact.\n2. **Policy targeting:** Read `/beta/deviceManagement/deviceCompliancePolicies/{id}/assignments`, including exclusions and filters. Confirm whether the broad policy truly reaches intended active devices.\n3. **Pilot readiness:** Inspect transitive membership of both pilot groups, then join members to managed devices and current compliance.\n4. **Enforcement path:** Read all `/beta/identity/conditionalAccess/policies`, including users/groups, apps, platforms, grant controls, state, and exclusions. Determine whether any policy actually requires `compliantDevice`.\n5. **Observed dependency:** Query recent sign-in logs for affected pilot users/devices and Conditional Access results. This best estimates access risk before enforcement.\n6. **Compliance causes:** Read device compliance status details and policy setting states for active noncompliant devices.\n7. **Production parity:** Retry organization and configuration reads with approved production read permissions.\n\nI could not live-verify endpoints, shapes, paging, or errors because no tenant/Lokka connection is available. An authorized read-only Lokka session using `graphApiVersion: \"beta\"` is needed before finalizing the plan.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "090",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "Prioritizes useful read-only evidence: complete paging, current activity, assignments, pilot membership and actual access dependencies. Endpoint suggestions are expressly unverified and no reads are claimed.",
+    "issueTags": [],
+    "shortQuote": "I could not live-verify endpoints, shapes, paging, or errors",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Prioritize the next read-only Microsoft Graph evidence needed to improve a lab compliance change plan, given stale devices, incomplete paging, uninspected pilot groups, and unverified access dependencies."
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
+}

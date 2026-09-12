@@ -1,0 +1,10 @@
+{
+  "id": "09",
+  "method": "Review of saved real model response plus independent local event ledger. Synthetic data only.",
+  "finding": "The Windows compliance prompt retrieved the confirmed devices-scoped 48-hour pilot/helpdesk rule without a literal devices scope label or a model recall call. Named team scopes remain explicitly selected.",
+  "exitCode": 0,
+  "contextBytes": 1208,
+  "automaticProposals": 0,
+  "mcpCalls": 0,
+  "limits": "One observed run, not a model-quality guarantee or a real tenant assessment. See sourceHashes for the exact implementation exercised."
+}

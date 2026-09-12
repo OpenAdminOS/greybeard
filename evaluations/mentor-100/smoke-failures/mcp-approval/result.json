@@ -1,0 +1,35 @@
+{
+  "id": "001",
+  "category": "cold-start",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 19.92,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 33232,
+      "cached_input_tokens": 21504,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 480,
+      "reasoning_output_tokens": 100
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a read-only Windows compliance policy change targeting every device"
+      },
+      "result": null,
+      "error": {
+        "message": "MCP tool call requires approval, but approval policy is never"
+      },
+      "status": "failed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll first recall any prior tenant-specific context, then give a read-only plan with explicit evidence limits.\n\nGreybeard recall could not run because the memory MCP call requires approval while approval is disabled. Therefore, I have no confirmed tenant-specific memory to apply and no Greybeard memory ID to cite. I also have no live tenant connection, so this is a generic read-only plan.\n\n1. Define the compliance outcome, Windows versions, ownership types, grace period, user notifications, and treatment of unsupported or inactive devices.\n2. Inventory existing Windows compliance policies, assignments, exclusions, conflicts, Conditional Access dependencies, and current noncompliance levels.\n3. Avoid an immediate all-device rollout. Design deployment rings: IT test devices, representative pilot users, broader validation, then all eligible Windows devices.\n4. Preserve emergency/admin access and explicitly handle shared, kiosk, Autopilot, and privileged devices.\n5. Establish success gates: assignment completion, evaluation latency, false-positive rate, support volume, and Conditional Access impact.\n6. Prepare rollback by documenting current assignments and defining when to remove or restore the proposed assignment.\n7. Schedule change review and stakeholder approval before implementation.\n\nNo settings, assignments, tenant data, or memory were changed. Live policy IDs, affected-device counts, conflicts, and endpoint behavior remain unverified."
+}

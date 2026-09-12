@@ -1,0 +1,163 @@
+{
+  "id": "01",
+  "fixture": "lesson",
+  "prompt": "I am planning to change an Intune compliance policy for all Windows devices. Help me plan it. Do not make tenant changes.",
+  "exitCode": 1,
+  "toolCalls": [
+    {
+      "type": "tool_use",
+      "id": "toolu_01DqAEHgPJ2tCxssgjVZ9TPX",
+      "name": "Skill",
+      "input": {
+        "skill": "change-plan",
+        "args": "Intune compliance policy change for all Windows devices; plan only, no tenant changes"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_017qrJNfPoLRVZcKCk4HCUR5",
+      "name": "mcp__claude_ai_Intune_Automation__search_scripts",
+      "input": {
+        "query": "Windows compliance policy backup export and assignments",
+        "limit": 10
+      },
+      "caller": {
+        "type": "direct"
+      }
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01RiKLAdyM4fMpo5dRYSdH9d",
+      "name": "Read",
+      "input": {
+        "file_path": "<isolated-evaluation>/home/.claude/projects/-tmp-greybeard-evaluation-iu4xuude-work/memory/MEMORY.md"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    }
+  ],
+  "response": "I'll start with the change-plan skill and a memory recall.\n\n## Intune Windows compliance policy change \u2014 plan brief\n\n**No tenant changes made, and none are possible from here.** Two things to state up front:\n\n- The `greybeard-memory` server is **not available** in this session, so no `recall` ran \u2014 I have no confirmed Greybeard records backing anything below. This guidance comes from the Greybeard change-plan skill only.\n- No Intune/Graph read tools are connected either (the Microsoft 365 connector here covers mail/Teams/SharePoint, not device management), and the IntuneAutomation script-catalog lookup was declined. **All current-state evidence is therefore unknown**, not verified.\n\n### What I still need from you\nMaterially different plans follow from these, so I'm asking rather than assuming:\n1. Which policy (display name / ID) and which **exact setting** is changing, from what value to what value?\n2. Tenant, and the policy's **current assignments** \u2014 All Devices, All Users, or specific groups, with any exclusions?\n3. Acceptable impact: can devices go non-compliant, and is a Conditional Access policy keyed to compliance (i.e. does non-compliant mean blocked)?\n4. Existing change window and approval path.\n\n### Scope warning that applies regardless of your answers\nIf the policy is already assigned to All Devices/All Users, **editing it in place keeps that full exposure**. Adding a pilot-named group does not narrow it \u2014 targeting only shrinks if you remove the broad assignment or create a separately targeted new policy. Until assignments are actually read, pilot feasibility is **unresolved**; I can't promise containment.\n\nAlso: removing an assignment reverses an *assignment* change only. It does **not** undo an in-place setting edit \u2014 rollback must restore the recorded prior setting value and then be verified.\n\n### Change brief skeleton (fill once the above is known)\n- **Operation:** `PATCH /deviceManagement/deviceCompliancePolicies/{id}` (v1.0), single named setting.\n- **Preconditions:** export the policy JSON and its `/assignments` to a file first \u2014 that export *is* your rollback record; capture a pre-change compliance count as baseline.\n- **Planning dry run:** diff the exported JSON against the intended JSON **offline**. That is planning, not a tenant dry run \u2014 Greybeard supplies no rollout controller, and there is no verified automatic stop mechanism here. Use a **manual review checkpoint** instead.\n- **Grace period:** a non-zero `scheduledActionsForRule` grace period is the main lever for avoiding an immediate block. Whatever number you pick is an **option to validate against your CA posture**, not a recommendation I can ground.\n- **Stop conditions:** non-compliant count rises beyond your stated tolerance, or any sign-in blocks attributable to the change \u2192 halt, roll back.\n- **Rollback:** re-`PATCH` the recorded prior value, then re-read the policy and re-check the compliance count to confirm recovery. Note device check-in latency means recovery is not instant.\n- **Least privilege:** `DeviceManagementConfiguration.ReadWrite.All` for the write; read-only scopes suffice for evidence-gathering.\n\nSend me the four answers and I'll produce the exact brief plus an inspectable script for you to run through your own approved workflow \u2014 creating a script does not authorise running it, and I can't execute or approve it for you.",
+  "resultEvents": [
+    {
+      "duration_api_ms": 18244,
+      "stop_reason": "end_turn",
+      "session_id": "f012b87e-fc5f-497d-b671-d015891d626e",
+      "total_cost_usd": 2.1312300000000004,
+      "usage": {
+        "input_tokens": 4,
+        "cache_creation_input_tokens": 195753,
+        "cache_read_input_tokens": 9653,
+        "output_tokens": 1080,
+        "output_tokens_details": {
+          "thinking_tokens": 749
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 195753,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "not_available",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 757,
+            "cache_read_input_tokens": 6137,
+            "cache_creation_input_tokens": 188382,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 188382
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "modelUsage": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 919,
+          "outputTokens": 14,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.000989,
+          "contextWindow": 200000,
+          "maxOutputTokens": 32000,
+          "thinkingTokens": 0,
+          "canonicalModel": "claude-haiku-4-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        },
+        "claude-opus-5[1m]": {
+          "inputTokens": 6,
+          "outputTokens": 2435,
+          "cacheReadInputTokens": 204172,
+          "cacheCreationInputTokens": 196725,
+          "webSearchRequests": 0,
+          "costUSD": 2.1302410000000003,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 64000,
+          "thinkingTokens": 989,
+          "canonicalModel": "claude-opus-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "permission_denials": [
+        {
+          "tool_name": "mcp__claude_ai_Intune_Automation__search_scripts",
+          "tool_use_id": "toolu_017qrJNfPoLRVZcKCk4HCUR5",
+          "tool_input": {
+            "query": "Windows compliance policy backup export and assignments",
+            "limit": 10
+          }
+        }
+      ],
+      "terminal_reason": "budget_exhausted",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "subagent_stats": {
+        "spawned": 0,
+        "requested": {
+          "background": 0,
+          "foreground": 0,
+          "unset": 0
+        },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": {
+          "parent": 0,
+          "user": 0,
+          "system": 0
+        },
+        "refused": {
+          "depth_limit": 0,
+          "concurrency_limit": 0,
+          "budget": 0
+        },
+        "by_type": {}
+      },
+      "is_error": true,
+      "num_turns": 5,
+      "subtype": "error_max_budget_usd",
+      "errors": [
+        "Reached maximum budget ($2)"
+      ],
+      "type": "result",
+      "duration_ms": 37417,
+      "uuid": "2c048baa-858d-4a60-acb4-4684fca4a703",
+      "queued_turn_count": 0,
+      "result_index": 0
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "e1c22eee555c56fe7bcca60fa0017929d26c7fd9b5f00abfa20b8cbf886da856",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "422102f6aa560b67e12577880b75b45d59a78bf2742cd810d8b88b914cdb47be"
+  },
+  "id": "02",
+  "fixture": "corrected",
+  "prompt": "We need to roll out Windows compliance changes. What sequence should I use? Do not make tenant changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Windows compliance changes rollout sequence"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Windows compliance changes rollout sequence"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"90244e98-7066-438c-9e79-0b79acddf987\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":2,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":324,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":324,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "90244e98-7066-438c-9e79-0b79acddf987",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 2,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 324,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 324,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-plan skill and check relevant tenant guidance to outline the rollout sequence. I\u2019ll keep this read-only.\n\nUse **baseline \u2192 verify targeting \u2192 pilot for 72 hours \u2192 helpdesk review \u2192 staged expansion**.\n\nGreybeard memory **#2** says: \u201ckeep the pilot for 72 hours and require helpdesk review before expanding.\u201d That sets the pilot duration and review checkpoint; review does not constitute approval.\n\n1. **Define and baseline.** Record the proposed Windows compliance settings, current values, assignments, exclusions, noncompliance actions, and Conditional Access dependencies. Agree on acceptable impact and rollback triggers.\n2. **Verify pilot containment.** Check actual group membership and overlapping policies. Editing an existing broadly assigned policy exposes its whole audience. Use a separately targeted policy or an explicit targeting transition, accounting for the original policy still applying.\n3. **Run the pilot for 72 hours.** Monitor device check-ins, per-setting compliance failures, access disruption, and helpdesk incidents.\n4. **Require helpdesk review before expansion.** Assess failures and support impact against agreed criteria. Hold expansion if unexplained failures or unacceptable disruption remain.\n5. **Expand in stages.** Use your existing change workflow, with manual review checkpoints between groups.\n6. **Verify or roll back.** Confirm compliance and access recovery. Rollback must restore recorded setting and targeting changes; removing an assignment alone does not undo an in-place setting edit.\n\nNo tenant changes were made. Live assignments have not been checked, so pilot containment remains unresolved.\n\nWhich tenant, policies/settings, and device groups are in scope, and what impact and rollback constraints should the plan use?",
+  "usage": [
+    {
+      "input_tokens": 57356,
+      "cached_input_tokens": 40448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 586,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

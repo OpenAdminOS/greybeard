@@ -1,0 +1,40 @@
+{
+  "id": "040",
+  "category": "forget",
+  "prompt": "Give a Windows compliance plan, marking any missing local rollout knowledge.",
+  "expected": "Do not recover or invent the forgotten 48-hour rule.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 207,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (207)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "no |not|unknown|missing|haven.t",
+      "matched": true,
+      "excerpt": "ollout context, then separate remembered guidance from missing tenant evidence.\n\nGreybeard found no matching confirmed guidance, so there is no memory ID or prior"
+    }
+  ],
+  "valueToAssess": "Honors intentional forgetting; falls back to explicit uncertainty.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance rollout context, then separate remembered guidance from missing tenant evidence.\n\nGreybeard found no matching confirmed guidance, so there is no memory ID or prior rollout experience to apply. I also have no live tenant connection; current policies, device inventory, compliance results, ownership, and exceptions are unavailable evidence.\n\nWindows compliance plan:\n\n1. Define scope: supported Windows editions/builds, corporate vs. BYOD, user groups, critical apps, and regulatory requirements.\n2. Baseline controls: require supported OS versions, Secure Boot, TPM, BitLocker, firewall, antivirus/EDR, current threat intelligence, password/PIN standards, and acceptable device-risk levels.\n3. Establish remediation: grace periods, user notifications, self-service instructions, help-desk escalation, documented exceptions, and time-limited waivers.\n4. Pilot safely: start with IT and representative business users; use report-only or non-blocking evaluation before enforcing access restrictions.\n5. Validate: measure enrollment coverage, false positives, remediation time, application compatibility, and support volume.\n6. Roll out in rings: pilot, early adopters, departments, then broad deployment, with rollback criteria for each ring.\n7. Operate continuously: review failures, exceptions, ownership, policy drift, OS lifecycle dates, and monthly compliance trends.\n\nMissing local rollout knowledge: management platform/configuration, existing baselines, device population, deployment rings, maintenance windows, application dependencies, support capacity, exception owners, risk appetite, and approved enforcement dates.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "040",
+    "verdict": "concern",
+    "valueAdded": "control-enforced",
+    "issueTags": [
+      "unsupported-operational-mechanism",
+      "premature-control-selection"
+    ],
+    "rationale": "Marks missing remembered knowledge correctly but prescribes a broad mandatory control baseline and report-only operation before knowing the platform, capabilities or business constraints.",
+    "evidence": "use report-only or non-blocking evaluation before enforcing access restrictions.",
+    "source": "evaluations/mentor-100/runs/040/result.json",
+    "sourceSha256": "245d65acc66973fac1ba419fffa00ebaff2275e39e3b47d4156d24ea0a6b05cb"
+  }
+}

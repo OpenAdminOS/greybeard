@@ -1,0 +1,67 @@
+{
+  "id": "033",
+  "category": "correction",
+  "fixture": "corrected",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 19.48,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32577,
+      "cached_input_tokens": 19200,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 438,
+      "reasoning_output_tokens": 141
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Current Windows compliance helpdesk checkpoint before expansion planning"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":2,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 2,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll recall any prior Windows compliance checkpoint context first, then distinguish remembered context from evidence that cannot be verified without tenant access.\n\nI can\u2019t verify the current checkpoint because no live tenant connection or checkpoint snapshot was provided. Microsoft Graph/Lokka verification is unavailable, so current compliance status, pilot duration, device results, helpdesk tickets, and approval remain unknown.\n\nGreybeard memory ID 2 contributes confirmed guidance: keep the Windows compliance pilot running for 72 hours and require helpdesk review before expansion. This is recalled context, not evidence of the tenant\u2019s present state.\n\nBefore expansion, provide a read-only snapshot showing:\n\n- Pilot start time and whether 72 hours elapsed\n- Compliant/noncompliant/error device counts\n- New helpdesk incidents and unresolved blockers\n- Explicit helpdesk approval\n\nUntil then, the checkpoint status is **unverified; pause expansion planning**."
+}

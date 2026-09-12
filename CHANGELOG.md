@@ -1,5 +1,59 @@
 # Changelog
 
+## Unreleased improvements to 0.1
+
+- Add client-secret authentication to Infrastructure alongside certificates, with protected OS storage, masked input, credential rotation and disconnect cleanup.
+
+- Enlarge the memory globe to the full workspace width with a midnight-blue, teal and coral palette. Remove tool labels and source lines; open memory details on selection, with keyboard access and an uncluttered empty state.
+
+- Add a local Memory map with a rotatable perspective globe, recorded sources and correction links, a saved-time filter, exact-text details and an accessible flat view. Filter before applying the visible-memory limit; retain the existing review controls.
+- Accept Cursor's Windows UTF-8 byte-order marker and preserve Unicode across input chunks. Run Windows mentoring wrappers with a hidden window and upgrade existing wrappers without duplicating user hooks.
+- Verify real Claude Desktop Code learning and later recall on Windows, plus Cursor automatic proposals, native companion notifications and post-tool context delivery.
+
+- Keep first-run navigation synchronized with the initial tool scan so a slow response cannot return the user to setup after they choose to explore.
+
+- Match the Windows companion notification identity to its installer shortcut. Extend native hook transport verification to Claude Code.
+
+- Preserve Gemini user-task retrieval and reviewed preference learning when the host prepends session-hook context. Verify real Gemini and Copilot hook delivery with isolated local transport checks.
+
+- Add automatic event-based mentoring for Claude Code and Desktop Code, Codex, Gemini, Copilot CLI, and Cursor's supported companion/context channels. Keep ordinary Desktop Chat explicitly MCP-assisted.
+- Propose explicit operating preferences automatically for exact review, share confirmed lessons across tools, suppress repeated context, and retain a 2 KB hook context ceiling without separate background model calls.
+- Show actual host events, delivery channels, pause and errors in the companion. Add private native notifications, background tray behavior and optional Mac/Windows login startup.
+- Preserve unrelated hook configuration during setup, upgrade and removal. Keep Codex hook trust under the user's control.
+
+- Upgrade skill links from previous packaged builds automatically. Show exact integration conflicts, offer reviewed backup-and-reconnect repair, and allow continuing setup with unresolved tools.
+- Guide first launch through automatic tool discovery, one-button learning setup, verified per-tool results and a first-conversation prompt. Keep memory review and optional infrastructure separate from setup.
+
+- Use the approved Greybeard logo for application icons and a compact Retina Mac installer layout with clear drag-to-Applications guidance.
+- Add a desktop companion for memory, connections, advice activity and settings, with native file dialogs and no browser launch.
+- Add full-application update staging and previous-app recovery, with Windows setup, Mac DMG/ZIP and Linux AppImage packaging.
+- Improve natural client discovery, scoped recall, relevance, evidence dating, outcome proposals and explicit usefulness feedback.
+- Add bounded Graph read recipes and capability diagnostics, plus protected Windows certificate reading.
+- Preserve remembered rule wording and local confirmation boundaries in installed client guidance.
+
+- Accept oversized recall budgets without an avoidable MCP retry, retaining the 800-byte effective cap and documenting legacy budget names.
+- Return compact memory context with explicit byte accounting and truthful retrieval attribution.
+- Honor paused learning and advice during memory recall, and preserve the original source of linked lessons.
+- Separate preferences and lessons in local review, preserving confirmation, correction, forgetting, and pagination.
+- Teach client skills to identify the confirmed memory that changed advice without claiming an independent assessment.
+
+## 0.1 - 2026-09-11
+
+Release tag: `v0.1.0`. Access to this executable release requires an account with access to the private repository; historical package versions below describe an earlier distribution.
+
+- Host Greybeard releases and authenticated installer downloads in `OpenAdminOS/greybeard`.
+- Install on Apple Silicon macOS 14+ with a DMG containing Greybeard.app and an Applications shortcut; release automation signs, notarizes, staples, and verifies the app and disk image.
+- Install one executable, with local graphical or terminal setup and no Node, npm, or Git requirement.
+- Use local mentoring and memory without connecting a Microsoft tenant.
+- Propose, inspect, confirm, correct, export, pause, and forget scoped lessons through local controls.
+- Supply confirmed advisory context for supported Claude Code commands. Execution is not paused and advice may appear afterward.
+- Connect a customer-owned application for optional tenant reads on supported POSIX systems; production writes and consent mutation remain disabled.
+- Retain memories when replacing the executable or removing client integrations.
+
+Updates use manual verified downloads for this release. Windows tenant credentials and automatic update activation are not implemented. Platform signing and notarization status is recorded with the release assets. See [release notes](docs/0.1/release-notes.md) for installation and current limits.
+
+Historical entries below describe earlier code and retain their original version labels.
+
 ## 0.1.1 - 2026-07-10
 
 ### Security

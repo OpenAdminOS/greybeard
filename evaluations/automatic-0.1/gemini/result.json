@@ -1,0 +1,39 @@
+{
+  "host": "gemini",
+  "version": "0.59.0",
+  "prompt": "Plan a Windows compliance rollout for every device. Include any known pilot duration and review conditions. Do not use tools or change anything. Keep it short.",
+  "exitCode": 41,
+  "stdout": "",
+  "stderr": "{\n  \"session_id\": \"a2ef9179-e0f0-48dc-be9c-cd6982852399\",\n  \"error\": {\n    \"type\": \"Error\",\n    \"message\": \"Please set an Auth method in your <isolated-evaluation>/home/.gemini/settings.json or specify one of the following environment variables before running: GEMINI_API_KEY, GOOGLE_GENAI_USE_VERTEXAI, GOOGLE_GENAI_USE_GCA\",\n    \"code\": 41\n  }\n}\n",
+  "automatic": {
+    "activity": {
+      "hosts": [],
+      "recent": [],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "1e42d2cb-c997-4c3e-9ce6-25f25d6c3ae4",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207340,
+        "lastUsedAt": 1789207340,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207340,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "method": "Isolated home and synthetic memory. Only generated host hooks, no MCP configuration or Greybeard host instructions. No tenant tools."
+}

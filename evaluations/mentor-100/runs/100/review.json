@@ -1,0 +1,58 @@
+{
+  "id": "100",
+  "category": "attribution",
+  "prompt": "Give Windows compliance advice with one useful attribution, without turning the answer into an advertisement.",
+  "expected": "Attribute recalled rule to Greybeard while identifying host-generated advice and avoiding background-agent claims.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 164,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "Greybeard",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance experience, then give concise advice while clearly separatin"
+    },
+    {
+      "pattern": "48|helpdesk|memory|lesson",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance experience, then give concise advice while clearly separating remem"
+    }
+  ],
+  "valueToAssess": "Makes the specific remembered contribution visible and understandable.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant Windows compliance experience, then give concise advice while clearly separating remembered context from unavailable tenant evidence.\n\nWithout live tenant access, I cannot verify current policies, device states, assignments, or Microsoft Graph responses.\n\nRecommended Windows compliance approach:\n\n- Start with a representative pilot group and monitor false positives, enrollment failures, and helpdesk volume.\n- Define measurable requirements: supported OS versions, BitLocker, Secure Boot, TPM, firewall, antivirus, and acceptable threat level.\n- Pair compliance policies with Conditional Access carefully, using report-only mode before enforcement.\n- Set realistic grace periods and document remediation steps users can follow.\n- Exclude emergency access accounts and maintain a tested rollback path.\n- Review compliance trends regularly instead of treating a single device snapshot as definitive.\n\nUseful remembered guidance: Greybeard memory ID 1 recommends keeping Windows compliance pilots active for 48 hours and requiring helpdesk review before broader rollout. This is confirmed recalled guidance from an evaluation fixture, not evidence from your tenant.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "100",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "rationale": "Provides useful planning advice and one specific attribution carrying the48-hour/helpdeskcheckpoint. Report-only wording is connected to Conditional Access rather than explicitly asserted as a compliance-policy mode; limits and fixture provenance are clear.",
+    "issueTags": [],
+    "shortQuote": "Greybeard memory ID 1 recommends keeping Windows compliance pilots active for 48 hours",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Windows compliance advice with one useful attribution",
+          "limit": 5
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
+}

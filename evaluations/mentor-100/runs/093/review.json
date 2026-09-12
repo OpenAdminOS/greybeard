@@ -1,0 +1,47 @@
+{
+  "id": "093",
+  "category": "cost",
+  "prompt": "Is Greybeard memory recall free because the database is local? Explain model context cost briefly.",
+  "expected": "Differentiate byte cap and billing; oversized cap should not produce validation error.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 128,
+  "mechanicalFlags": [
+    "Expected relevant fixture was not retrieved; inspect query relevance."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "byte|billing|billed|token|cost",
+      "matched": true,
+      "excerpt": "and avoid external database fees, but recall still has costs:\n\n- Local compute for searching and serializing results.\n- Recalled text is inserted into the mode"
+    }
+  ],
+  "valueToAssess": "Transparent accounting avoids an unsupported cost promise.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant context, then answer within the stated evidence limits.\n\nNot necessarily. A local database can make storage and retrieval inexpensive and avoid external database fees, but recall still has costs:\n\n- Local compute for searching and serializing results.\n- Recalled text is inserted into the model\u2019s context, so it consumes input tokens and may increase latency and model charges.\n- Longer recall also leaves less context room for the conversation and response.\n\nGreybeard found no matching confirmed guidance for this question, so there is no relevant memory ID to cite. Its recall report showed zero recalled bytes/tokens, but that is evaluation metadata, not evidence about real tenant pricing or model billing. Actual cost depends on the deployment and model provider\u2019s pricing.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "093",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "Correctly explains that local retrieval can still add model input cost, latency and context use. No-match is appropriate for this accounting query despite a compliance fixture being seeded; does not invent billing from an empty recall.",
+    "issueTags": [],
+    "shortQuote": "that is evaluation metadata, not evidence about real tenant pricing or model billing.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Whether local Greybeard memory recall is free and how recalled text affects model context cost",
+          "limit": 5
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
+}

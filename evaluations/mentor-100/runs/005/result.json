@@ -1,0 +1,58 @@
+{
+  "id": "005",
+  "category": "cold-start",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 17.52,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32605,
+      "cached_input_tokens": 10368,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 429,
+      "reasoning_output_tokens": 92
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "First-time Greybeard installation: advice before making the first administrative change",
+        "limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "Greybeard recall found no matching confirmed guidance for this profile, so there is no Greybeard memory ID to attribute. I also have no live tenant connection, so I cannot verify your current configuration or baseline.\n\nBefore your first change:\n\n- Start with a small, reversible, low-impact change.\n- Record the current state, intended outcome, affected users, and rollback steps.\n- Confirm your account, scope, target tenant, and permissions before execution.\n- Use dry-run or read-only preview features where available.\n- Test with a pilot user or group before broad rollout.\n- Avoid combining unrelated changes; make one controlled change at a time.\n- Define success signals and monitor audit logs, errors, and user impact afterward.\n- Preserve exported configuration or another recovery artifact.\n- For Microsoft Graph work, verify the exact `/beta` endpoint, required fields, paging, and error behavior through authenticated Lokka before proceeding. That live verification is unavailable here, so no Graph behavior has been confirmed.\n\nTreat recalled memories as context, not proof. After a successful change, save only confirmed, reusable lessons with enough detail to distinguish tenant-specific experience from general preference."
+}

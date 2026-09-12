@@ -1,3 +1,7 @@
+# Current direction
+
+The 10 September 2026 [0.1 review decisions](0.1/review-decisions.md) and [implementation plan](0.1/implementation-plan.md) supersede conflicting decisions below. Prior entries are historical evidence.
+
 # Implementation Decisions
 
 ## 2026-07-12 - Desktop chat clients: Claude Desktop in, ChatGPT deferred

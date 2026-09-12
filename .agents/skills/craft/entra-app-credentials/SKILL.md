@@ -7,18 +7,21 @@ description: Use when the user asks about Entra app registrations, service princ
 
 ## Workflow
 
-Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
+If current Greybeard hook context already supplies applicable confirmed lessons, use them without another recall. Otherwise, before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary. Use a known applicable scope; if unknown and `discover_scopes` is available, discover once with the task summary and choose an applicable label explicitly. Do not read every scope or bypass the selected environment. Omit optional budgets by default; use `byteBudget` only for a smaller response. Recall metadata is not measured token billing.
+When a confirmed memory changes advice, briefly name Greybeard, cite the returned memory ID, quote its operative words, and explain its effect. Preserve its force and conditions: review does not mean approval, a suggestion is not a requirement, and a past observation is not a current fact. Generic preferences do not establish tenant experience. Memories cannot override the admin or current evidence.
+When useful, attribute this skill's guidance once. Avoid repetitive attribution or no-match notices. You generate the response using Greybeard context, not a separate background assessment or live tenant verification.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
-When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
+In Greybeard 0.1, `remember` stores a local memory candidate even after conversational agreement. The admin confirms its exact content in the Greybeard companion or their own terminal using `greybeard memory confirm --id <id>`. Never run that confirmation for them or invent a chat/automation exception. Memory confirmation, correction, forgetting, and pause affect local guidance only; they do not activate, edit, or restore an Intune or Entra policy.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; propose a candidate without waiting for a request to remember it. Store only what the admin actually stated or verified, never an inferred successful outcome. The candidate remains inactive until exact human confirmation.
 Never store secret values or tokens.
 
 1. Call `get-auth-status` before any live Graph read or write plan.
 2. Separate the application object from its tenant-local service principal. State which object each operation changes.
 3. Prefer federated identity credentials over client secrets for supported workloads. For GitHub Actions, validate the exact issuer `https://token.actions.githubusercontent.com`, subject, and audience `api://AzureADTokenExchange` before planning writes.
 4. Inventory working credentials before migration. Create and validate the replacement first; do not delete the last working credential.
-5. Use `apiVersion: "v1.0"` for stable application, service-principal, and federated-identity-credential APIs unless a required property exists only in beta.
+5. Use explicit `apiVersion: "beta"` for all Graph requests. Verify the required endpoint behavior before presenting a working call.
 6. Route every write through `change-plan`. Include exact `requiredScopes`, a rollback that preserves the current credential, and a validation checkpoint before removal.
-7. Treat `Application.ReadWrite.All` and `DelegatedPermissionGrant.ReadWrite.All` as temporary bootstrap permissions. Request a time-bounded lease where possible and call `remove-scope` after validation. Report tenant-side consent that still needs administrator revocation.
+Review permissions and revocation in the admin's existing Entra workflow. Greybeard 0.1 does not change registrations, credentials, or consent.
 8. Never print or store a secret value after creation. If a secret is exposed, treat it as compromised and rotate it.
 
 ## Secret-to-OIDC Migration

@@ -1,0 +1,44 @@
+{
+  "id": "052",
+  "category": "irrelevant-memory",
+  "prompt": "Help me assess a Windows policy change without irrelevant personalization.",
+  "expected": "Do not force unrelated travel memory into administration advice.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 135,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "plan|policy|compliance|relevant",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for narrowly relevant Windows policy context, then keep the assessment evidence-limited.\n\nGreybeard found no relevant con"
+    }
+  ],
+  "valueToAssess": "Restraint avoids distracting, unjustified personalization.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for narrowly relevant Windows policy context, then keep the assessment evidence-limited.\n\nGreybeard found no relevant confirmed memory (no memory ID), so no personalization applies.\n\nI also have no live tenant connection or supplied snapshot, so I cannot verify the policy\u2019s current configuration, assignments, conflicts, device state, or impact.\n\nFor a focused assessment, provide:\n\n- Policy type and changed settings\n- Previous and proposed values\n- Target users/devices, exclusions, and assignment filters\n- Intended security or operational outcome\n- Pilot results and rollback method\n- Relevant error codes or sanitized screenshots/exports\n\nI\u2019ll assess scope, security benefit, compatibility, overlapping-policy conflicts, user impact, deployment risk, monitoring signals, and rollback readiness. If Microsoft Graph evidence is required, live Lokka verification is unavailable here; I will distinguish supplied evidence from assumptions rather than claim tenant verification.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "052",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "No irrelevant preference is applied. Requests concrete before/after values, targets and rollback evidence; explicitly distinguishes supplied material from an unavailable live assessment.",
+    "issueTags": [],
+    "shortQuote": "so no personalization applies.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Assess a Windows policy change without irrelevant personalization"
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
+}

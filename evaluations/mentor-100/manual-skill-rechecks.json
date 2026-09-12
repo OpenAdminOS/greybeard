@@ -1,0 +1,154 @@
+{
+  "method": "Independent comparison of eight actual original and supplemental prompts, full responses and recorded MCP calls. Supplemental prompts include the shared skill preamble; this does not establish natural installed-skill discovery.",
+  "limitations": [
+    "Eight single-run comparisons do not establish causality or a stable improvement rate.",
+    "Six supplemental runs contain no MCP calls. A configured server does not prove tool visibility or successful model discovery.",
+    "Response-quality verdicts are distinct from integration conclusions; a correct answer without a tool call does not verify the underlying memory state."
+  ],
+  "reviews": [
+    {
+      "id": "016",
+      "verdict": "inconclusive",
+      "explanationChange": "improved",
+      "rationale": "Explanation now distinguishes a generic style preference from an explicit rollout rule, avoiding the original overbroad inference from a no-match result. However, zero recall occurred and the host claims tools are unavailable; this run does not establish memory retrieval or actual tool visibility.",
+      "shortQuote": "unless the confirmed memory explicitly recorded that rollout rule.",
+      "issueTags": [
+        "no-mcp-observation"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    },
+    {
+      "id": "021",
+      "verdict": "pass",
+      "explanationChange": "improved",
+      "rationale": "Both runs recall actual ID1 and apply the48-hour/helpdesk gate. Recheck explicitly explains the practical effect: all devices becomes staged final scope. No tenant verification is invented.",
+      "shortQuote": "That changes",
+      "issueTags": [],
+      "recallCount": 1,
+      "originalRecallCount": 1,
+      "noMCP": false,
+      "toolEvidence": [
+        {
+          "tool": "recall",
+          "arguments": {
+            "query": "Plan a Windows compliance change for all devices using the remembered rollout convention."
+          },
+          "status": "recalled",
+          "memoryIds": [
+            1
+          ],
+          "error": null
+        }
+      ],
+      "integrationConclusion": "Recall executed with actual MCP evidence."
+    },
+    {
+      "id": "039",
+      "verdict": "fail",
+      "explanationChange": "unchanged",
+      "rationale": "Both answers conflate a deliberately forgotten local rollout rule with an Intune policy recoverable through tenant exports or audit logs. Recheck still fails to explain forgetting and supplies no actual memory evidence, so absence of a recall cannot demonstrate deletion enforcement.",
+      "shortQuote": "reconnect the Lokka Microsoft MCP with read permissions for Intune configuration and audit logs",
+      "issueTags": [
+        "memory-policy-confusion",
+        "no-mcp-observation"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    },
+    {
+      "id": "043",
+      "verdict": "pass",
+      "explanationChange": "improved",
+      "rationale": "Respects the admin-stated pause without attempting recall, and separates generic planning from remembered guidance. Its policy-layer wording is clearer than the original audit-only compliance-policy step. This is a pass for response behavior only; no MCP call independently verifies the persisted pause state.",
+      "shortQuote": "Greybeard learning and advice are paused, so I did not recall or store memory.",
+      "issueTags": [
+        "pause-not-independently-checked"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    },
+    {
+      "id": "047",
+      "verdict": "concern",
+      "explanationChange": "unchanged",
+      "rationale": "Still declines inventing the other profile convention, but treats the issue as unavailable profile/policy evidence rather than clearly explaining separate Greybeard memory profiles. With no MCP invocation, it provides no fresh evidence that profile isolation was exercised.",
+      "shortQuote": "Provide the source profile or an exported policy snapshot",
+      "issueTags": [
+        "memory-profile-policy-confusion",
+        "no-mcp-observation"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    },
+    {
+      "id": "056",
+      "verdict": "concern",
+      "explanationChange": "improved",
+      "rationale": "Actual recall again excludes the candidate. The recheck improves by refusing to pretend confirmation occurred, but then suggests saying I confirm this rule in chat without distinguishing task-specific planning input from the separate local confirmation required to activate stored guidance.",
+      "shortQuote": "Please provide the proposed rule and explicitly confirm it",
+      "issueTags": [
+        "confirmation-wording"
+      ],
+      "recallCount": 1,
+      "originalRecallCount": 1,
+      "noMCP": false,
+      "toolEvidence": [
+        {
+          "tool": "recall",
+          "arguments": {
+            "query": "Use the proposed Windows compliance pilot rule and determine whether it is confirmed."
+          },
+          "status": "no-match",
+          "memoryIds": [],
+          "error": null
+        }
+      ],
+      "integrationConclusion": "Recall executed with actual MCP evidence."
+    },
+    {
+      "id": "058",
+      "verdict": "pass",
+      "explanationChange": "improved",
+      "rationale": "Corrects the original memory-versus-policy confusion: explains that remember creates a candidate and gives the local confirm command, while admitting status cannot be verified here. Zero recall means this supports explanation improvement only, not an end-to-end candidate confirmation test.",
+      "shortQuote": "it becomes active only after local review and confirmation",
+      "issueTags": [
+        "no-mcp-observation"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    },
+    {
+      "id": "060",
+      "verdict": "fail",
+      "explanationChange": "unchanged",
+      "rationale": "Despite the actual skill preamble explicitly requiring local confirmation, the host again invents an authorized automation exception for chatyes and sends the admin to a portal or workflow logs. No MCP call occurred; lifecycle explanation remains wrong.",
+      "shortQuote": "unless your environment has an explicit, authorized automation",
+      "issueTags": [
+        "invented-confirmation-exception",
+        "missing-confirmation-guidance",
+        "no-mcp-observation"
+      ],
+      "recallCount": 0,
+      "originalRecallCount": 1,
+      "noMCP": true,
+      "toolEvidence": [],
+      "integrationConclusion": "No MCP invocation observed. Tool discoverability or model visibility was not established; configured server alone does not prove either."
+    }
+  ]
+}

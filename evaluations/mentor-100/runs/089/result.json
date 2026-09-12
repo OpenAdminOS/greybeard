@@ -1,0 +1,57 @@
+{
+  "id": "089",
+  "category": "observed-lab-context",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 20.51,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 33417,
+      "cached_input_tokens": 27904,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 528,
+      "reasoning_output_tokens": 164
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "What is known and unknown about personal Mac devices in the supplied lab sample?"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context relevant to the lab sample, then separate observed evidence from unknowns.\n\nFrom the supplied lab observations:\n\n- Five Macs appeared in the nine-device sample: four personal and one company-owned.\n- Across those five Macs, four were noncompliant and one was in grace. The evidence does not map those statuses to ownership, so we cannot conclude which personal Macs were noncompliant.\n- One macOS compliance policy existed, but its assignments, settings, and applicability to these Macs were not provided.\n- The observed Conditional Access policy referenced `compliantApplication`, not `compliantDevice`, and was report-only. It does not establish that Mac noncompliance blocked access.\n- A zero-hour compliance action grace period also does not prove immediate access blocking.\n\nUnknowns include Mac last-sync dates, users, OS versions, enrollment details, noncompliance reasons, policy assignments, pilot-group membership, current activity, resource dependencies, and actual access impact. We also cannot infer fleet-wide or production conditions from this anonymized lab sample. Production organization access returned 403, so production applicability was not verified.\n\nGreybeard found no relevant confirmed memory (`no-match`, no memory ID). I have no live tenant connection and did not perform these reads."
+}

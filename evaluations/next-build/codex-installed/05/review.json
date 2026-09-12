@@ -1,0 +1,9 @@
+{
+  "id": "05",
+  "verdict": "pass",
+  "review": "Flagged existing All users and All devices assignments as broad exposure; identified separate targeting and original-policy overlap before the 48-hour checkpoint.",
+  "resultSha256": "47f17b681502350c4999999910897ea7525a92b729968c6e5720b8527d8cd000",
+  "exitCode": 0,
+  "mcpCalls": 2,
+  "method": "Agent-authored semantic review of recorded behavior; not an independent human assessment or general guarantee."
+}

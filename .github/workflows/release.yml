@@ -1,49 +1,173 @@
-name: Release
+name: Executable artifacts
 
+# Pushes build candidates. An explicit dispatch additionally signs the Windows
+# executable. Publication is a separate operation after all jobs are green.
 on:
   push:
-    tags:
-      - "v*.*.*"
+    paths:
+      - "cli/**"
+      - "graph/**"
+      - "memory/**"
+      - "scripts/**"
+      - "package*.json"
+      - ".agents/**"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Prepare CLI artifacts with publisher signing. Use Companion application for desktop installers.
+        type: boolean
+        required: true
+        default: false
+      macos-signing:
+        description: macOS signing for explicit release builds (no silent fallback)
+        type: choice
+        required: true
+        default: ad-hoc
+        options:
+          - ad-hoc
+          - developer-id
+      dmg-only:
+        description: Package the unchanged published v0.1.0 Mac core as a signed and stapled DMG
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  publish:
-    name: Publish packages
-    runs-on: ubuntu-latest
+  build:
+    if: ${{ !inputs.dmg-only }}
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x64
+          - os: windows-latest
+            target: win32-x64
+          - os: macos-14
+            target: darwin-arm64
+    runs-on: ${{ matrix.os }}
+    env:
+      GREYBEARD_EXPECT_PLATFORM: ${{ matrix.target }}
+      GREYBEARD_MACOS_SIGNING: ${{ inputs.macos-signing || 'ad-hoc' }}
+      APPLE_TEAM_ID: D259ULY2B4
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Use npm 11 to match the committed lockfile
-        run: npm install -g npm@11
-
-      - name: Install libsecret (Linux keyring for MSAL cache)
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
-
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+          cache: npm
       - name: Install
         run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
-      - name: Publish graph
-        run: npm publish --workspace @greybeard/graph --access public --provenance
+      - name: Validate source
+        run: npm run ci
+      - name: Prepare Apple Developer ID and sign embedded native code
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish memory
-        run: npm publish --workspace @greybeard/memory --access public --provenance
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: node scripts/macos-signing.mjs prepare
+      - name: Build executable
+        run: npm run build:executable
+      - name: Sign Windows executable as Ugurlabs
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch' && inputs.release
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.GREYBEARD_SIGNING_TENANT_ID }}
+          azure-client-id: ${{ secrets.GREYBEARD_SIGNING_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.GREYBEARD_SIGNING_CLIENT_SECRET }}
+          endpoint: https://weu.codesigning.azure.net/
+          signing-account-name: signacc123
+          certificate-profile-name: openadminos-public
+          files: ${{ github.workspace }}\dist\executable\greybeard-win32-x64.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          append-signature: false
+          description: Greybeard 0.1
+          description-url: https://github.com/OpenAdminOS/greybeard
+          exclude-environment-credential: false
+          exclude-azure-cli-credential: true
+          trace: false
+      - name: Verify Windows publisher, product version and trusted timestamp
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch' && inputs.release
+        shell: pwsh
+        run: ./scripts/windows-signature.ps1 -Operation verify -BinaryPath ./dist/executable/greybeard-win32-x64.exe -OutputPath ./dist/executable/windows-signature.json
+      - name: Sign macOS executable with Developer ID
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
+        run: node scripts/macos-signing.mjs sign
+      - name: Exercise final executable outside checkout
+        run: npm run test:executable
+      - name: Require Apple notarization acceptance
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: node scripts/macos-signing.mjs notarize
+      - name: Package distributable and verify archive
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        run: node scripts/package-release.mjs --release
+      - name: Package candidate and verify archive
+        if: github.event_name != 'workflow_dispatch' || !inputs.release
+        run: node scripts/package-release.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: greybeard-${{ matrix.target }}
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Remove Apple signing material
+        if: always() && runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.macos-signing == 'developer-id'
+        run: node scripts/macos-signing.mjs cleanup
+
+  macos-dmg:
+    name: Package published Mac core as signed DMG
+    if: github.event_name == 'workflow_dispatch' && inputs.dmg-only
+    runs-on: macos-14
+    env:
+      APPLE_TEAM_ID: D259ULY2B4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+      - name: Require explicit Developer ID release mode
+        env:
+          RELEASE_REQUESTED: ${{ inputs.release }}
+          SIGNING_MODE: ${{ inputs.macos-signing }}
+        run: node -e 'if(process.env.RELEASE_REQUESTED !== "true" || process.env.SIGNING_MODE !== "developer-id") throw Error("DMG packaging requires release=true and Developer ID signing")'
+      - name: Download and verify unchanged published core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/prepare-published-macos.mjs
+      - name: Prepare Apple Developer ID
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: node scripts/macos-signing.mjs prepare-bundle
+      - name: Sign app, notarize and staple app and DMG, verify installation
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: node scripts/macos-signing.mjs dmg
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: greybeard-darwin-arm64-dmg
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Remove Apple signing material
+        if: always()
+        run: node scripts/macos-signing.mjs cleanup

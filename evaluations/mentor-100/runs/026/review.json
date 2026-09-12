@@ -1,0 +1,53 @@
+{
+  "id": "026",
+  "category": "specific-lesson",
+  "prompt": "Build a Windows compliance rollout checklist with our saved experience.",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 206,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (206)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": "ct, and support tickets.\n- Keep the pilot active for **48 hours**.\n- Require **helpdesk review before expanding**.\n- Record issues, adjust settings or exclus"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "\n- Keep the pilot active for **48 hours**.\n- Require **helpdesk review before expanding**.\n- Record issues, adjust settings or exclusions, and repeat the pilot if "
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "dates.\n- After full rollout, verify outcomes, document lessons learned, and schedule periodic policy review.\n\nThe 48-hour pilot and helpdesk gate come from confi"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll recall the saved Windows compliance rollout experience first, then separate remembered guidance from evidence that would require live tenant verification.\n\nWindows compliance rollout checklist:\n\n- Define compliance requirements, scope, owners, success criteria, exceptions, and rollback triggers.\n- Validate policy settings against supported Windows versions and device-management prerequisites.\n- Inventory targeted device groups, excluding unsupported, shared, break-glass, and business-critical devices as appropriate.\n- Confirm user communications, support scripts, escalation paths, and remediation guidance.\n- Start with a representative pilot group.\n- Monitor policy assignment, evaluation results, false positives, user impact, and support tickets.\n- Keep the pilot active for **48 hours**.\n- Require **helpdesk review before expanding**.\n- Record issues, adjust settings or exclusions, and repeat the pilot if acceptance criteria are missed.\n- Expand through staged rings, pausing between rings to review compliance and operational impact.\n- Maintain an approved exception process with owners and expiration dates.\n- After full rollout, verify outcomes, document lessons learned, and schedule periodic policy review.\n\nThe 48-hour pilot and helpdesk gate come from confirmed Greybeard memory **ID 1** and are applicable here. I have no live tenant connection, so current policies, device counts, compliance results, licensing, assignments, and helpdesk readiness remain unverified. No tenant reads or changes were performed.",
+  "agentEditorialReview": "The 48-hour/helpdesk gate materially changes the checklist. Source is clearly identified. Response is longer than the requested compact mentor advice.",
+  "independentEditorialReview": {
+    "id": "026",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "issueTags": [],
+    "rationale": "Changes the rollout checklist through the exact remembered 48-hour and helpdesk-review gates, attributing only those additions to the record.",
+    "evidence": "The 48-hour pilot and helpdesk gate come from confirmed Greybeard memory **ID 1**",
+    "source": "evaluations/mentor-100/runs/026/result.json",
+    "sourceSha256": "057986db50bbda718a3ac69285a1260b6757e036e6f188bcfded08dace67533e"
+  }
+}

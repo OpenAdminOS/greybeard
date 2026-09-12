@@ -3,17 +3,56 @@
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./args.js";
-import { runApprove } from "./approve.js";
+
 import { runDoctor } from "./doctor.js";
 import { createRuntime, CliRuntime, writeLine } from "./runtime.js";
+import { runMentor } from "./mentor.js";
+import { runUninstall } from "./uninstall.js";
+import { runConnect } from "./connect.js";
 import { runMemory } from "./memory.js";
-import { runScopes } from "./scopes.js";
+
 import { runSetup } from "./setup.js";
 import { runSkills } from "./skills.js";
 import { runUpdate } from "./update.js";
 
 export async function runCli(argv: string[], runtime: CliRuntime = createRuntime()): Promise<number> {
-  const args = parseArgs(argv);
+  const args = parseArgs(argv.length ? argv : ["app"]);
+  if (args.command === "companion-server") {
+    const { startSetupUi } = await import("./setupUi.js");
+    const { getGreybeardAppDataPath } = await import("@greybeard/graph");
+    const { flagValue } = await import("./args.js");
+    const appData = flagValue(args, "app-data") || runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath();
+    const { server, url } = await startSetupUi(runtime, appData, { desktop: true });
+    writeLine(runtime.stdout, `GREYBEARD_COMPANION_READY ${url}`);
+    await new Promise<void>(resolve => server.once("close", resolve));
+    return 0;
+  }
+  if (args.command === "app") {
+    const { runCompanion } = await import("./companion.js");
+    return runCompanion(runtime);
+  }
+  if (args.command === "mentor") return runMentor(args, runtime);
+  if (args.command === "uninstall") return runUninstall(args, runtime);
+  if (args.command === "connect") return runConnect(args, runtime);
+  if (args.command === "mcp") {
+    if (args.positionals[0] === "memory") {
+      const { MemoryService, createGreybeardMemoryMcpServer } = await import("@greybeard/memory");
+      const { getGreybeardAppDataPath } = await import("@greybeard/graph");
+      const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+      const service = new MemoryService({ appDataPath: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(), profileId: runtime.env.GREYBEARD_PROFILE_ID });
+      const server = createGreybeardMemoryMcpServer(service);
+      server.server.onclose = () => service.close();
+      await server.connect(new StdioServerTransport());
+      return 0;
+    }
+    if (args.positionals[0] === "graph") {
+      const { runGraphServer } = await import("@greybeard/graph");
+      await runGraphServer();
+      return 0;
+    }
+    writeLine(runtime.stderr, "Use greybeard mcp memory or greybeard mcp graph.");
+    return 1;
+  }
   if (args.command === "help" || args.command === "--help" || args.command === "-h") {
     printHelp(runtime);
     return 0;
@@ -28,7 +67,8 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
   }
 
   if (args.command === "approve") {
-    return runApprove(args, runtime);
+    writeLine(runtime.stderr, "Tenant writes and approvals are unavailable in Greybeard 0.1.");
+    return 1;
   }
 
   if (args.command === "memory") {
@@ -36,7 +76,8 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
   }
 
   if (args.command === "scopes") {
-    return runScopes(args, runtime);
+    writeLine(runtime.stdout, "Tenant connection permissions are chosen with greybeard connect. No permissions are needed for mentor-only use.");
+    return 0;
   }
 
   if (args.command === "update") {
@@ -52,21 +93,17 @@ export async function runCli(argv: string[], runtime: CliRuntime = createRuntime
 }
 
 function printHelp(runtime: CliRuntime): void {
-  writeLine(runtime.stdout, "Greybeard CLI");
+  writeLine(runtime.stdout, "Greybeard 0.1 - An IT mentor that learns how you work.");
   writeLine(runtime.stdout, "");
-  writeLine(runtime.stdout, "Commands:");
-  writeLine(runtime.stdout, "  greybeard setup [--yes] [--verbose] [--writes] [--memory-hook] [--no-memory-hook] [--with-copilot] [--tenant <tenant-id>] [--write-scope <scope>] [--skill-update weekly|login|off] [--server-update latest|pinned] [--server-source local|npm] [--enable-server <name>] [--disable-server <name>]");
-  writeLine(runtime.stdout, "  greybeard update");
-  writeLine(runtime.stdout, "  greybeard skills pack [--out <directory>]");
-  writeLine(runtime.stdout, "  greybeard doctor");
-  writeLine(runtime.stdout, "  greybeard scopes");
-  writeLine(runtime.stdout, "  greybeard approve [--plan-id <plan-id>]");
-  writeLine(runtime.stdout, "  greybeard memory list [--type <type>] [--limit <n>]");
-  writeLine(runtime.stdout, "  greybeard memory forget --id <id>");
-  writeLine(runtime.stdout, "  greybeard memory forget --older-than-days <days> --type <type>");
+  for (const command of [
+    "app",
+    "setup [--ui] [--yes] [--client <name>] [--no-memory-hook] [--update-mode notify|automatic|manual]",
+    "connect --help",
+    "memory list|candidates|add|confirm|correct|export|pause|resume|forget",
+    "doctor", "update", "skills pack [--out <directory>]", "uninstall"
+  ]) writeLine(runtime.stdout, `  greybeard ${command}`);
   writeLine(runtime.stdout, "");
-  writeLine(runtime.stdout, "Environment overrides:");
-  writeLine(runtime.stdout, "  GREYBEARD_APP_DATA, GREYBEARD_HOME, GREYBEARD_REPO_DIR, GREYBEARD_TENANT_ID, GREYBEARD_WRITE_SCOPES");
+  writeLine(runtime.stdout, "Launch without arguments to open the desktop companion. Use --app-data to select your local store.");
 }
 
 function safeRealpath(path: string): string {
@@ -80,7 +117,7 @@ function safeRealpath(path: string): string {
 const invokedPath = process.argv[1] ? safeRealpath(process.argv[1]) : null;
 const modulePath = safeRealpath(fileURLToPath(import.meta.url));
 
-if (invokedPath && modulePath === invokedPath) {
+if (process.env.GREYBEARD_PACKAGED !== "1" && invokedPath && modulePath === invokedPath) {
   runCli(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
   }).catch((error) => {

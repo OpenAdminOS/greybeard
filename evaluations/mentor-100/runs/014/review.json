@@ -1,0 +1,41 @@
+{
+  "id": "014",
+  "category": "generic-preference",
+  "prompt": "Explain which part of this policy planning advice comes from Greybeard.",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 87,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for context specifically about attributing policy-planning advice, then separate any useful recalled contribution from u"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for context specifically about attributing policy-planning advice, then separate any useful recalled contribution from unavailable tenant evidence.\n\nGreybeard contributed only this confirmed preference:\n\n- **Memory ID 1:** For Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.\n\nThis is a generic working preference, not substantive policy-planning advice or tenant experience. No specific policy recommendations were recalled, and no live tenant evidence is available. Therefore, any concrete planning advice should be attributed to the host assistant\u2019s reasoning, not Greybeard.",
+  "agentEditorialReview": "Clearly separates a working preference from substantive planning knowledge and identifies the host as the author. Strong attribution behavior, though the repeated recall preamble is unnecessary.",
+  "independentEditorialReview": {
+    "id": "014",
+    "verdict": "pass",
+    "valueAdded": "preference",
+    "issueTags": [],
+    "rationale": "Clear attribution: Greybeard supplies a working preference while the host owns any specific recommendation; no phantom independent assessment.",
+    "evidence": "not substantive policy-planning advice or tenant experience.",
+    "source": "evaluations/mentor-100/runs/014/result.json",
+    "sourceSha256": "71d2438f54fdb7779320bd32ef9f956d897780584a45c1119797d028b352efb4"
+  }
+}

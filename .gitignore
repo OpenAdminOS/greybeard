@@ -3,3 +3,28 @@ dist/
 coverage/
 .DS_Store
 *.log
+
+.playwright-cli/
+
+# Local evaluation script caches
+__pycache__/
+*.pyc
+
+# Local credentials and memory must never be published.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.p8
+*.p12
+*.pfx
+*.pem
+*.key
+*.keychain-db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm

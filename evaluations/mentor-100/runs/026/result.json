@@ -1,0 +1,67 @@
+{
+  "id": "026",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 18.87,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32393,
+      "cached_input_tokens": 20992,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 481,
+      "reasoning_output_tokens": 86
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Build a Windows compliance rollout checklist using saved organizational experience"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll recall the saved Windows compliance rollout experience first, then separate remembered guidance from evidence that would require live tenant verification.\n\nWindows compliance rollout checklist:\n\n- Define compliance requirements, scope, owners, success criteria, exceptions, and rollback triggers.\n- Validate policy settings against supported Windows versions and device-management prerequisites.\n- Inventory targeted device groups, excluding unsupported, shared, break-glass, and business-critical devices as appropriate.\n- Confirm user communications, support scripts, escalation paths, and remediation guidance.\n- Start with a representative pilot group.\n- Monitor policy assignment, evaluation results, false positives, user impact, and support tickets.\n- Keep the pilot active for **48 hours**.\n- Require **helpdesk review before expanding**.\n- Record issues, adjust settings or exclusions, and repeat the pilot if acceptance criteria are missed.\n- Expand through staged rings, pausing between rings to review compliance and operational impact.\n- Maintain an approved exception process with owners and expiration dates.\n- After full rollout, verify outcomes, document lessons learned, and schedule periodic policy review.\n\nThe 48-hour pilot and helpdesk gate come from confirmed Greybeard memory **ID 1** and are applicable here. I have no live tenant connection, so current policies, device counts, compliance results, licensing, assignments, and helpdesk readiness remain unverified. No tenant reads or changes were performed."
+}

@@ -1,0 +1,68 @@
+{
+  "id": "019",
+  "category": "generic-preference",
+  "fixture": "generic",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 17.64,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32607,
+      "cached_input_tokens": 18816,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 358,
+      "reasoning_output_tokens": 117
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Distinguish confirmed memories about the admin's actual environment from generic preferences about how they like advice.",
+        "limit": 10
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"preference\",\"content\":\"During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":264,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":264,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "preference",
+              "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 264,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 264,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard memory for a narrowly scoped distinction between remembered environment facts and advice preferences.\n\nI currently remember only how you prefer advice, not your actual environment.\n\nGreybeard recalled one confirmed preference, memory ID 1: for Windows compliance and device administration, provide relevant recommendations informed by confirmed memories.\n\nNo tenant configuration, devices, policies, identities, or other environment facts were recalled. I also have no live tenant connection, so I cannot independently verify any such details. The recalled item comes from a synthetic evaluation fixture and is not evidence about your real tenant."
+}

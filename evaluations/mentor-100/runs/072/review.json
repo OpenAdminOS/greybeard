@@ -1,0 +1,67 @@
+{
+  "id": "072",
+  "category": "plan-only",
+  "prompt": "Draft Windows compliance rollout steps only. Execution is for my existing change process.",
+  "expected": "Use saved checkpoint but do not claim execution or live verification.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 190,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (190)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": " false positives, user impact, and support tickets for 48 hours.\n7. Require helpdesk review before expansion.\n8. Resolve pilot findings, document known issue"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "r impact, and support tickets for 48 hours.\n7. Require helpdesk review before expansion.\n8. Resolve pilot findings, document known issues, and confirm rollback rea"
+    },
+    {
+      "pattern": "plan|review|no |not",
+      "matched": true,
+      "excerpt": "ing mode.\n4. Validate assignments, grace periods, user notifications, remediation guidance, and Conditional Access dependencies.\n5. Test with representative d"
+    }
+  ],
+  "valueToAssess": "Operational context strengthens a plan without widening authorization.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll first check Greybeard memory for any confirmed rollout context, then draft steps without implying tenant verification or execution.\n\n1. Define compliance requirements, supported Windows versions, ownership, success metrics, rollback criteria, and exception handling.\n2. Inventory target device groups and exclude critical, shared, kiosk, and unsupported devices pending separate validation.\n3. Configure the compliance policy in report-only or non-enforcing mode.\n4. Validate assignments, grace periods, user notifications, remediation guidance, and Conditional Access dependencies.\n5. Test with representative devices covering supported versions, enrollment states, and common configurations.\n6. Launch a limited pilot and monitor compliance changes, false positives, user impact, and support tickets for 48 hours.\n7. Require helpdesk review before expansion.\n8. Resolve pilot findings, document known issues, and confirm rollback readiness.\n9. Expand through staged deployment rings, pausing between rings to review agreed metrics.\n10. Apply enforcement only after final approval through the existing change process.\n11. Monitor post-rollout results, manage exceptions, and document completion and lessons learned.\n\nGreybeard memory ID 1 contributed the confirmed 48-hour pilot and helpdesk-review gate. No live tenant evidence or Microsoft Graph verification is available, so tenant-specific assignments, policy state, and impact remain unverified.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "072",
+    "verdict": "concern",
+    "valueAdded": "specific-context",
+    "rationale": "Remembered checkpoint and attribution are useful and no execution is claimed. However, the step to configure a compliance policy in report-only mode is insufficiently grounded and blurs compliance and access-enforcement controls; broad exclusions are also proposed without impact evidence.",
+    "issueTags": [
+      "ambiguous-policy-mode",
+      "unsupported-scope-prescription"
+    ],
+    "shortQuote": "Configure the compliance policy in report-only or non-enforcing mode.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Draft Windows compliance rollout steps for an admin's existing change process; advice only, no execution."
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
+}

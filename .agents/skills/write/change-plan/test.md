@@ -1,7 +1,7 @@
 # Trigger Tests
 
 | Prompt | Expected behavior |
-|---|---|
-| Disable sign-in for these three users. | `change-plan` should fire and create a write plan instead of calling `graph` directly. |
-| Assign this Intune app to the Finance group. | `change-plan` should fire for the write path and wait for human approval. |
-| Delete this unused Conditional Access policy. | `change-plan` should fire and require an approved plan before execution. |
+| --- | --- |
+| Disable sign-in for these three users. | Prepare a scoped change brief and inspectable script; explain that Greybeard 0.1 does not execute tenant writes. |
+| Assign this Intune app to the Finance group. | Ask for missing targeting context, list preconditions and rollback, and hand off to the admin's existing execution workflow. |
+| Delete this unused Conditional Access policy. | Review available evidence and unresolved risk, propose verification steps, and never call removed approval or execution tools. |

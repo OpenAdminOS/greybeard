@@ -1,0 +1,37 @@
+{
+  "id": "020",
+  "category": "generic-preference",
+  "prompt": "What is still missing before your mentor advice can be specific to our company?",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 133,
+  "mechanicalFlags": [
+    "Expected relevant fixture was not retrieved; inspect query relevance."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for company-specific context, then state exactly what evidence is still missing.\n\nGreybeard found no relevant confirmed "
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for company-specific context, then state exactly what evidence is still missing.\n\nGreybeard found no relevant confirmed memory for this task, so there is no remembered contribution or memory ID to apply.\n\nBefore mentor advice can be company-specific, I still need:\n\n- Your objective and the decision/problem being addressed\n- Company size, industry, structure, and operating model\n- Current processes, tools, and baseline performance\n- Key constraints: budget, timeline, compliance, security, and staffing\n- Stakeholders, ownership, and decision authority\n- Success metrics and priorities\n- Concrete examples of what has worked or failed\n- Any relevant policies, architecture, or anonymized operational data\n\nI have no live tenant connection and no supplied company snapshot, so I cannot verify your organization\u2019s current state. Any advice now would necessarily be general.",
+  "agentEditorialReview": "Query failed to retrieve the generic preference. The answer then asks broad company-size/industry questions rather than a focused first administration lesson. This is a relevance and onboarding opportunity, not a tool execution failure.",
+  "independentEditorialReview": {
+    "id": "020",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "issueTags": [],
+    "rationale": "Reports no relevant recall, then requests company context. The broad business intake is general rather than tailored to device administration, but no remembered value is overstated.",
+    "evidence": "Any advice now would necessarily be general.",
+    "source": "evaluations/mentor-100/runs/020/result.json",
+    "sourceSha256": "469de1b8684c6444c16f05b47460c2b98948fa6cde1cd3f3a8571e6074b3b864"
+  }
+}

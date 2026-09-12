@@ -1,0 +1,35 @@
+{
+  "id": "046",
+  "category": "profile-isolation",
+  "prompt": "We are in profile B. What Windows compliance rollout rule do we use?",
+  "expected": "No leakage of profile A rule into B.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 56,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "profile|no |not|unknown",
+      "matched": true,
+      "excerpt": "Greybeard found no matching confirmed guidance for the Windows compliance rollout rule in profile B. No memory ID or us"
+    }
+  ],
+  "valueToAssess": "Avoids applying another environment's operating assumptions.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "Greybeard found no matching confirmed guidance for the Windows compliance rollout rule in profile B. No memory ID or useful remembered contribution is available.\n\nI also have no live tenant connection or supplied snapshot, so the rollout rule cannot be determined from available evidence. Please provide the profile B policy snapshot or the documented rollout rule.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "046",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "issueTags": [],
+    "rationale": "Respects profile isolation and asks for this profile's own documented rule rather than reusing profile A's remembered duration.",
+    "evidence": "no matching confirmed guidance for the Windows compliance rollout rule in profile B.",
+    "source": "evaluations/mentor-100/runs/046/result.json",
+    "sourceSha256": "61f41f6f3d29c409a0f27674fd665f796178c95a4f802160f7269c968aaba80a"
+  }
+}

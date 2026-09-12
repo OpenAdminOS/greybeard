@@ -1,0 +1,1 @@
+I am planning to change an Intune compliance policy for all Windows devices. Help me plan it. Do not make tenant changes.

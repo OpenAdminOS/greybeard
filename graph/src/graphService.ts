@@ -5,7 +5,6 @@ import { activeScopeLeases, readGreybeardConfig, updateGreybeardConfig } from ".
 import { ScopeAuditLog } from "./scopeAudit.js";
 import { isWriteScope } from "./consent.js";
 import {
-  DEFAULT_TIER1_SCOPES,
   AddScopeInput,
   AuthToken,
   AuthStatus,
@@ -25,6 +24,8 @@ const GRAPH_ROOT = "https://graph.microsoft.com";
 const DEFAULT_MAX_ITEMS = 1000;
 const HARD_MAX_ITEMS = 5000;
 const MAX_RETRIES = 3;
+const MAX_PAGES = 50;
+const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 
 type SessionMetadata = {
   requests: number;
@@ -94,12 +95,12 @@ export class GraphService {
   async graph(input: GraphToolInput): Promise<GraphToolResult> {
     const normalized = normalizeInput(input);
     enforceReadGate(normalized);
+    if (normalized.path === "/$batch" && this.auth.authorizeRead) {
+      for (const request of (normalized.body as { requests: Array<{ url: string }> }).requests) this.auth.authorizeRead(normalizePath(request.url.split("?")[0] as string));
+    } else { this.auth.authorizeRead?.(normalized.path); }
 
     const configuredScopes = await this.configuredReadScopes();
-    const token = await this.auth.getToken(uniqueScopes([
-      ...DEFAULT_TIER1_SCOPES,
-      ...configuredScopes
-    ]));
+    const token = await this.auth.getToken(uniqueScopes(configuredScopes));
     const warnings = warningsFor(normalized);
     const notes = notesFor(normalized);
     this.addWarnings(warnings);
@@ -137,6 +138,7 @@ export class GraphService {
         headers: requestHeaders(token.accessToken, normalized.headers, false)
       }, meta, token);
       const data = await parseResponseData(response);
+      if (isObject(data) && typeof data["@odata.nextLink"] === "string") meta.truncated = true;
       meta.pages += 1;
       this.session.pages += 1;
       meta.session = this.getSessionMetadata();
@@ -148,7 +150,13 @@ export class GraphService {
     let nextUrl: string | undefined = firstUrl;
     let lastPage: Record<string, unknown> | undefined;
 
+    const visited = new Set<string>();
     while (nextUrl && collected.length < maxItems) {
+      const continuation = new URL(nextUrl);
+      if (continuation.origin !== GRAPH_ROOT || continuation.username || continuation.password || continuation.hash || continuation.pathname !== new URL(firstUrl).pathname) throw new Error("Untrusted Graph continuation URL; no credential was forwarded.");
+      if (visited.has(nextUrl)) throw new Error("Graph paging repeated a continuation URL.");
+      if (meta.pages >= normalized.maxPages) { meta.truncated = true; break; }
+      visited.add(nextUrl);
       const response = await this.fetchWithRetry(nextUrl, {
         method: "GET",
         headers: requestHeaders(token.accessToken, normalized.headers, false)
@@ -218,17 +226,11 @@ export class GraphService {
     return this.auth.removeScopes(input);
   }
 
-  planWrite(input: PlanWriteInput) {
-    return this.writeGate.planWrite(input);
-  }
+  planWrite(_input: PlanWriteInput): never { return writesDisabled(); }
 
-  checkPlan(input: CheckPlanInput) {
-    return this.writeGate.checkPlan(input);
-  }
+  checkPlan(_input: CheckPlanInput): never { return writesDisabled(); }
 
-  executePlan(input: ExecutePlanInput) {
-    return this.writeGate.executePlan(input);
-  }
+  executePlan(_input: ExecutePlanInput): never { return writesDisabled(); }
 
   private async configuredReadScopes(): Promise<string[]> {
     const config = await readGreybeardConfig(this.appDataPath);
@@ -255,14 +257,14 @@ export class GraphService {
         }
       });
     }
-    return active.map((lease) => lease.scope).filter((scope) => !isWriteScope(scope));
+    return [...(config.grantedReadScopes ?? []), ...active.map((lease) => lease.scope)].filter((scope) => !isWriteScope(scope));
   }
 
   private async fetchWithRetry(url: string, init: RequestInit, meta: GraphMeta, token: AuthToken): Promise<ResponseLike> {
     let retries = 0;
 
     while (true) {
-      const response = await this.fetcher(url, init);
+      const response = await this.fetcher(url, { ...init, redirect: "error", signal: AbortSignal.timeout(30_000) });
       meta.requests += 1;
       this.session.requests += 1;
 
@@ -274,6 +276,7 @@ export class GraphService {
         retries += 1;
         meta.throttled += 1;
         this.session.throttled += 1;
+        await response.body?.cancel();
         await this.sleep(parseRetryAfter(response.headers.get("Retry-After")));
         continue;
       }
@@ -316,14 +319,21 @@ function uniqueScopes(scopes: readonly string[]): string[] {
   });
 }
 
-type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVersion" | "path" | "fetchAll" | "maxItems">> & {
+type NormalizedGraphToolInput = Required<Pick<GraphToolInput, "method" | "apiVersion" | "path" | "fetchAll" | "maxItems" | "maxPages">> & {
   query: NonNullable<GraphToolInput["query"]>;
   headers: NonNullable<GraphToolInput["headers"]>;
   body: unknown;
   apiVersionExplicitlySet: boolean;
 };
 
+function validPageLimit(value: number | undefined): number {
+  if (value === undefined) return MAX_PAGES;
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAX_PAGES) throw new Error("maxPages must be an integer from 1 to 50.");
+  return value;
+}
+
 function normalizeInput(input: GraphToolInput): NormalizedGraphToolInput {
+  if (input.apiVersion && input.apiVersion !== "beta") throw new Error("Greybeard uses the Microsoft Graph beta endpoint.");
   const method = (input.method ?? "GET").toUpperCase();
   const path = normalizePath(input.path);
   return {
@@ -335,6 +345,7 @@ function normalizeInput(input: GraphToolInput): NormalizedGraphToolInput {
     body: method === "POST" && path === "/$batch" ? parseBatchBody(input.body) : input.body,
     fetchAll: input.fetchAll ?? false,
     maxItems: input.maxItems ?? DEFAULT_MAX_ITEMS,
+    maxPages: validPageLimit(input.maxPages),
     apiVersionExplicitlySet: input.apiVersion !== undefined
   };
 }
@@ -355,11 +366,11 @@ function parseBatchBody(body: unknown): unknown {
 }
 
 function normalizePath(path: string): string {
-  if (!path.startsWith("/")) {
-    return `/${path}`;
-  }
-
-  return path;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  let decoded = normalized;
+  try { for (let count = 0; count < 3; count += 1) decoded = decodeURIComponent(decoded); } catch { throw new Error("Invalid Graph path encoding."); }
+  if (decoded.startsWith("//") || /[?#\\]/.test(decoded) || decoded.split("/").some((part) => part === "." || part === "..") || /[\x00-\x20]/.test(decoded)) throw new Error("Invalid Graph resource path. Supply query parameters separately.");
+  return normalized;
 }
 
 function enforceReadGate(input: NormalizedGraphToolInput): void {
@@ -369,7 +380,7 @@ function enforceReadGate(input: NormalizedGraphToolInput): void {
 
   if (input.method === "POST" && input.path === "/$batch") {
     const batch = input.body;
-    if (!isObject(batch) || !Array.isArray(batch.requests)) {
+    if (!isObject(batch) || !Array.isArray(batch.requests) || batch.requests.length === 0 || batch.requests.length > 20 || batch.requests.some((request) => !isObject(request) || typeof request.url !== "string" || typeof request.method !== "string")) {
       throw new GreybeardGraphError({
         code: "E_WRITE_BLOCKED",
         message: "POST /$batch requires a requests array and every inner request must be GET.",
@@ -377,6 +388,11 @@ function enforceReadGate(input: NormalizedGraphToolInput): void {
       });
     }
 
+    for (const request of batch.requests as Array<Record<string, unknown>>) {
+      const url = String(request.url);
+      normalizePath(url.split("?")[0] as string);
+      if (/^https?:/i.test(url) || /^\/(?:v1\.0|beta)(?:\/|$)/i.test(url)) throw new Error("Batch resource URLs must be relative to the beta endpoint.");
+    }
     const offending = batch.requests
       .filter((request) => isObject(request) && String(request.method ?? "").toUpperCase() !== "GET")
       .map((request) => (isObject(request) ? String(request.id ?? "unknown") : "unknown"));
@@ -419,12 +435,12 @@ function buildGraphUrl(apiVersion: "v1.0" | "beta", path: string, query: Normali
 }
 
 function requestHeaders(accessToken: string, headers: Record<string, string>, hasBody: boolean): HeadersInit {
-  return {
-    Accept: "application/json",
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    ...headers,
-    Authorization: `Bearer ${accessToken}`
-  };
+  const allowed: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    if (!["consistencylevel", "prefer"].includes(name.toLowerCase()) || /[\r\n]/.test(value)) throw new Error("Only ConsistencyLevel and Prefer request headers are supported.");
+    allowed[name] = value;
+  }
+  return { Accept: "application/json", ...(hasBody ? { "Content-Type": "application/json" } : {}), ...allowed, Authorization: `Bearer ${accessToken}` };
 }
 
 function warningsFor(input: NormalizedGraphToolInput): string[] {
@@ -486,36 +502,51 @@ function parseRetryAfter(value: string | null): number {
 
   const seconds = Number(value);
   if (Number.isFinite(seconds)) {
-    return Math.max(0, seconds * 1000);
+    return Math.min(30_000, Math.max(0, seconds * 1000));
   }
 
   const date = Date.parse(value);
   if (Number.isFinite(date)) {
-    return Math.max(0, date - Date.now());
+    return Math.min(30_000, Math.max(0, date - Date.now()));
   }
 
   return 1000;
 }
 
-async function parseResponseData(response: ResponseLike): Promise<unknown> {
-  if (response.status === 204) {
-    return null;
+async function responseText(response: ResponseLike): Promise<string> {
+  if (Number(response.headers.get("Content-Length")) > MAX_RESPONSE_BYTES) throw new Error("Graph response exceeded the size limit. Narrow the query.");
+  if (response.body) {
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = []; let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_RESPONSE_BYTES) { await reader.cancel(); throw new Error("Graph response exceeded the size limit. Narrow the query."); }
+        chunks.push(value);
+      }
+      return Buffer.concat(chunks).toString("utf8");
+    } finally { reader.releaseLock(); }
   }
+  const text = await response.text();
+  if (Buffer.byteLength(text) > MAX_RESPONSE_BYTES) throw new Error("Graph response exceeded the size limit. Narrow the query.");
+  return text;
+}
 
-  try {
-    return await response.json();
-  } catch {
-    return response.text();
-  }
+async function parseResponseData(response: ResponseLike): Promise<unknown> {
+  if (response.status === 204) return null;
+  const text = await responseText(response);
+  try { return JSON.parse(text); } catch { return text; }
 }
 
 async function parseGraphError(response: ResponseLike): Promise<GraphErrorBody> {
-  try {
-    const data = await response.json();
-    return isObject(data) ? (data as GraphErrorBody) : { message: String(data) };
-  } catch {
-    return { message: await response.text() };
-  }
+  const data = await parseResponseData(response);
+  return isObject(data) ? data as GraphErrorBody : { message: String(data) };
+}
+
+function writesDisabled(): never {
+  throw new GreybeardGraphError({ code: "E_WRITE_BLOCKED", message: "Production tenant writes are disabled in Greybeard 0.1.", guidance: "Use Greybeard to review and prepare changes. Execute them through your existing approved workflow." });
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

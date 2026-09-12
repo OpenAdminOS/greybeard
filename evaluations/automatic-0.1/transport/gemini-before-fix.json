@@ -1,0 +1,95 @@
+{
+  "host": "gemini",
+  "exitCode": 0,
+  "requests": [
+    {
+      "path": "/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse",
+      "hasConfirmedLesson": false,
+      "hasOriginalPrompt": true,
+      "hasMentorContext": true
+    }
+  ],
+  "automatic": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "gemini",
+          "lastSeen": 1789209347267,
+          "events": 3,
+          "contextBytes": 1213,
+          "adviceEvents": 2,
+          "proposals": 0
+        }
+      ],
+      "recent": [
+        {
+          "id": 3,
+          "host": "gemini",
+          "event": "stop",
+          "createdAt": 1789209347267,
+          "status": "quiet",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 2,
+          "host": "gemini",
+          "event": "prompt",
+          "createdAt": 1789209347075,
+          "status": "context",
+          "bytes": 763,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": [
+            "Broad rollout: establish the affected population, start with a representative pilot, and define stop conditions and recovery before expanding.",
+            "Access change: check dependent sign-in paths and recovery access before rollout. A successful configuration change does not prove users can still access their resources."
+          ]
+        },
+        {
+          "id": 1,
+          "host": "gemini",
+          "event": "start",
+          "createdAt": 1789209346909,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "e6f8b945-acab-46be-bda0-4bc2a3dfd805",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789209345,
+        "lastUsedAt": 1789209345,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789209345,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "stderr": "Warning: Basic terminal detected (TERM=dumb). Visual rendering will be limited. For the best experience, use a terminal emulator with truecolor support.\nWarning: 256-color support not detected. Using a terminal with at least 256-color support is recommended for a better visual experience.\nRipgrep is not available. Falling back to GrepTool.\n[STARTUP] Phase 'cleanup_ops' was started but never ended. Skipping metrics.\n[STARTUP] Cannot measure phase 'cleanup_ops': start mark 'startup:cleanup_ops:start' not found (likely cleared by reset).\n",
+  "stdout": "{\n  \"session_id\": \"3720abd8-dde3-406c-896b-e588db93463f\",\n  \"response\": \"Synthetic transport acknowledgement.\",\n  \"stats\": {\n    \"models\": {\n      \"gemini-2.5-flash\": {\n        \"api\": {\n          \"totalRequests\": 1,\n          \"totalErrors\": 0,\n          \"totalLatencyMs\": 21,\n          \"errorsByType\": {}\n        },\n        \"tokens\": {\n          \"input\": 1,\n          \"prompt\": 1,\n          \"candidates\": 1,\n          \"total\": 2,\n          \"cached\": 0,\n          \"thoughts\": 0,\n          \"tool\": 0\n        },\n        \"roles\": {\n          \"main\": {\n            \"totalRequests\": 1,\n            \"totalErrors\": 0,\n            \"totalLatencyMs\": 21,\n            \"tokens\": {\n              \"input\": 1,\n              \"prompt\": 1,\n              \"candidates\": 1,\n              \"total\": 2,\n              \"cached\": 0,\n              \"thoughts\": 0,\n              \"tool\": 0\n            }\n          }\n        }\n      }\n    },\n    \"tools\": {\n      \"totalCalls\": 0,\n      \"totalSuccess\": 0,\n      \"totalFail\": 0,\n      \"totalDurationMs\": 0,\n      \"totalDecisions\": {\n        \"accept\": 0,\n        \"reject\": 0,\n        \"modify\": 0,\n        \"auto_accept\": 0\n      },\n      \"byName\": {}\n    },\n    \"files\": {\n      \"totalLinesAdded\": 0,\n      \"totalLinesRemoved\": 0\n    }\n  }\n}",
+  "method": "Actual CLI connected to a local synthetic response server. No model reasoning evaluated, no account authentication or tenant tools.",
+  "implementationCommit": "dd495664beddcfa9498fcdf5d30659fceb651c17"
+}

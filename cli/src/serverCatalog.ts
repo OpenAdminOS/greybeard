@@ -15,9 +15,9 @@ export type CatalogServer = {
 export const SERVER_CATALOG: readonly CatalogServer[] = [
   {
     name: "greybeard-graph",
-    description: "Microsoft Graph access with the plan/approve write gate",
-    required: true,
-    defaultEnabled: true,
+    description: "Optional read-only tenant connection",
+    required: false,
+    defaultEnabled: false,
     source: {
       kind: "workspace",
       packageName: "@greybeard/graph",
@@ -39,7 +39,7 @@ export const SERVER_CATALOG: readonly CatalogServer[] = [
     name: "intuneautomation",
     description: "IntuneAutomation PowerShell script library",
     required: false,
-    defaultEnabled: true,
+    defaultEnabled: false,
     source: {
       kind: "npm",
       packageName: "@ugurkocde/intuneautomation-mcp",
@@ -68,15 +68,31 @@ export function findCatalogServer(name: string): CatalogServer | undefined {
   return SERVER_CATALOG.find((server) => server.name === name);
 }
 
-export function isGreybeardManagedEntry(server: CatalogServer, entryText: string): boolean {
-  const matchers = server.source.kind === "npm"
-    ? [server.source.packageName]
-    : [
-        server.source.packageName,
-        `${server.source.packageDir}/dist/index.js`,
-        `${server.source.packageDir}\\\\dist\\\\index.js`
-      ];
-  return matchers.some((matcher) => entryText.includes(matcher));
+export function isGreybeardManagedEntry(server: CatalogServer, entryText: string, repoRoot?: string): boolean {
+  let command: unknown; let args: unknown; let marker: unknown;
+  try {
+    const entry = JSON.parse(entryText) as { command?: unknown; args?: unknown; env?: Record<string, unknown> };
+    command = entry.command; args = entry.args; marker = entry.env?.GREYBEARD_MANAGED;
+  } catch {
+    // Our TOML writer uses JSON-compatible strings/arrays and an inline env table.
+    try {
+      command = JSON.parse(/^command\s*=\s*("(?:[^"\\]|\\.)*")\s*$/mu.exec(entryText)?.[1] ?? "null");
+      args = JSON.parse(/^args\s*=\s*(\[.*\])\s*$/mu.exec(entryText)?.[1] ?? "null");
+      const env = /^env\s*=\s*\{([^\n]*)\}\s*$/mu.exec(entryText)?.[1] ?? "";
+      marker = /(?:^|,)\s*"GREYBEARD_MANAGED"\s*=\s*"0\.1"\s*(?:,|$)/u.test(env) ? "0.1" : undefined;
+    } catch { return false; }
+  }
+  if (typeof command !== "string" || !Array.isArray(args) || !args.every(value => typeof value === "string")) return false;
+  if (server.source.kind === "workspace" && marker === "0.1") {
+    return args.length >= 2 && args.at(-2) === "mcp" && args.at(-1) === server.source.packageDir;
+  }
+  // Legacy entries without an ownership marker are only recognized at this
+  // exact checkout path. An incidental package/path string is never ownership.
+  const normalized = (value: string) => value.replaceAll("\\", "/").replace(/\/+$/u, "");
+  if (server.source.kind === "workspace" && repoRoot && args.length === 1 && /(?:^|[/\\])node(?:\.exe)?$/iu.test(command)) {
+    return normalized(args[0]) === `${normalized(repoRoot)}/${server.source.packageDir}/dist/index.js`;
+  }
+  return false;
 }
 
 export function serverOptionsFromConfig(config: GreybeardConfig): {
@@ -87,6 +103,6 @@ export function serverOptionsFromConfig(config: GreybeardConfig): {
   return {
     serverUpdate: config.serverUpdate ?? "latest",
     serverPackageSource: config.serverPackageSource ?? "local",
-    serverToggles: config.mcpServers ?? {}
+    serverToggles: { ...config.mcpServers, "greybeard-graph": Boolean(config.appOnlyProfile) }
   };
 }

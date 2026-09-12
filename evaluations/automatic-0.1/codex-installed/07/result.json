@@ -1,0 +1,224 @@
+{
+  "automatic": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "codex",
+          "lastSeen": 1789207561962,
+          "events": 8,
+          "contextBytes": 0,
+          "adviceEvents": 0,
+          "proposals": 0
+        }
+      ],
+      "recent": [
+        {
+          "id": 8,
+          "host": "codex",
+          "event": "stop",
+          "createdAt": 1789207561962,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 7,
+          "host": "codex",
+          "event": "tool",
+          "createdAt": 1789207546257,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 6,
+          "host": "codex",
+          "event": "tool",
+          "createdAt": 1789207546093,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 5,
+          "host": "codex",
+          "event": "tool",
+          "createdAt": 1789207539981,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 4,
+          "host": "codex",
+          "event": "tool",
+          "createdAt": 1789207539816,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 3,
+          "host": "codex",
+          "event": "tool",
+          "createdAt": 1789207534970,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 2,
+          "host": "codex",
+          "event": "prompt",
+          "createdAt": 1789207528934,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 1,
+          "host": "codex",
+          "event": "start",
+          "createdAt": 1789207528767,
+          "status": "paused",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "cb1a9c19-ba61-4995-982a-539db0e53deb",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789207526,
+        "lastUsedAt": 1789207526,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789207526,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "sourceHashes": {
+    "cli/dist/automaticMentor.js": "aeebd7c0f3f9607746002d40fc833ff1f343eaa1e4daeeb72d75dd9f34ef6e45",
+    "cli/dist/automaticHooks.js": "ce093d490c04c88bf30c397c197a95db40e45cd88561f2e11471353120aba960",
+    "cli/dist/hostGuidance.js": "5766002b3557618d0c586727b584318d3d3e14f499b9ac689915a3333b35d689",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "f62a7e4daec5d7965b178925c73f55115a969da4813c8d5418aa3b0dfe687a4a"
+  },
+  "id": "07",
+  "fixture": "paused",
+  "prompt": "Help me plan a Windows compliance rollout. Do not change anything.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Windows compliance rollout planning"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":true,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": true,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_6",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows compliance rollout without making changes"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-plan skill to build a read-only rollout plan and check for relevant tenant guidance.\n\nNo changes made. Assuming you mean **Windows device compliance in Intune**, here is a provisional rollout plan.\n\nGreybeard memory is paused, so no remembered guidance was used. Live tenant reads are unavailable here; existing policies, assignments, and Conditional Access dependencies remain unverified.\n\n| Stage | Proposed work | Gate before proceeding |\n|---|---|---|\n| Establish baseline | Inventory Windows compliance settings, assignments, exclusions, filters, noncompliance actions, device health, and Conditional Access policies requiring compliance. | Confirm actual affected devices and existing access impact. |\n| Define requirements | Agree requirements such as BitLocker, Secure Boot, supported OS versions, firewall, and antivirus. Identify how failing devices will be remediated; compliance policies assess requirements rather than configure every prerequisite. | Each requirement has an owner, remediation path, and agreed grace period. |\n| Validate targeting | Assess a separately targeted policy option and its overlap with existing policies. | **Pilot containment remains unresolved until assignments and membership are checked.** Adding a pilot group to a broadly assigned policy does not narrow its exposure. |\n| Evaluate a pilot | Once targeting is verified, select representative hardware, work patterns, and critical applications. Review per-setting failures, check-ins, and access outcomes. | Manual review confirms understood failures, working remediation, and acceptable impact. Pilot size and duration remain to be agreed. |\n| Expand in stages | Extend to agreed groups with support coverage and a review checkpoint between stages. | Pause expansion for unexplained failures, unexpected access blocks, or support demand above agreed capacity. |\n| Verify completion | Confirm intended coverage, investigate devices with missing or stale results, and review exceptions. | Owners accept remaining exceptions and ongoing monitoring. |\n\nBefore any future execution, record the original settings and targeting. Rollback must restore both where changed; removing a new assignment does not undo an in-place setting edit. Then verify device reassessment and access recovery, without assuming immediate propagation.\n\nAny offline comparison would be planning evidence, not a tenant dry run. Intune compliance changes can affect access through existing Conditional Access policies.\n\nWhich tenant and Windows population is this for, which compliance requirements are you targeting, and what access disruption and recovery window are acceptable?",
+  "usage": [
+    {
+      "input_tokens": 57623,
+      "cached_input_tokens": 37376,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 805,
+      "reasoning_output_tokens": 37
+    }
+  ]
+}

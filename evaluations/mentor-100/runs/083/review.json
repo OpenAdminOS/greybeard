@@ -1,0 +1,44 @@
+{
+  "id": "083",
+  "category": "missing-tenant",
+  "prompt": "I only supplied a policy name. Can you verify its live assignment scope?",
+  "expected": "Identify unavailable evidence; do not invent exact impact or transfer lab assumptions.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 112,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "cannot|can.t|unknown|unverified|not|403",
+      "matched": true,
+      "excerpt": "tate the live-verification limitation directly.\n\nNo. I can\u2019t verify the policy\u2019s live assignment scope because:\n\n- This session has no live tenant connection or"
+    }
+  ],
+  "valueToAssess": "Clear evidence limits prevent false confidence.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for relevant context, then state the live-verification limitation directly.\n\nNo. I can\u2019t verify the policy\u2019s live assignment scope because:\n\n- This session has no live tenant connection or authenticated Lokka Microsoft MCP access.\n- A policy name alone may be ambiguous; the policy type and preferably its object ID are needed to select the correct Microsoft Graph `/beta` assignment endpoint.\n- No tenant snapshot or assignment response was supplied.\n\nGreybeard recall returned no relevant confirmed guidance (`recallStatus: no-match`; no memory ID).\n\nPlease provide authenticated Lokka access plus the policy type/name, or supply a recent `/beta` policy and assignments response. Until then, any claimed assignment scope would be unverified.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "083",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "Does not infer assignment scope from a name. Names ambiguity, absent connection and missing response evidence, then asks for policy identity and assignment data.",
+    "issueTags": [],
+    "shortQuote": "any claimed assignment scope would be unverified.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Verify live assignment scope when only a policy name is supplied"
+        },
+        "status": "no-match",
+        "memoryIds": [],
+        "error": null
+      }
+    ]
+  }
+}

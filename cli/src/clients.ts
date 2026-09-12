@@ -1,8 +1,10 @@
-import { chmod, lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import type { ServerPackageSource, ServerUpdateMode } from "@greybeard/graph";
+import { withClientConfigLock, writeClientConfigAtomic } from "./clientConfigFile.js";
+import { lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink } from "node:fs/promises";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { getGreybeardAppDataPath, type ServerPackageSource, type ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
-import { CliRuntime } from "./runtime.js";
+import { CliRuntime, runtimeCommand } from "./runtime.js";
+import { HOST_MEMORY_GUIDANCE } from "./hostGuidance.js";
 import {
   enabledCatalogServers,
   findCatalogServer,
@@ -116,32 +118,37 @@ type StdioServerDefinition = {
 };
 
 export async function detectClaudeCode(runtime: CliRuntime): Promise<ClaudeDetection> {
-  const configPath = claudeConfigPath(runtime.homeDir);
+  const configPath = claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
+  const desktop = await detectClaudeDesktop(runtime);
   const [binaryPath, configSignal] = await Promise.all([
     runtime.findExecutable("claude"),
     claudeConfigDetectionSignal(configPath)
   ]);
   return {
     name: "Claude Code",
-    detected: Boolean(binaryPath || configSignal),
+    detected: Boolean(binaryPath || configSignal || desktop.detected),
     binaryPath,
     userConfigPath: configPath,
-    userConfigExists: configSignal
+    userConfigExists: configSignal,
+    ...(desktop.detected ? { detectionDetail: "Claude Code integration is also used by Claude Desktop Code mode." } : {})
   };
 }
 
 export async function detectCursor(runtime: CliRuntime): Promise<ClientDetection> {
   const appPath = cursorAppPath(runtime);
-  const [binaryPath, appExists] = await Promise.all([
+  const configPath = cursorMcpConfigPath(runtime.homeDir);
+  const [binaryPath, appExists, configExists] = await Promise.all([
     runtime.findExecutable("cursor"),
-    appPath ? fileExists(appPath) : Promise.resolve(false)
+    appPath ? fileExists(appPath) : Promise.resolve(false),
+    fileExists(configPath)
   ]);
   return {
     name: "Cursor",
     detected: Boolean(binaryPath || appExists),
     binaryPath,
-    userConfigPath: appPath ?? cursorMcpConfigPath(runtime.homeDir),
-    userConfigExists: appExists
+    userConfigPath: configPath,
+    userConfigExists: configExists,
+    ...(appExists ? { detectionDetail: `installed app at ${appPath}` } : {})
   };
 }
 
@@ -172,17 +179,20 @@ export async function detectClaudeDesktop(runtime: CliRuntime): Promise<ClientDe
 }
 
 export async function detectCodexCli(runtime: CliRuntime): Promise<ClientDetection> {
-  const authPath = codexAuthPath(runtime.homeDir);
-  const [binaryPath, authExists] = await Promise.all([
+  const authPath = codexAuthPath(runtime.homeDir, runtime.env.CODEX_HOME);
+  const configPath = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
+  const [binaryPath, authExists, configExists] = await Promise.all([
     runtime.findExecutable("codex"),
-    fileExists(authPath)
+    fileExists(authPath),
+    fileExists(configPath)
   ]);
   return {
     name: "Codex CLI",
     detected: Boolean(binaryPath || authExists),
     binaryPath,
-    userConfigPath: authPath,
-    userConfigExists: authExists
+    userConfigPath: configPath,
+    userConfigExists: configExists,
+    ...(authExists ? { detectionDetail: "Codex account configuration present" } : {})
   };
 }
 
@@ -222,12 +232,12 @@ export async function detectAllClients(
   return Promise.all(clientNames().map((client) => CLIENT_ADAPTERS[client].detect(runtime, options)));
 }
 
-export function claudeConfigPath(homeDir: string): string {
-  return join(homeDir, ".claude.json");
+export function claudeConfigPath(homeDir: string, configDir?: string): string {
+  return configDir ? join(configDir, ".claude.json") : join(homeDir, ".claude.json");
 }
 
-export function claudeSettingsPath(homeDir: string): string {
-  return join(homeDir, ".claude", "settings.json");
+export function claudeSettingsPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "settings.json");
 }
 
 export function claudeDesktopConfigPath(runtime: Pick<CliRuntime, "env" | "homeDir" | "platform">): string {
@@ -241,8 +251,12 @@ export function claudeDesktopConfigPath(runtime: Pick<CliRuntime, "env" | "homeD
   return join(runtime.homeDir, "Library", "Application Support", "Claude", "claude_desktop_config.json");
 }
 
-export function claudeSkillsDir(homeDir: string): string {
-  return join(homeDir, ".claude", "skills");
+export function claudeSkillsDir(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "skills");
+}
+
+export function claudeFallbackPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".claude"), "CLAUDE.md");
 }
 
 export function cursorMcpConfigPath(homeDir: string): string {
@@ -257,20 +271,20 @@ export function cursorFallbackPath(homeDir: string): string {
   return join(homeDir, ".cursor", "rules", "greybeard.mdc");
 }
 
-export function codexConfigPath(homeDir: string): string {
-  return join(homeDir, ".codex", "config.toml");
+export function codexConfigPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "config.toml");
 }
 
-export function codexAuthPath(homeDir: string): string {
-  return join(homeDir, ".codex", "auth.json");
+export function codexAuthPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "auth.json");
 }
 
 export function codexSkillsDir(homeDir: string): string {
   return join(homeDir, ".agents", "skills");
 }
 
-export function codexFallbackPath(homeDir: string): string {
-  return join(homeDir, ".codex", "AGENTS.md");
+export function codexFallbackPath(homeDir: string, configDir?: string): string {
+  return join(configDir || join(homeDir, ".codex"), "AGENTS.md");
 }
 
 export function geminiSettingsPath(homeDir: string): string {
@@ -308,7 +322,7 @@ export async function writeClaudeMcpConfig(
   const result = await writeJsonMcpConfig({
     runtime,
     client: "Claude Code",
-    configPath: claudeConfigPath(runtime.homeDir),
+    configPath: claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR),
     shape: "stdio",
     options
   });
@@ -319,7 +333,7 @@ export async function inspectClaudeMcpConfig(
   runtime: CliRuntime,
   options: InspectServerOptions = {}
 ): Promise<ClaudeMcpConfigResult> {
-  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir), options);
+  const result = await inspectJsonMcpConfig("Claude Code", claudeConfigPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR), options);
   return withoutClient(result);
 }
 
@@ -407,13 +421,14 @@ export async function writeCodexMcpConfig(
   runtime: CliRuntime,
   options: ServerConfigOptions = {}
 ): Promise<ClientMcpConfigResult> {
-  const configPath = codexConfigPath(runtime.homeDir);
+  const configPath = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
   const servers = await enabledServerDefinitions(runtime, options);
+  return withClientConfigLock(configPath, async () => {
   const current = await readTextFile(configPath);
   const preserved: string[] = [];
   const replaceable = SERVER_CATALOG.filter((server) => {
     const table = extractTomlTable(current, `mcp_servers.${server.name}`);
-    if (table !== null && !isGreybeardManagedEntry(server, table)) {
+    if (table !== null && !isGreybeardManagedEntry(server, table, runtime.repoRoot)) {
       preserved.push(server.name);
       return false;
     }
@@ -439,13 +454,14 @@ export async function writeCodexMcpConfig(
     server: Object.fromEntries(servers.map((server) => [server.name, server.definition])),
     ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
+  });
 }
 
 export async function inspectCodexMcpConfig(
   runtime: CliRuntime,
   options: InspectServerOptions = {}
 ): Promise<ClientMcpConfigResult> {
-  const path = codexConfigPath(runtime.homeDir);
+  const path = codexConfigPath(runtime.homeDir, runtime.env.CODEX_HOME);
   try {
     const text = await readTextFile(path);
     const missing = enabledCatalogServers(options.serverToggles)
@@ -472,7 +488,10 @@ export async function writeAllClientMcpConfigs(
   options: ServerConfigOptions = {},
   clients?: readonly ClientDetection[]
 ): Promise<ClientMcpConfigResult[]> {
-  return Promise.all(clientNames(clients).map((client) => writeClientMcpConfig(runtime, client, options)));
+  return Promise.all(clientNames(clients).map(async client => {
+    try { return await writeClientMcpConfig(runtime, client, options); }
+    catch (error) { return { client, path: (await CLIENT_ADAPTERS[client].detect(runtime)).userConfigPath, configured: false, error: error instanceof Error ? error.message : "Configuration failed." }; }
+  }));
 }
 
 export async function writeClientMcpConfig(
@@ -483,87 +502,49 @@ export async function writeClientMcpConfig(
   return CLIENT_ADAPTERS[client].writeMcpConfig(runtime, options);
 }
 
-export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
-  const path = claudeSettingsPath(runtime.homeDir);
-  const root = await readJsonObject(path);
+function pruneClaudeMemoryHooks(root: Record<string, unknown>, runtime: CliRuntime): void {
   const hooks = isObject(root.hooks) ? root.hooks : {};
-  const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
-  const handler = memoryHookHandler(runtime.nodePath);
-
-  // Strip every Greybeard-owned handler (old reminder text included) so a
-  // wording change replaces the hook instead of stacking a duplicate.
-  let found: "none" | "identical" | "different" = "none";
-  const remaining: unknown[] = [];
-  for (const group of promptSubmit) {
-    if (!isObject(group) || !Array.isArray(group.hooks)) {
-      remaining.push(group);
-      continue;
-    }
-
-    const kept = group.hooks.filter((candidate) => {
-      if (!isGreybeardMemoryHookHandler(candidate)) {
-        return true;
-      }
-
-      if (isSameHookHandler(candidate, handler)) {
-        if (found === "none") {
-          found = "identical";
-        }
-      } else {
-        found = "different";
-      }
-
-      return false;
+  for (const event of ["UserPromptSubmit", "PreToolUse"]) {
+    if (!Array.isArray(hooks[event])) continue;
+    hooks[event] = hooks[event].flatMap((group: unknown) => {
+      if (!isObject(group) || !Array.isArray(group.hooks)) return [group];
+      const kept = group.hooks.filter(candidate => !isGreybeardMemoryHookHandler(candidate, runtime));
+      return kept.length ? [{ ...group, hooks: kept }] : [];
     });
-    if (kept.length > 0) {
-      remaining.push({
-        ...group,
-        hooks: kept
-      });
-    }
   }
-
-  remaining.push({
-    hooks: [
-      handler
-    ]
-  });
-  hooks.UserPromptSubmit = remaining;
   root.hooks = hooks;
-  await writeJsonObject(path, root);
-  return {
-    path,
-    configured: true,
-    status: found === "none" ? "installed" : found === "different" ? "updated" : "already-configured"
-  };
+}
+
+export async function removeClaudeMemoryHook(runtime: CliRuntime): Promise<void> {
+  await (await import("./automaticHooks.js")).removeAutomaticHooks(runtime,"claude");
+  const path = claudeSettingsPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR);
+  try { await lstat(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
+  await withClientConfigLock(path, async () => {
+    const root = await readJsonObject(path);
+    const hooks = isObject(root.hooks) ? root.hooks : {};
+    const owned = ["UserPromptSubmit", "PreToolUse"].some(event => Array.isArray(hooks[event]) && (hooks[event] as unknown[]).some(group => isObject(group) && Array.isArray(group.hooks) && group.hooks.some(handler => isGreybeardMemoryHookHandler(handler, runtime))));
+    if (!owned) return;
+    pruneClaudeMemoryHooks(root, runtime);
+    await writeJsonObject(path, root);
+  });
+}
+
+export async function writeClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookResult> {
+  await removeClaudeMemoryHook(runtime);
+  return (await import("./automaticHooks.js")).writeAutomaticHooks({ ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() } }, "claude");
 }
 
 export async function inspectClaudeMemoryHook(runtime: CliRuntime): Promise<ClaudeMemoryHookInspection> {
-  const path = claudeSettingsPath(runtime.homeDir);
-  try {
-    const root = await readJsonObject(path);
-    const hooks = isObject(root.hooks) ? root.hooks : {};
-    const promptSubmit = Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
-    const configured = promptSubmit.some((group) =>
-      isObject(group) && Array.isArray(group.hooks) && group.hooks.some(isGreybeardMemoryHookHandler));
-    return {
-      path,
-      configured
-    };
-  } catch {
-    return {
-      path,
-      configured: false
-    };
-  }
+  const result = await (await import("./automaticHooks.js")).inspectAutomaticHooks({ ...runtime, env: { ...runtime.env, GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath() } }, "claude");
+  return {path:result.path,configured:result.configured};
 }
 
 export async function wireClaudeSkills(runtime: CliRuntime): Promise<SkillWireResult> {
-  return wireSkillsToDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir));
+  return wireSkillsToDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function inspectClaudeSkillWiring(runtime: CliRuntime): Promise<SkillWireResult> {
-  return inspectSkillsInDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir));
+  return inspectSkillsInDir(runtime, "Claude Code", claudeSkillsDir(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function wireClaudeDesktopSkills(runtime: CliRuntime): Promise<SkillWireResult> {
@@ -610,7 +591,10 @@ export async function wireAllClientSkills(
   runtime: CliRuntime,
   clients?: readonly ClientDetection[]
 ): Promise<SkillWireResult[]> {
-  return Promise.all(clientNames(clients).map((client) => wireClientSkills(runtime, client)));
+  const results = await Promise.allSettled(clientNames(clients).map(client => wireClientSkills(runtime, client)));
+  const failure = results.find(result => result.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
+  return results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
 }
 
 export async function wireClientSkills(runtime: CliRuntime, client: KnownClientName): Promise<SkillWireResult> {
@@ -618,11 +602,19 @@ export async function wireClientSkills(runtime: CliRuntime, client: KnownClientN
 }
 
 export async function writeCodexSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return writeSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir), repoSkillsDir(runtime.repoRoot));
+  return writeSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir, runtime.env.CODEX_HOME), repoSkillsDir(runtime.repoRoot));
+}
+
+export async function writeClaudeSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
+  return writeSkillFallbackBlock("Claude Code", claudeFallbackPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR), repoSkillsDir(runtime.repoRoot));
+}
+
+export async function inspectClaudeSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
+  return inspectSkillFallbackBlock("Claude Code", claudeFallbackPath(runtime.homeDir, runtime.env.CLAUDE_CONFIG_DIR));
 }
 
 export async function inspectCodexSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
-  return inspectSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir));
+  return inspectSkillFallbackBlock("Codex CLI", codexFallbackPath(runtime.homeDir, runtime.env.CODEX_HOME));
 }
 
 export async function writeGeminiSkillFallback(runtime: CliRuntime): Promise<SkillFallbackResult> {
@@ -665,8 +657,10 @@ export async function writeAllClientSkillFallbacks(
   runtime: CliRuntime,
   clients?: readonly ClientDetection[]
 ): Promise<SkillFallbackResult[]> {
-  const results = await Promise.all(clientNames(clients).map((client) => writeClientSkillFallback(runtime, client)));
-  return results.filter((result): result is SkillFallbackResult => result !== null);
+  const settled = await Promise.allSettled(clientNames(clients).map(client => writeClientSkillFallback(runtime, client)));
+  const failure = settled.find(result => result.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
+  return settled.flatMap(result => result.status === "fulfilled" && result.value ? [result.value] : []);
 }
 
 export const CLIENT_ADAPTERS: Record<KnownClientName, ClientAdapter> = {
@@ -682,8 +676,8 @@ export const CLIENT_ADAPTERS: Record<KnownClientName, ClientAdapter> = {
     }),
     wireSkills: wireClaudeSkills,
     inspectSkills: inspectClaudeSkillWiring,
-    writeFallback: null,
-    inspectFallback: null,
+    writeFallback: writeClaudeSkillFallback,
+    inspectFallback: inspectClaudeSkillFallback,
     ambientChannel: "memory-hook"
   },
   "Claude Desktop": {
@@ -859,6 +853,7 @@ async function writeJsonMcpConfig(params: {
   shape: "plain" | "stdio" | "copilot-local";
   options: ServerConfigOptions;
 }): Promise<ClientMcpConfigResult> {
+  return withClientConfigLock(params.configPath, async () => {
   const root = await readJsonObject(params.configPath);
   const mcpServers = isObject(root.mcpServers) ? root.mcpServers : {};
   const servers = await enabledServerDefinitions(params.runtime, params.options);
@@ -870,7 +865,7 @@ async function writeJsonMcpConfig(params: {
       continue;
     }
 
-    if (isForeignJsonServerEntry(server, existing)) {
+    if (isForeignJsonServerEntry(server, existing, params.runtime.repoRoot)) {
       preserved.push(server.name);
     } else {
       delete mcpServers[server.name];
@@ -881,7 +876,7 @@ async function writeJsonMcpConfig(params: {
   for (const server of servers) {
     const catalogServer = findCatalogServer(server.name);
     const existing = mcpServers[server.name];
-    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing)) {
+    if (catalogServer && existing !== undefined && isForeignJsonServerEntry(catalogServer, existing, params.runtime.repoRoot)) {
       preserved.push(server.name);
       written[server.name] = existing;
       continue;
@@ -901,18 +896,11 @@ async function writeJsonMcpConfig(params: {
     server: written,
     ...(preserved.length > 0 ? { preservedServers: preserved } : {})
   };
+  });
 }
 
-function isForeignJsonServerEntry(server: CatalogServer, entry: unknown): boolean {
-  if (!isObject(entry)) {
-    return false;
-  }
-
-  if (isObject(entry.env) && Object.keys(entry.env).length > 0) {
-    return true;
-  }
-
-  return !isGreybeardManagedEntry(server, JSON.stringify(entry));
+function isForeignJsonServerEntry(server: CatalogServer, entry: unknown, repoRoot?: string): boolean {
+  return !isObject(entry) || !isGreybeardManagedEntry(server, JSON.stringify(entry), repoRoot);
 }
 
 async function inspectJsonMcpConfig(
@@ -999,11 +987,14 @@ async function serverDefinition(
   }
 
   return {
-    command: runtime.nodePath,
-    args: [
-      toPortablePath(join(runtime.repoRoot, server.source.packageDir, "dist", "index.js"))
-    ],
-    env: {}
+    ...runtimeCommand(runtime, ["mcp", server.source.packageDir]),
+    env: {
+      GREYBEARD_MANAGED: "0.1",
+      GREYBEARD_APP_DATA: runtime.env.GREYBEARD_APP_DATA || getGreybeardAppDataPath(),
+      GREYBEARD_PROFILE_ID: runtime.env.GREYBEARD_PROFILE_ID || "local",
+      GREYBEARD_TENANT_ID: runtime.env.GREYBEARD_TENANT_ID || "local",
+      ...(server.source.packageDir === "graph" ? { GREYBEARD_CLIENT_ID: runtime.env.GREYBEARD_CLIENT_ID || "" } : {})
+    }
   };
 }
 
@@ -1032,11 +1023,12 @@ function tomlServerBlock(name: string, server: StdioServerDefinition): string {
   return [
     `[mcp_servers.${name}]`,
     `command = ${tomlString(server.command)}`,
-    `args = ${tomlStringArray(server.args)}`
+    `args = ${tomlStringArray(server.args)}`,
+    `env = { ${Object.entries(server.env).map(([key, value]) => `${tomlString(key)} = ${tomlString(value)}`).join(", ")} }`
   ].join("\n");
 }
 
-function removeTomlTable(text: string, table: string): string {
+export function removeTomlTable(text: string, table: string): string {
   const lines = text.split(/\r?\n/u);
   const output: string[] = [];
   let skipping = false;
@@ -1061,7 +1053,7 @@ function removeTomlTable(text: string, table: string): string {
   return output.join("\n");
 }
 
-function extractTomlTable(text: string, table: string): string | null {
+export function extractTomlTable(text: string, table: string): string | null {
   const lines = text.split(/\r?\n/u);
   const collected: string[] = [];
   let inside = false;
@@ -1122,12 +1114,15 @@ function isSameHookHandler(candidate: unknown, expected: Record<string, unknown>
     && JSON.stringify(candidate.args) === JSON.stringify(expected.args);
 }
 
-function isGreybeardMemoryHookHandler(candidate: unknown): boolean {
-  if (!isObject(candidate) || candidate.type !== "command" || !Array.isArray(candidate.args)) {
-    return false;
+function isGreybeardMemoryHookHandler(candidate: unknown, runtime: CliRuntime): boolean {
+  if (!isObject(candidate) || candidate.type !== "command") return false;
+  if (typeof candidate.command === "string" && candidate.command.includes("--greybeard-owned-hook=0.1")) {
+    const invocation = runtimeCommand(runtime, ["mentor", "pre-tool"]);
+    const quote = runtime.platform === "win32" ? (value: string) => `"${value}"` : (value: string) => "'" + value.replace(/'/gu, "'\\''") + "'";
+    return candidate.command.startsWith([invocation.command, ...invocation.args].map(quote).join(" ") + " ");
   }
-
-  return candidate.args.some((arg) => typeof arg === "string" && arg.includes("greybeard-memory recall"));
+  return candidate.command === runtime.nodePath && Array.isArray(candidate.args) && candidate.args.length === 2 && candidate.args[0] === "-e"
+    && typeof candidate.args[1] === "string" && candidate.args[1].startsWith("process.stdout.write(") && candidate.args[1].includes("greybeard-memory recall");
 }
 
 async function wireSkillsToDir(
@@ -1146,6 +1141,7 @@ async function wireSkillsToDir(
       source: source.path,
       target,
       name: source.name,
+      runtime,
       platform: runtime.platform
     }));
   }
@@ -1210,6 +1206,7 @@ async function ensureSkillLink(params: {
   source: string;
   target: string;
   name: string;
+  runtime: CliRuntime;
   platform: NodeJS.Platform;
 }): Promise<SkillWireEntry> {
   const existing = await lstatOrNull(params.target);
@@ -1235,14 +1232,14 @@ async function ensureSkillLink(params: {
       };
     }
 
-    await unlink(params.target);
-    await symlink(params.source, params.target, params.platform === "win32" ? "junction" : "dir");
-    return {
-      name: params.name,
-      source: params.source,
-      target: params.target,
-      status: "replaced-stale-symlink"
-    };
+    if (await isPreviousRuntimeSkill(params.runtime, resolved, params.source)) {
+      // Only replace the link, never remove files from an older runtime.
+      await unlink(params.target);
+      try { await symlink(params.source, params.target, params.platform === "win32" ? "junction" : "dir"); }
+      catch (error) { await symlink(resolved, params.target, params.platform === "win32" ? "junction" : "dir"); throw error; }
+      return { name: params.name, source: params.source, target: params.target, status: "replaced-stale-symlink" };
+    }
+    return { name: params.name, source: params.source, target: params.target, status: "blocked", message: "Existing symlink points elsewhere; preserved." };
   }
 
   return {
@@ -1252,6 +1249,22 @@ async function ensureSkillLink(params: {
     status: "blocked",
     message: "Target exists and is not a symlink. Greybeard will not overwrite it."
   };
+}
+
+async function isPreviousRuntimeSkill(runtime: CliRuntime, previous: string, source: string): Promise<boolean> {
+  if (!runtime.packaged || !runtime.env.GREYBEARD_APP_DATA) return false;
+  const cache = resolve(runtime.env.GREYBEARD_APP_DATA, "runtime");
+  if (dirname(resolve(runtime.repoRoot)) !== cache || !/^[a-f0-9]{64}$/u.test(basename(runtime.repoRoot))) return false;
+  const parts = relative(cache, previous).split(sep);
+  if (!/^[a-f0-9]{64}$/u.test(parts[0]) || parts.slice(1).join(sep) !== relative(runtime.repoRoot, source)) return false;
+  // SEA owns this exact cache namespace. Reject redirected cache ancestors.
+  for (const path of [cache, join(cache, parts[0])]) {
+    const info = await lstatOrNull(path);
+    if (!info) continue; // An old runtime may already have been cleaned up.
+    if (!info.isDirectory() || info.isSymbolicLink()) return false;
+    if (process.platform !== "win32" && (info.uid !== process.getuid!() || (info.mode & 0o022) !== 0)) return false;
+  }
+  return true;
 }
 
 async function inspectSkillLink(name: string, source: string, target: string): Promise<SkillWireEntry> {
@@ -1302,6 +1315,7 @@ async function writeSkillFallbackBlock(
   skillsPath: string,
   finalize?: (text: string) => string
 ): Promise<SkillFallbackResult> {
+  return withClientConfigLock(path, async () => {
   const current = await readTextFile(path);
   const block = greybeardFallbackBlock(skillsPath);
   let next = replaceDelimitedBlock(current, block);
@@ -1320,8 +1334,8 @@ async function writeSkillFallbackBlock(
     configured: true,
     status: next === current ? "already-configured" : hadBlock ? "updated" : "installed"
   };
+  });
 }
-
 async function inspectSkillFallbackBlock(client: KnownClientName, path: string): Promise<SkillFallbackResult> {
   const current = await readTextFile(path);
   const configured = current.includes(GREYBEARD_BLOCK_START) && current.includes(GREYBEARD_BLOCK_END);
@@ -1345,9 +1359,8 @@ function greybeardFallbackBlock(skillsPath: string): string {
     "## Greybeard Memory",
     "",
     "Greybeard ships a local memory server, `greybeard-memory`, shared across every configured client.",
-    "Before starting any Microsoft 365, Intune, or Entra task, call its `recall` tool with a one-line task summary and apply what it returns.",
-    "When the admin confirms a correction, a preference, a working query or script, or a durable fact about the environment, call `remember` with the reusable intent only. Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
-    "Call `recall` before `remember` and skip storing when an equivalent memory already exists.",
+    HOST_MEMORY_GUIDANCE,
+    "Never store raw tenant output, user or device lists, or GUID-heavy payloads.",
     GREYBEARD_BLOCK_END
   ].join("\n");
 }
@@ -1508,12 +1521,7 @@ async function readJsonObject(path: string): Promise<Record<string, unknown>> {
 }
 
 async function writeJsonObject(path: string, value: Record<string, unknown>): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: "utf8",
-    mode: 0o600
-  });
-  await chmod(path, 0o600);
+  await writeClientConfigAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 async function readTextFile(path: string): Promise<string> {
@@ -1529,11 +1537,7 @@ async function readTextFile(path: string): Promise<string> {
 }
 
 async function writeTextFile(path: string, value: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, value, {
-    encoding: "utf8",
-    mode: 0o600
-  });
+  await writeClientConfigAtomic(path, value);
 }
 
 async function samePath(left: string, right: string): Promise<boolean> {

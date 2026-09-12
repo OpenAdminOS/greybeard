@@ -1,11 +1,5 @@
-[mcp_servers.greybeard-graph]
-command = "node"
-args = ["graph/dist/index.js"]
-
+# Illustration only. Run greybeard setup to write absolute paths and an explicit data directory.
 [mcp_servers.greybeard-memory]
-command = "node"
-args = ["memory/dist/index.js"]
-
-[mcp_servers.intuneautomation]
-command = "npx"
-args = ["-y", "@ugurkocde/intuneautomation-mcp@latest"]
+command = "greybeard"
+args = ["mcp", "memory"]
+env = { "GREYBEARD_MANAGED" = "0.1", "GREYBEARD_PROFILE_ID" = "local", "GREYBEARD_TENANT_ID" = "local" }

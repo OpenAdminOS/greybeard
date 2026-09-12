@@ -1,0 +1,35 @@
+{
+  "id": "006",
+  "category": "cold-start",
+  "prompt": "Give me a short checklist before changing a policy with a large assignment scope.",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 138,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "Greybeard found no relevant confirmed memory, so there is no memory ID to cite. I also have no live tenant evidence to "
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "Greybeard found no relevant confirmed memory, so there is no memory ID to cite. I also have no live tenant evidence to validate the policy or its assignments.\n\nBefore changing a broadly assigned policy:\n\n- Confirm the intended outcome, owner, approval, and maintenance window.\n- Export or screenshot the current configuration and assignments.\n- Identify included/excluded users, groups, devices, and dependency conflicts.\n- Check for dynamic groups, nested membership, filters, and privileged/break-glass accounts.\n- Estimate affected population and business-critical workloads.\n- Review precedence, overlapping policies, licensing, and platform requirements.\n- Test the exact change on a small representative pilot group.\n- Define success signals, monitoring, rollback criteria, and rollback steps.\n- Notify support teams and affected stakeholders.\n- Use staged deployment rings, then verify results before expanding.\n- Record who changed what, when, why, and the observed outcome.",
+  "agentEditorialReview": "Concise and useful broad-change checklist; no remembered value was available. It should tailor group and policy terminology once a specific product is known.",
+  "independentEditorialReview": {
+    "id": "006",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "issueTags": [],
+    "rationale": "Provides an actionable generic checklist with explicit no-memory/no-live-evidence limits; the eleven bullets are somewhat longer than requested but do not misattribute value.",
+    "evidence": "I also have no live tenant evidence to validate the policy or its assignments.",
+    "source": "evaluations/mentor-100/runs/006/result.json",
+    "sourceSha256": "20f680c8a1ca95878dd36f89c9b37a407d1aff8929aced36aae1109d657661cc"
+  }
+}

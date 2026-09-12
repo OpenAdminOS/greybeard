@@ -1,0 +1,41 @@
+{
+  "id": "018",
+  "category": "generic-preference",
+  "prompt": "Use my preferences to improve a first draft of a device change plan.",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 156,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "I\u2019ll recall the relevant preferences first, then draft a plan that clearly separates remembered guidance from unavailable tenant eviden"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll recall the relevant preferences first, then draft a plan that clearly separates remembered guidance from unavailable tenant evidence.\n\nGreybeard memory ID 1 confirms a preference for proactive recommendations during Windows compliance and device administration. I\u2019ll apply that by adding risks, safeguards, validation, rollback, and follow-up actions instead of only editing wording.\n\nPlease paste the first draft. I\u2019ll improve it around:\n\n- Scope, owners, affected device groups, and success criteria\n- Pilot ring before phased production rollout\n- Prerequisites: compatibility, compliance, encryption, power, network, and user readiness\n- Change window, communications, support coverage, and exception handling\n- Pre-change baseline and post-change validation\n- Explicit pause thresholds and rollback triggers\n- Monitoring period, evidence collection, and final sign-off\n\nEvidence limitation: I have no live tenant connection and no supplied snapshot, so I cannot verify actual device inventory, configuration, compliance state, assignments, dependencies, or deployment results. Any tenant-specific values must be provided or independently verified by the admin.",
+  "agentEditorialReview": "Explains how the preference shapes the draft review and asks for the missing draft. Useful structure, but no unique company lesson is involved.",
+  "independentEditorialReview": {
+    "id": "018",
+    "verdict": "pass",
+    "valueAdded": "preference",
+    "issueTags": [],
+    "rationale": "Asks for the missing draft and explains a plausible change in assistance style from the preference; does not manufacture company-specific settings.",
+    "evidence": "Please paste the first draft.",
+    "source": "evaluations/mentor-100/runs/018/result.json",
+    "sourceSha256": "b00dc1f6674b4f8a40ad3c6d0bec9c6d665755e104a60416c4a14cb026fc7705"
+  }
+}

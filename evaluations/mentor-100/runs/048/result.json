@@ -1,0 +1,57 @@
+{
+  "id": "048",
+  "category": "profile-isolation",
+  "fixture": "other-profile",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 16.35,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32646,
+      "cached_input_tokens": 27264,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 318,
+      "reasoning_output_tokens": 75
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Whether another tenant profile's Windows compliance pilot duration is visible, and evidence limits without live tenant access."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-b\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-b",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for relevant context, without making any tenant read.\n\nNo. I have no live tenant connection and cannot view another tenant profile\u2019s Windows compliance pilot duration. No tenant snapshot was supplied, so there is no evidence available to verify that value.\n\nGreybeard recall returned no relevant confirmed memory (`recallStatus: no-match`), so there is no Greybeard memory ID or contribution to cite.\n\nTo confirm the duration, an authorized read in that tenant/profile would be required. Under the stated Graph policy, this must be verified through Lokka using Microsoft Graph `/beta`; Lokka is unavailable here."
+}

@@ -1,0 +1,57 @@
+{
+  "id": "037",
+  "category": "forget",
+  "fixture": "forgotten",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 18.67,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32533,
+      "cached_input_tokens": 27264,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 388,
+      "reasoning_output_tokens": 63
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Remaining lessons from prior Windows compliance rollouts that should inform planning this change"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "Greybeard found no matching confirmed Windows compliance rollout lesson, so there is no memory ID or remembered contribution to apply.\n\nI also have no live tenant connection or supplied snapshot, so I cannot verify the affected devices, current compliance policies, assignments, exclusions, or failure patterns.\n\nUse this evidence-gated rollout plan:\n\n1. Define the intended policy change, supported Windows versions, success criteria, rollback trigger, and user impact.\n2. Capture a fresh tenant baseline: current policy configuration, assignment groups, exclusions, conflicts, device compliance, and relevant error codes.\n3. Test with a small, representative pilot ring covering hardware types, Windows builds, ownership models, and remote users.\n4. Monitor one full check-in cycle for compliance changes, false positives, remediation impact, and support volume.\n5. Expand through staged rings only when predefined thresholds pass; pause automatically if failures or user disruption exceed limits.\n6. Preserve the previous configuration and document rollback ownership and communications.\n7. After rollout, review exceptions, stale devices, and unresolved \u201cnot evaluated\u201d states before declaring completion.\n\nThe exact plan still requires the proposed change and current tenant evidence."
+}

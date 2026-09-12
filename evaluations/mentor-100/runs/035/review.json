@@ -1,0 +1,46 @@
+{
+  "id": "035",
+  "category": "correction",
+  "prompt": "Give the Windows compliance rollout timing you currently remember.",
+  "expected": "Apply corrected 72-hour rule, not superseded 48-hour rule.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 2,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 71,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "72",
+      "matched": true,
+      "excerpt": "ember: keep the Windows compliance pilot running for **72 hours**, then require a **helpdesk review before expanding**.\n\nThis comes from confirmed Greybeard "
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "iance pilot running for **72 hours**, then require a **helpdesk review before expanding**.\n\nThis comes from confirmed Greybeard memory **ID 2**. I have no live ten"
+    }
+  ],
+  "valueToAssess": "Confirmed correction prevents repeating obsolete guidance.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019m checking the temporary Greybeard memory for the rollout timing, while treating it only as recalled context rather than live tenant evidence.\n\nI currently remember: keep the Windows compliance pilot running for **72 hours**, then require a **helpdesk review before expanding**.\n\nThis comes from confirmed Greybeard memory **ID 2**. I have no live tenant connection, so I cannot verify the rollout\u2019s current tenant status or whether this timing has since changed.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "035",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "issueTags": [],
+    "rationale": "Faithfully returns only the corrected72-hour timing and helpdesk review, with explicit distinction from present deployment state.",
+    "evidence": "keep the Windows compliance pilot running for **72 hours**",
+    "source": "evaluations/mentor-100/runs/035/result.json",
+    "sourceSha256": "6dc72efebaf5e152b74385bfa47dd1bfba156d82adca707535482089ef423158"
+  }
+}

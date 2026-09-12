@@ -4,78 +4,118 @@
     "ask-my-tenant": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["User.Read.All", "Group.Read.All", "Organization.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
     "change-plan": {
       "version": "0.4.0",
-      "category": "write",
-      "requires": { "servers": ["greybeard-graph"], "writes": true }
+      "category": "write"
     },
     "conditional-access-review": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["Policy.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
     "diagnose": {
       "version": "0.2.0",
-      "category": "mentor",
-      "requires": { "servers": ["greybeard-graph"] }
+      "category": "mentor"
     },
     "entra-app-credentials": {
       "version": "0.1.0",
-      "category": "craft",
-      "requires": { "servers": ["greybeard-graph"], "writes": true }
+      "category": "craft"
     },
     "entra-identity": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["User.Read.All", "Group.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
-    "graph-patterns": { "version": "0.4.0", "category": "craft" },
+    "graph-patterns": {
+      "version": "0.4.0",
+      "category": "craft"
+    },
     "grill-my-change": {
       "version": "0.2.0",
-      "category": "mentor",
-      "requires": { "servers": ["greybeard-graph"] }
+      "category": "mentor"
     },
-    "handoff": { "version": "0.2.0", "category": "mentor" },
+    "handoff": {
+      "version": "0.2.0",
+      "category": "mentor"
+    },
     "intune-assignments": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["DeviceManagementConfiguration.Read.All", "DeviceManagementApps.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
     "intune-compliance": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["DeviceManagementManagedDevices.Read.All", "DeviceManagementConfiguration.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
-    "kql-authoring": { "version": "0.3.0", "category": "craft" },
+    "kql-authoring": {
+      "version": "0.3.0",
+      "category": "craft"
+    },
     "learn-my-tenant": {
       "version": "0.1.0",
       "category": "mentor",
       "requires": {
-        "servers": ["greybeard-graph", "greybeard-memory"],
-        "scopes": ["Organization.Read.All", "Policy.Read.All", "Group.Read.All", "User.Read.All"]
+        "servers": [
+          "greybeard-memory"
+        ]
       }
     },
-    "least-privilege-scopes": { "version": "0.4.0", "category": "craft" },
+    "least-privilege-scopes": {
+      "version": "0.4.0",
+      "category": "craft"
+    },
     "license-optimizer": {
       "version": "0.3.1",
       "category": "read",
-      "requires": { "servers": ["greybeard-graph"], "scopes": ["Organization.Read.All", "User.Read.All"] }
+      "requires": {
+        "servers": [
+          "greybeard-graph"
+        ]
+      }
     },
-    "posture-script": { "version": "0.3.0", "category": "craft" },
+    "posture-script": {
+      "version": "0.3.0",
+      "category": "craft"
+    },
     "tenant-decisions": {
       "version": "0.2.0",
       "category": "mentor",
-      "requires": { "servers": ["greybeard-memory"] }
+      "requires": {
+        "servers": [
+          "greybeard-memory"
+        ]
+      }
     },
     "tenant-pulse": {
       "version": "0.3.1",
       "category": "read",
       "requires": {
-        "servers": ["greybeard-graph"],
-        "scopes": ["User.Read.All", "Policy.Read.All", "Organization.Read.All", "AuditLog.Read.All", "Reports.Read.All"],
-        "roles": ["reporting"]
+        "servers": [
+          "greybeard-graph"
+        ]
       }
     }
   }

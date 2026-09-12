@@ -1,0 +1,20 @@
+{
+  "id": "039",
+  "category": "forget",
+  "fixture": "forgotten",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 11.67,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 10734,
+      "cached_input_tokens": 8448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 208,
+      "reasoning_output_tokens": 104
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "I can\u2019t recover it from here: this session has neither Greybeard memory tools nor a live tenant/Lokka connection, so I have no evidence of the rule\u2019s name, settings, or deletion history.\n\nPlease reconnect the Lokka Microsoft MCP with read permissions for Intune configuration and audit logs, or provide an exported policy/audit-log snapshot. Then I can inspect the Microsoft Graph `/beta` policy data and determine whether the rule still exists, was modified, or must be reconstructed."
+}

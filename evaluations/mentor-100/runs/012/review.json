@@ -1,0 +1,41 @@
+{
+  "id": "012",
+  "category": "generic-preference",
+  "prompt": "What has Greybeard learned from my past administration work?",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 99,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "ive tenant evidence.\n\nGreybeard recalled one confirmed preference:\n\n- **Memory ID 1:** During Windows compliance and device administration, proactively offer relevan"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard\u2019s temporary memory for a concise summary of your past administration work, while treating any recall as context rather than live tenant evidence.\n\nGreybeard recalled one confirmed preference:\n\n- **Memory ID 1:** During Windows compliance and device administration, proactively offer relevant recommendations informed by confirmed Greybeard memories.\n\nThis is a generic working preference, not evidence of specific tenant configurations, incidents, or administrative outcomes. No concrete lessons from your past administration work were recalled.\n\nI have no live tenant connection, and the recalled item comes from a synthetic evaluation fixture, so I cannot independently verify real tenant history.",
+  "agentEditorialReview": "Accurately explains that only a generic advice preference exists. No invented incidents or company experience.",
+  "independentEditorialReview": {
+    "id": "012",
+    "verdict": "pass",
+    "valueAdded": "preference",
+    "issueTags": [],
+    "rationale": "Correctly reports the one preference as a preference, explicitly distinguishes synthetic context from real incident or outcome history.",
+    "evidence": "No concrete lessons from your past administration work were recalled.",
+    "source": "evaluations/mentor-100/runs/012/result.json",
+    "sourceSha256": "fe4496f48e6181ff6e9dbd9a8bba66c525c9c8edfc87965b7fe56eb8841572fa"
+  }
+}

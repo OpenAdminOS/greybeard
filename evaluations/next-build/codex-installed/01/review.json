@@ -1,0 +1,9 @@
+{
+  "id": "01",
+  "verdict": "pass",
+  "review": "Recalled the confirmed 48-hour rule without being asked to use memory, preserved helpdesk review, and required verified pilot containment.",
+  "resultSha256": "2ff1b1417349784b1e50f5ff65410504c1e317c4878156ee3c3bac87d5d045d5",
+  "exitCode": 0,
+  "mcpCalls": 2,
+  "method": "Agent-authored semantic review of recorded behavior; not an independent human assessment or general guarantee."
+}

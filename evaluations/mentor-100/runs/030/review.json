@@ -1,0 +1,51 @@
+{
+  "id": "030",
+  "category": "specific-lesson",
+  "prompt": "Use my Windows compliance lesson and identify the source of your advice.",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 81,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": " compliance lesson is: keep the rollout in a pilot for 48 hours, then require helpdesk review before expanding.\n\nSource: Greybeard memory ID 1, marked confir"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "keep the rollout in a pilot for 48 hours, then require helpdesk review before expanding.\n\nSource: Greybeard memory ID 1, marked confirmed, sourced from the evaluat"
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll recall the Windows compliance lesson first, then distinguish remembered guidance from evidence unavailable without tenant access.\n\nGreyb"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll recall the Windows compliance lesson first, then distinguish remembered guidance from evidence unavailable without tenant access.\n\nGreybeard\u2019s confirmed Windows compliance lesson is: keep the rollout in a pilot for 48 hours, then require helpdesk review before expanding.\n\nSource: Greybeard memory ID 1, marked confirmed, sourced from the evaluation fixture.\n\nThis is general rollout guidance, not evidence about your real tenant. I have no live tenant connection and cannot verify current device compliance, pilot results, helpdesk findings, policies, or deployment status.",
+  "agentEditorialReview": "Accurate concise recall and source attribution. Calling the specific fixture rule general guidance is imprecise; it is a local confirmed convention within this synthetic profile.",
+  "independentEditorialReview": {
+    "id": "030",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "issueTags": [],
+    "rationale": "Concise faithful restatement with memory ID, confirmed status and fixture source; clearly limits it to advice rather than verified rollout results.",
+    "evidence": "Source: Greybeard memory ID 1, marked confirmed, sourced from the evaluation fixture.",
+    "source": "evaluations/mentor-100/runs/030/result.json",
+    "sourceSha256": "4d0d55083429fdaae46fd73aeb3103e62d3d97ba8797c63419953883dc5d3d67"
+  }
+}

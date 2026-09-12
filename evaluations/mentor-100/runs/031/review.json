@@ -1,0 +1,46 @@
+{
+  "id": "031",
+  "category": "correction",
+  "prompt": "What is our current Windows compliance pilot duration?",
+  "expected": "Apply corrected 72-hour rule, not superseded 48-hour rule.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 2,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 40,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "72",
+      "matched": true,
+      "excerpt": "mory ID 2): the Windows compliance pilot duration is **72 hours**, with helpdesk review required before expansion.\n\nI have no live tenant connection, so I ca"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "indows compliance pilot duration is **72 hours**, with helpdesk review required before expansion.\n\nI have no live tenant connection, so I cannot verify whether the"
+    }
+  ],
+  "valueToAssess": "Confirmed correction prevents repeating obsolete guidance.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "Greybeard recalled confirmed guidance (memory ID 2): the Windows compliance pilot duration is **72 hours**, with helpdesk review required before expansion.\n\nI have no live tenant connection, so I cannot verify whether the current tenant configuration still matches that guidance.",
+  "agentEditorialReview": "Correctly returns the replacement 72-hour rule with ID2 and does not repeat the old duration. Demonstrates fresh-conversation correction lifecycle value.",
+  "independentEditorialReview": {
+    "id": "031",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "issueTags": [],
+    "rationale": "The confirmed correction supplies 72 hours and only ID2 is returned; the response does not resurrect the obsolete 48-hour rule or claim current deployment verification.",
+    "evidence": "the Windows compliance pilot duration is **72 hours**",
+    "source": "evaluations/mentor-100/runs/031/result.json",
+    "sourceSha256": "b374f2ebaa8ce97809bcfcde012e42000ad7771b45a4cc808d64e167396e4c99"
+  }
+}

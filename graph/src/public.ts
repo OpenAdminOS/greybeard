@@ -42,3 +42,14 @@ export type {
   ServerUpdateMode,
   SkillUpdateMode
 } from "./writeGateTypes.js";
+
+export { AppOnlyGraphAuthProvider, APPLICATION_CAPABILITIES, expectedApplicationRoles, validateAppOnlyProfile } from "./appOnlyAuth.js";
+export type { AppOnlyProfile } from "./writeGateTypes.js";
+export { runGraphServer } from "./serverMain.js";
+export { GraphService } from "./graphService.js";
+export { previewCapabilities } from "./capabilityPreview.js";
+export type { CapabilityReadiness } from "./capabilityPreview.js";
+export { runReadRecipe, READ_RECIPES } from "./readRecipes.js";
+export type { GraphReader, ReadRecipeInput, ReadRecipe } from "./readRecipes.js";
+
+export { saveClientSecret, loadClientSecret, removeClientSecret, validateClientSecret } from "./clientSecretStore.js";

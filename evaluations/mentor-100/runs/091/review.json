@@ -1,0 +1,53 @@
+{
+  "id": "091",
+  "category": "cost",
+  "prompt": "How many billed tokens did Greybeard recall consume for Windows compliance? Can you measure it exactly?",
+  "expected": "Differentiate byte cap and billing; oversized cap should not produce validation error.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 98,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "byte|billing|billed|token|cost",
+      "matched": true,
+      "excerpt": "dows compliance context, then distinguish any recorded byte count from actual billed tokens.\n\nNo, I cannot measure billed tokens exactly.\n\nThe Greybeard recall"
+    }
+  ],
+  "valueToAssess": "Transparent accounting avoids an unsupported cost promise.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for the Windows compliance context, then distinguish any recorded byte count from actual billed tokens.\n\nNo, I cannot measure billed tokens exactly.\n\nThe Greybeard recall reported:\n\n- `serializedBytes`: 229 UTF-8 bytes\n- `estimatedTokens`: 229\n- Budget: 800 UTF-8 bytes\n\nThe tool explicitly accounts budgets in bytes, not model-billed tokens. Exact billing depends on the provider\u2019s tokenizer and the full request/response context, neither of which is available here.\n\nGreybeard recalled confirmed memory ID 1 about Windows compliance, but that guidance does not establish billing usage. I have no live tenant or billing evidence.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "091",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "rationale": "Reports the actual 229-byte result and distinguishes legacy estimatedTokens from billed model tokens. Correctly says the recalled rollout rule adds no billing evidence.",
+    "issueTags": [],
+    "shortQuote": "No, I cannot measure billed tokens exactly.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "billed token consumption and exact measurement for Greybeard recall about Windows compliance",
+          "limit": 5
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
+}

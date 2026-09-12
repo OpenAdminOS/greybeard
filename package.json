@@ -1,10 +1,10 @@
 {
   "name": "greybeard",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   },
   "workspaces": [
     "graph",
@@ -15,11 +15,26 @@
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces --if-present",
     "check:style": "node scripts/check-style.mjs",
-    "ci": "npm run build && npm test && npm run check:style"
+    "ci": "npm run build && npm test && npm run test:desktop && node --test scripts/desktop/packaging.test.mjs && npm run check:style",
+    "build:executable": "npm run build && node scripts/build-executable.mjs",
+    "test:executable": "node scripts/smoke-executable.mjs && node scripts/smoke-update.mjs",
+    "desktop": "electron desktop",
+    "test:desktop": "node --test desktop/*.test.cjs",
+    "test:companion": "node scripts/smoke-onboarding.mjs && node scripts/smoke-companion.mjs",
+    "build:companion": "npm run build:executable && node scripts/desktop/build.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^26.1.0",
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6",
+    "rcedit": "5.0.2",
     "typescript": "^6.0.3",
     "vitest": "^3.2.6"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
   }
 }

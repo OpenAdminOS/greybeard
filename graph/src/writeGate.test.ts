@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GraphService } from "./graphService.js";
+import { WriteGate } from "./writeGate.js";
 import { withMcpErrors } from "./mcpServer.js";
 import {
   AuthStatus,
@@ -58,13 +59,13 @@ describe.sequential("write gate acceptance cases", () => {
     vi.useRealTimers();
   });
 
-  it("1. blocks PATCH via graph and executes the same PATCH through an approved plan", async () => {
+  it("1. blocks PATCH via public graph and exercises the retained engine with a mocked PATCH", async () => {
     const harness = await createHarness();
     harness.fetcher
       .mockResolvedValueOnce(jsonResponse({ accountEnabled: true }))
       .mockResolvedValueOnce(emptyResponse(204));
 
-    const blocked = await harness.call(() => harness.service.graph({
+    const blocked = await harness.call(() => harness.graphService.graph({
       method: "PATCH",
       path: "/users/1",
       body: {
@@ -110,7 +111,7 @@ describe.sequential("write gate acceptance cases", () => {
     const harness = await createHarness();
     harness.fetcher.mockResolvedValueOnce(jsonResponse({ responses: [] }));
 
-    const passed = await harness.call(() => harness.service.graph({
+    const passed = await harness.call(() => harness.graphService.graph({
       method: "POST",
       path: "/$batch",
       body: {
@@ -123,7 +124,7 @@ describe.sequential("write gate acceptance cases", () => {
     }));
     expect(passed.isError).toBe(false);
 
-    const blocked = await harness.call(() => harness.service.graph({
+    const blocked = await harness.call(() => harness.graphService.graph({
       method: "POST",
       path: "/$batch",
       body: {
@@ -573,6 +574,85 @@ describe.sequential("write gate acceptance cases", () => {
     });
   });
 
+  it("snapshots the approved request body instead of replaying a mutable caller reference", async () => {
+    const harness = await createHarness();
+    const body = { displayName:"Approved name" };
+    const approved = await createApprovedPlan(harness,basePlan({operations:[{method:"PATCH",path:"/groups/1",reason:"Rename",body}]}));
+    body.displayName = "Unapproved name";
+    harness.fetcher.mockResolvedValueOnce(emptyResponse(204));
+    await harness.service.executePlan(approved);
+    expect(harness.fetcher.mock.calls[0]?.[1]?.body).toBe(JSON.stringify({displayName:"Approved name"}));
+  });
+
+  it("rejects non-beta endpoints in the retained engine before opening approval", async () => {
+    const harness = await createHarness();
+    const plan = await harness.call(() => harness.service.planWrite(basePlan({operations:[{method:"DELETE",path:"/groups/1",reason:"Remove",apiVersion:"v1.0"}]})));
+    expect(plan.payload.error.code).toBe("E_PLAN_INVALID");
+    expect(harness.browserUrls).toHaveLength(0);
+    expect(harness.fetcher).not.toHaveBeenCalled();
+  });
+
+  it("keeps public plan and execution entry points disabled in 0.1", async () => {
+    const harness = await createHarness();
+    const plan = await harness.call(() => harness.graphService.planWrite(basePlan()));
+    const execute = await harness.call(() => harness.graphService.executePlan({ planId:"ignored",token:"ignored" }));
+    expect(plan.isError).toBe(true);
+    expect(execute.isError).toBe(true);
+    expect(harness.fetcher).not.toHaveBeenCalled();
+    expect(harness.browserUrls).toHaveLength(0);
+  });
+
+  it.each([600_000,660_000])("rejects an elicitation approval at or after deadline (%i ms) without polling first", async elapsed => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-04T10:00:00Z"));
+    let decide!: (value: { action:"accept";content:{decision:string} }) => void;
+    const elicitInput = vi.fn(() => new Promise<{action:"accept";content:{decision:string}}>(resolve => { decide=resolve; }));
+    const harness = await createHarness({ clientInfo:{name:"claude-code",version:"1.0"},clientCapabilities:{elicitation:{}},elicitInput });
+    const plan = await harness.call(() => harness.service.planWrite(basePlan()));
+    await vi.advanceTimersByTimeAsync(elapsed);
+    decide({ action:"accept",content:{decision:"approved"} });
+    await flushAsync();
+    const check = await harness.call(() => harness.service.checkPlan({ planId:plan.payload.planId }));
+    expect(check.payload).toEqual({status:"timed_out"});
+    expect(harness.fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each(["tenantId","clientId","account","clientIdKind"] as const)("rejects a changed %s credential before any replay", async field => {
+    const original = {...writesToken,grantedScopes:[...writesToken.grantedScopes]};
+    const auth = new MutableAuth(original);
+    const harness = await createHarness({auth});
+    const approved = await createApprovedPlan(harness);
+    // Mutate the exact object returned during planning to catch aliasing bugs.
+    Object.assign(original,{[field]:field==="clientIdKind"?"first-party":"different"});
+    const execute = await harness.call(() => harness.service.executePlan(approved));
+    expect(execute.payload.error).toMatchObject({code:"E_PLAN_INVALID",details:{reason:"credential-identity-changed"}});
+    expect(harness.fetcher).not.toHaveBeenCalled();
+    expect((await harness.service.checkPlan({planId:approved.planId})).status).toBe("failed");
+  });
+
+  it("rejects scope removal after approval despite a still-consented token", async () => {
+    const harness = await createHarness();
+    const approved = await createApprovedPlan(harness);
+    await writeFile(join(harness.appDataPath,"config.json"),JSON.stringify({requestedWriteScopes:[]}));
+    const execute = await harness.call(() => harness.service.executePlan(approved));
+    expect(execute.payload.error.code).toBe("E_PLAN_SCOPE_MISSING");
+    expect(harness.fetcher).not.toHaveBeenCalled();
+  });
+
+  it("rejects an expired local scope lease using the gate clock", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-04T10:00:00Z"));
+    const harness = await createHarness({clientInfo:{name:"claude-code",version:"1.0"},clientCapabilities:{elicitation:{}},elicitInput:async()=>({action:"accept",content:{decision:"approved"}})});
+    await writeFile(join(harness.appDataPath,"config.json"),JSON.stringify({scopeLeases:[{scope:"Group.ReadWrite.All",reason:"temporary",requestedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+1000).toISOString()}]}));
+    const plan = await harness.call(() => harness.service.planWrite(basePlan()));
+    await flushAsync();
+    const approval = await harness.call(() => harness.service.checkPlan({planId:plan.payload.planId}));
+    await vi.advanceTimersByTimeAsync(1001);
+    const execute = await harness.call(() => harness.service.executePlan({planId:plan.payload.planId,token:approval.payload.token}));
+    expect(execute.payload.error.code).toBe("E_PLAN_SCOPE_MISSING");
+    expect(harness.fetcher).not.toHaveBeenCalled();
+  });
+
   it("19. leaks no approval URL or nonce through model-visible records or appdata files", async () => {
     expect(approvalSecrets.length).toBeGreaterThan(0);
 
@@ -641,6 +721,11 @@ class MockAuth implements GraphAuthProvider {
   }
 }
 
+class MutableAuth extends MockAuth {
+  constructor(private current:AuthToken) { super(current); }
+  override async getToken():Promise<AuthToken> { return this.current; }
+}
+
 class ThrowOnExecuteAuth extends MockAuth {
   private getTokenCalls = 0;
 
@@ -650,7 +735,7 @@ class ThrowOnExecuteAuth extends MockAuth {
       throw new Error("execute auth unavailable");
     }
 
-    return super.getToken();
+    return super.getToken([]);
   }
 }
 
@@ -659,12 +744,13 @@ class CapturingAuth extends MockAuth {
 
   override async getToken(scopes: string[]): Promise<AuthToken> {
     this.requestedScopes.push([...scopes]);
-    return super.getToken();
+    return super.getToken([]);
   }
 }
 
 class Harness {
-  readonly service: GraphService;
+  readonly service: WriteGate;
+  readonly graphService: GraphService;
   readonly fetcher: ReturnType<typeof vi.fn<FetchLike>>;
   readonly browserUrls: string[] = [];
 
@@ -677,7 +763,8 @@ class Harness {
     elicitInput?: (params: unknown) => Promise<{ action: "accept" | "decline" | "cancel"; content?: Record<string, string> }>;
   }) {
     this.fetcher = params.fetcher;
-    this.service = new GraphService({
+    this.graphService = new GraphService({ auth: params.auth ?? new MockAuth(params.token), fetcher: params.fetcher, appDataPath });
+    this.service = new WriteGate({
       auth: params.auth ?? new MockAuth(params.token),
       fetcher: params.fetcher,
       appDataPath,
@@ -717,6 +804,7 @@ class Harness {
 
   async close(): Promise<void> {
     await this.service.close();
+    await this.graphService.close();
   }
 }
 

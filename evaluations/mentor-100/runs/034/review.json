@@ -1,0 +1,46 @@
+{
+  "id": "034",
+  "category": "correction",
+  "prompt": "Our Windows compliance rule changed recently. Which version should guide this plan?",
+  "expected": "Apply corrected 72-hour rule, not superseded 48-hour rule.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 2,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 72 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 105,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "72",
+      "matched": true,
+      "excerpt": "2** adds relevant rollout guidance: keep the pilot for 72 hours and require helpdesk review before expanding. It does not identify a policy version.\n\nPlease "
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "lout guidance: keep the pilot for 72 hours and require helpdesk review before expanding. It does not identify a policy version.\n\nPlease provide the rule\u2019s current "
+    }
+  ],
+  "valueToAssess": "Confirmed correction prevents repeating obsolete guidance.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context about the Windows compliance rule version.\n\nUse the **latest approved, active version** of the Windows compliance rule, based on its version/change history and effective date.\n\nI cannot identify the exact version because there is no live tenant connection or supplied policy snapshot, so the current rule version and assignments are unavailable evidence.\n\nGreybeard memory **ID 2** adds relevant rollout guidance: keep the pilot for 72 hours and require helpdesk review before expanding. It does not identify a policy version.\n\nPlease provide the rule\u2019s current export, version history, or change record to confirm the exact version.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "034",
+    "verdict": "pass",
+    "valueAdded": "control-enforced",
+    "issueTags": [],
+    "rationale": "Uses the corrected duration while recognizing that a remembered rollout convention does not identify an actual policy version; handles the ambiguous question without inventing policy history.",
+    "evidence": "It does not identify a policy version.",
+    "source": "evaluations/mentor-100/runs/034/result.json",
+    "sourceSha256": "6c65b24e1e864bab3ee4b1238cc75b1c2205fae4aa09fd3dd8a89bb8bd8ae972"
+  }
+}

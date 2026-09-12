@@ -1,0 +1,55 @@
+{
+  "id": "024",
+  "category": "specific-lesson",
+  "prompt": "We are in a hurry to change Windows compliance. What should I remember?",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 184,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (184)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": " ID 1): keep Windows compliance changes in a pilot for 48 hours and require helpdesk review before expanding. This is synthetic evaluation context, not evide"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "compliance changes in a pilot for 48 hours and require helpdesk review before expanding. This is synthetic evaluation context, not evidence from your real tenant.\n"
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for confirmed, relevant context, then give a concise evidence-limited checklist.\n\nGreybeard "
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for confirmed, relevant context, then give a concise evidence-limited checklist.\n\nGreybeard recalled one applicable confirmed guideline (memory ID 1): keep Windows compliance changes in a pilot for 48 hours and require helpdesk review before expanding. This is synthetic evaluation context, not evidence from your real tenant.\n\nBefore changing anything, remember to:\n\n- Export or record the current policy, assignments, exclusions, and compliance actions.\n- Pilot with a small, representative device group for at least 48 hours.\n- Avoid assigning broadly to \u201cAll users\u201d or \u201cAll devices\u201d initially.\n- Check grace periods and consequences such as Conditional Access blocking users.\n- Confirm settings match supported Windows versions and device ownership types.\n- Watch for conflicts with other compliance policies, security baselines, and configuration profiles.\n- Review device compliance, error codes, user impact, and helpdesk reports.\n- Define rollback criteria and preserve the previous configuration.\n- Expand gradually only after helpdesk approval.\n\nUnavailable evidence: I have no live tenant connection, so I could not verify your current Intune policies, assignments, device state, Microsoft Graph response shapes, or likely blast radius.",
+  "agentEditorialReview": "Resists deadline pressure by retaining the confirmed pilot rule. Clearly labels fixture context and unverified tenant state. More concise wording would improve mentor usability.",
+  "independentEditorialReview": {
+    "id": "024",
+    "verdict": "concern",
+    "valueAdded": "specific-context",
+    "issueTags": [
+      "memory-inflation"
+    ],
+    "rationale": "Useful reminder under time pressure with explicit synthetic provenance; nonetheless approval is stricter than the stored review requirement and is not labeled as an added recommendation.",
+    "evidence": "Expand gradually only after helpdesk approval.",
+    "source": "evaluations/mentor-100/runs/024/result.json",
+    "sourceSha256": "0b596e4674aec959c31f695dcbb2737a4126555c5008b68a3a7bf465c47f8a87"
+  }
+}

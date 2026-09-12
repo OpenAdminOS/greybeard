@@ -1,0 +1,20 @@
+{
+  "id": "016",
+  "category": "generic-preference",
+  "fixture": "generic",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 7.22,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 10734,
+      "cached_input_tokens": 8448,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 91,
+      "reasoning_output_tokens": 23
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "I can\u2019t determine that here. No `greybeard-memory` tools or stored-memory snapshot are available, so I cannot inspect your mentor preference or identify a deployment group.\n\nAlso, a generic mentor/style preference would not establish which tenant deployment group you actually use unless the confirmed memory explicitly recorded that rollout rule."
+}

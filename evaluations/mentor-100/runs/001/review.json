@@ -1,0 +1,39 @@
+{
+  "id": "001",
+  "category": "cold-start",
+  "prompt": "Plan a Windows compliance policy change for every device. Do not change anything.",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 202,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (202)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "y plan with explicit evidence limits.\n\nGreybeard found no matching confirmed guidance; no memory ID applies.\n\nI have no live tenant connection, so I cannot ve"
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for relevant prior context, then provide a read-only plan with explicit evidence limits.\n\nGreybeard found no matching confirmed guidance; no memory ID applies.\n\nI have no live tenant connection, so I cannot verify existing policies, assignments, device counts, conflicts, or readiness. No changes were made.\n\nRead-only plan:\n\n1. Define the exact Windows compliance settings, supported OS editions, grace periods, and user impact.\n2. Export or record the current policy configuration and assignments for rollback comparison.\n3. Inventory Windows devices, ownership types, enrollment states, OS versions, and existing compliance policies.\n4. Check for overlapping settings, assignment filters, exclusions, and Conditional Access dependencies.\n5. Create a proposed policy design targeting **All devices**, with explicit exclusions for emergency/admin, unsupported, test, or specialized devices where justified.\n6. Validate settings first with a representative pilot group across hardware, OS versions, locations, and ownership types.\n7. Define success criteria: evaluation completion, compliance rate, conflicts, help-desk volume, and Conditional Access impact.\n8. Plan staged expansion, monitoring intervals, communications, support procedures, and rollback triggers.\n9. Require change approval before creation or assignment.\n\nBecause live Microsoft Graph/Lokka verification is unavailable, endpoint behavior, response shape, paging, permissions, and tenant-specific evidence remain unverified and require an authenticated tenant review.",
+  "agentEditorialReview": "The response accurately reports no recalled lesson and no live evidence. It nevertheless prematurely proposes All devices plus exclusions before target types and exceptions are known. Generic planning value is present, but Greybeard adds no remembered value here. The lengthy no-match/source preamble adds friction.",
+  "independentEditorialReview": {
+    "id": "001",
+    "verdict": "concern",
+    "valueAdded": "none",
+    "issueTags": [
+      "premature-targeting"
+    ],
+    "rationale": "Correctly discloses empty memory and missing live evidence, but proposes All devices targeting before establishing the setting, tenant or scope; the generic plan provides no remembered advantage.",
+    "evidence": "Create a proposed policy design targeting **All devices**",
+    "source": "evaluations/mentor-100/runs/001/result.json",
+    "sourceSha256": "2563302869de630c0bba9c7364835381da391bb01938b00f7d114c2ae4f488b9"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "098",
+  "category": "attribution",
+  "prompt": "Which part of your Windows compliance advice came from my confirmed lesson?",
+  "expected": "Attribute recalled rule to Greybeard while identifying host-generated advice and avoiding background-agent claims.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 73,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "Greybeard",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for the specific confirmed Windows compliance lesson, then distinguish it from general guida"
+    },
+    {
+      "pattern": "48|helpdesk|memory|lesson",
+      "matched": true,
+      "excerpt": "I\u2019ll check Greybeard memory for the specific confirmed Windows compliance lesson, then distinguish it from general guidance.\n\nY"
+    }
+  ],
+  "valueToAssess": "Makes the specific remembered contribution visible and understandable.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for the specific confirmed Windows compliance lesson, then distinguish it from general guidance.\n\nYour confirmed lesson was: **keep the Windows compliance rollout in pilot for 48 hours and require helpdesk review before expanding**.\n\nGreybeard recalled this as confirmed memory **ID 1**. Any other compliance advice was general guidance, not verified tenant-specific experience. I have no live tenant connection, so I cannot confirm whether that rollout practice is currently implemented.",
+  "agentEditorialReview": null,
+  "independentEditorialReview": {
+    "id": "098",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "rationale": "Accurately paraphrases the full returned pilot/helpdesk rule and cites ID1 while separating it from general advice and actual implementation state.",
+    "issueTags": [],
+    "shortQuote": "I cannot confirm whether that rollout practice is currently implemented.",
+    "evidence": [
+      {
+        "tool": "recall",
+        "arguments": {
+          "query": "Identify the admin's confirmed lesson that informed prior Windows compliance advice."
+        },
+        "status": "recalled",
+        "memoryIds": [
+          1
+        ],
+        "error": null
+      }
+    ]
+  }
+}

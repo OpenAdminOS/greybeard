@@ -1,0 +1,41 @@
+{
+  "id": "019",
+  "category": "generic-preference",
+  "prompt": "I want to understand whether you remember my environment or just how I like advice.",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 93,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "nction between remembered environment facts and advice preferences.\n\nI currently remember only how you prefer advice, not your actual environment.\n\nGreybeard recalle"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for a narrowly scoped distinction between remembered environment facts and advice preferences.\n\nI currently remember only how you prefer advice, not your actual environment.\n\nGreybeard recalled one confirmed preference, memory ID 1: for Windows compliance and device administration, provide relevant recommendations informed by confirmed memories.\n\nNo tenant configuration, devices, policies, identities, or other environment facts were recalled. I also have no live tenant connection, so I cannot independently verify any such details. The recalled item comes from a synthetic evaluation fixture and is not evidence about your real tenant.",
+  "agentEditorialReview": "Correctly distinguishes advice style from environment knowledge. Clear provenance answer; synthetic-fixture language reflects evaluation priming, not proposed production wording.",
+  "independentEditorialReview": {
+    "id": "019",
+    "verdict": "pass",
+    "valueAdded": "preference",
+    "issueTags": [],
+    "rationale": "Accurately distinguishes remembered advice preference from environment knowledge and explicitly labels synthetic provenance.",
+    "evidence": "No tenant configuration, devices, policies, identities, or other environment facts were recalled.",
+    "source": "evaluations/mentor-100/runs/019/result.json",
+    "sourceSha256": "d11d7cc931288fa1625d506930b8eb609a59b2eb10427ba9ab4a0426f3f177de"
+  }
+}

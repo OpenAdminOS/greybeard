@@ -1,0 +1,88 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "24deb72a154a254518bb464f6c30ad58bf6f31e41574828f9756ec002aad3726",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "a5bb60f5be3d9b367280b3d02ffc5ecbf379b1d2587484c4e3037a3a32134e57"
+  },
+  "id": "10",
+  "fixture": "scoped",
+  "prompt": "What do we know about our Exchange email routing conventions?",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_3",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Exchange email routing conventions"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_7",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "What do we know about our Exchange email routing conventions?"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"a1ace752-4665-48d6-ba6d-bc6283620b8f\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"no memory for this yet\",\"results\":[],\"recallStatus\":\"no-match\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard found no matching confirmed guidance for this task in this profile and scope.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "a1ace752-4665-48d6-ba6d-bc6283620b8f",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "no memory for this yet",
+          "results": [],
+          "recallStatus": "no-match",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard found no matching confirmed guidance for this task in this profile and scope."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll check the stored tenant guidance for Exchange routing conventions and their sources.\n\nI\u2019m using the tenant-decisions skill to look for recorded conventions. No applicable scope labels were returned, so I\u2019ll check global guidance.\n\nI found no confirmed records about your Exchange email routing conventions in the current memory profile. I haven\u2019t checked live Exchange configuration, so the routing setup and its rationale remain unverified.\n\nThe key items to establish are inbound/outbound connectors, smart hosts, accepted domains, transport rules, and any hybrid routing. Once you provide the conventions and their rationale, I can prepare a memory candidate for your local review.",
+  "usage": [
+    {
+      "input_tokens": 56065,
+      "cached_input_tokens": 39808,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 425,
+      "reasoning_output_tokens": 12
+    }
+  ]
+}

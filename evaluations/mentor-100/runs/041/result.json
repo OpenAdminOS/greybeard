@@ -1,0 +1,57 @@
+{
+  "id": "041",
+  "category": "pause",
+  "fixture": "paused",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 20.3,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32648,
+      "cached_input_tokens": 29568,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 443,
+      "reasoning_output_tokens": 156
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_0",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Advise on a Windows compliance deployment while learning and advice are paused"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"advice paused\",\"results\":[],\"recallStatus\":\"paused\",\"attribution\":{\"kind\":\"none\",\"statement\":\"Greybeard learning and advice are paused. No remembered guidance was returned.\"},\"serializedBytes\":0,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":0,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "advice paused",
+          "results": [],
+          "recallStatus": "paused",
+          "attribution": {
+            "kind": "none",
+            "statement": "Greybeard learning and advice are paused. No remembered guidance was returned."
+          },
+          "serializedBytes": 0,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 0,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "Greybeard recall returned `recallStatus: paused`; no remembered guidance or memory IDs were available. Its contribution is therefore limited to confirming that learning and advice are paused.\n\nWith no live tenant connection or supplied snapshot, I cannot verify current Windows compliance policies, assignments, device readiness, conflicts, or deployment outcomes. General deployment advice:\n\n- Document the intended compliance rules and remediation grace periods.\n- Test with a small, representative pilot group.\n- Exclude emergency/admin access accounts where appropriate to prevent lockout.\n- Monitor compliance status, evaluation errors, and Conditional Access impact.\n- Expand in controlled waves with explicit success and rollback criteria.\n- Keep Greybeard learning paused throughout; resume it only with separate authorization.\n\nAny tenant-specific recommendation requires read-only evidence from the tenant. If Microsoft Graph validation is required, Lokka access with `graphApiVersion: \"beta\"` must be provided before endpoint or response-shape claims can be verified."
+}

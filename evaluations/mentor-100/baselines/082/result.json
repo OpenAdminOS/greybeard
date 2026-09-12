@@ -1,0 +1,20 @@
+{
+  "id": "082",
+  "category": "missing-tenant",
+  "fixture": "empty",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 20.04,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 9700,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 240,
+      "reasoning_output_tokens": 52
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "The only defensible conclusion is that Microsoft Graph denied the request. A `403 Authorization_RequestDenied` does **not** prove that the requested resource is missing or inaccessible to everyone.\n\nPossible causes include:\n\n- Missing delegated or application permissions\n- Admin consent not granted\n- Insufficient directory role or resource-specific authorization\n- Conditional Access, tenant policy, or workload-specific restrictions\n- An endpoint that does not support the chosen permission/access mode\n\nI cannot identify the exact cause without the requested `/beta` endpoint, caller identity type, granted permissions/consent, and complete Graph error response (including `innerError`, request ID, and timestamp). I also have no live tenant connection or Lokka access, so I cannot independently verify the endpoint, response, or tenant configuration. A tenant administrator should provide those details or authorize a read-only Lokka Microsoft MCP check with `graphApiVersion: \"beta\"`."
+}

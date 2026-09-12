@@ -1,0 +1,67 @@
+{
+  "id": "021",
+  "category": "specific-lesson",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 22.6,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 33063,
+      "cached_input_tokens": 29824,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 560,
+      "reasoning_output_tokens": 156
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan a Windows compliance change for all devices using the remembered rollout convention."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check Greybeard for the remembered rollout convention, then frame the plan without claiming any live tenant evidence.\n\nGreybeard memory **ID 1** confirms your rollout convention: hold a Windows compliance pilot for **48 hours**, then require **helpdesk review before expansion**. That changes \u201call devices\u201d into a staged rollout whose final scope is all eligible Windows devices.\n\nPlan:\n\n1. Define the compliance changes, supported Windows versions, grace period, user messaging, exemptions, and rollback criteria.\n2. Baseline current compliance and confirm break-glass, kiosk, shared, and other exceptional devices are handled appropriately.\n3. Deploy to a representative pilot group.\n4. Observe for 48 hours. Track compliance failures, enrollment/check-in issues, Conditional Access impact, and support tickets.\n5. Require documented helpdesk approval.\n6. Expand through successively larger rings, pausing on threshold breaches.\n7. Assign to all eligible Windows devices only after each gate passes.\n8. Monitor afterward and retain a rollback path, ownership, and audit record.\n\nUnavailable evidence: I have no live tenant connection, so I cannot verify device counts, existing policies, assignments, exclusions, conflicts, licenses, or Graph responses. Before execution, an authenticated admin should validate those items in Intune; live Microsoft Graph verification would also require Lokka access with sufficient read permissions and `graphApiVersion: \"beta\"`."
+}

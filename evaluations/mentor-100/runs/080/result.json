@@ -1,0 +1,67 @@
+{
+  "id": "080",
+  "category": "plan-only",
+  "fixture": "lesson",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 16.56,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 32734,
+      "cached_input_tokens": 27264,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 427,
+      "reasoning_output_tokens": 80
+    }
+  ],
+  "mcpCalls": [
+    {
+      "id": "item_1",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Explain what remains unverified in a Windows compliance plan, read-only, with no live tenant connection."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"global\",\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":229,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":229,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "global",
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 229,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 229,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "errors": [],
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed context, then give a read-only assessment with explicit evidence limits.\n\nNo compliance plan or tenant snapshot was supplied, and I have no live tenant connection. Therefore, the following remains unverified:\n\n- Current Intune compliance policies, assignments, exclusions, and scope tags\n- Policy settings, grace periods, scheduled actions, and conflict handling\n- Device enrollment, check-in, compliance, and stale-device status\n- Conditional Access dependencies and enforcement behavior\n- Platform/version applicability, licensing, permissions, and RBAC\n- User/device impact, pilot results, exceptions, and rollback readiness\n- Microsoft Graph `/beta` endpoint responses, paging, required fields, and errors\n\nLive Graph verification through Lokka could not be performed because no authenticated tenant connection is available. Any conclusion about the real tenant would therefore be unsupported.\n\nGreybeard contributed confirmed guidance from memory ID 1: keep a Windows compliance pilot active for 48 hours and require helpdesk review before expansion. This is general rollout guidance from an evaluation fixture, not evidence that the tenant\u2019s plan follows it or that the rollout is safe.\n\nNo changes were made."
+}

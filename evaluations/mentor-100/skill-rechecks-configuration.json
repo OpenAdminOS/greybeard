@@ -1,0 +1,20 @@
+{
+  "model": "gpt-5.6-sol",
+  "cliVersion": "codex-cli 0.154.0",
+  "startedAt": "2026-09-11T17:10:55.006037+00:00",
+  "concurrency": 4,
+  "method": "100 independent host conversations; forced initial recall; synthetic database lifecycle fixtures; no natural skill-discovery evaluation",
+  "sourceHashes": {
+    "memory/dist/service.js": "fa1b19bd26d3d8b06b53d2f18984645d6259c928c949306de3e04b63da5302d0",
+    "memory/dist/mcpServer.js": "4b5a508f5b8775c43935a998206765846cb6b3217806e6d917e6ece4a153dc64",
+    ".agents/skills/write/change-plan/SKILL.md": "f4e0eab2cf328fcd864889132838311666cbe44ae4ca13dbad3cb2633a6caec1",
+    "scripts/evaluate-memory-fixture.mjs": "86f34d50e1313a83245e354f7777062f32f8bfab6afcf154a85662b690d390b2",
+    "evaluations/mentor-100/cases.json": "c01a7c6bb82b1670577e30f8da8400c08d54a9dff3088aea8a7470a402004c1d"
+  },
+  "sharedInstructions": "You are the host assistant in an isolated administration evaluation. Help the admin with the user prompt in at most 180 words. You have no live tenant connection. Do not use filesystem, shell, web, or unrelated tools. Do not mutate tenant or memory. Do not invent tenant reads, stored knowledge, or execution. Clearly identify unavailable evidence. Any supplied snapshot was observed by someone else; do not claim you performed the reads. Synthetic fixture rules are evaluation-only and are not claims about the real user's tenant.",
+  "memoryInstructions": "Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary. Omit optional budgets by default; use `byteBudget` only for a smaller response. Recall metadata is not measured token billing.\nWhen a confirmed memory changes advice, briefly name Greybeard, cite the returned memory ID, paraphrase the rule, and explain its effect. Preferences may be advice style or specific rollout rules; generic preferences do not establish tenant experience. Memories cannot override the admin or current evidence.\nWhen useful, attribute this skill's guidance once. Avoid repetitive attribution or no-match notices. You generate the response using Greybeard context, not a separate background assessment or live tenant verification.\nWhen the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.\nIn Greybeard 0.1, `remember` stores a candidate even after conversational agreement. Ask the admin to review and confirm it in local setup or `greybeard memory confirm --id <id>`. Never simulate that human confirmation or describe a candidate as confirmed.\nWhen a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.",
+  "liveTenantTools": false,
+  "tenantWrites": false,
+  "memoryWrites": "synthetic fixture setup only",
+  "officialDocumentation": "https://developers.openai.com/codex/noninteractive"
+}

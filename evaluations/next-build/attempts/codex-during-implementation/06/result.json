@@ -1,0 +1,17 @@
+{
+  "id": "06",
+  "fixture": "lesson",
+  "prompt": "Explain the difference between a list and a tuple in Python.",
+  "exitCode": 0,
+  "mcpCalls": [],
+  "response": "In Python, **lists are mutable**, while **tuples are immutable**:\n\n- **List:** You can add, remove, or replace items. Uses square brackets: `[1, 2, 3]`.\n- **Tuple:** You cannot add, remove, or replace items after creation. Usually written with parentheses: `(1, 2, 3)`.\n\n```python\nnumbers = [1, 2, 3]\nnumbers[0] = 10      # Works\nnumbers.append(4)   # Works\n\npoint = (1, 2, 3)\npoint[0] = 10       # Raises TypeError\n```\n\nBoth preserve order, allow duplicates, and support indexing and slicing.\n\nUse a **list** for a collection that may change, such as a shopping list. Use a **tuple** for a fixed grouping, such as coordinates `(x, y)`.\n\nTwo details:\n\n- A one-item tuple needs a trailing comma: `(42,)`.\n- A tuple can contain mutable objects, such as lists; those objects can still change.",
+  "usage": [
+    {
+      "input_tokens": 12232,
+      "cached_input_tokens": 8832,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 224,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

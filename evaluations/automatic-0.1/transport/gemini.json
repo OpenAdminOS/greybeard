@@ -1,0 +1,265 @@
+{
+  "checks": {
+    "recall": true,
+    "preference": true
+  },
+  "preferenceExitCode": 0,
+  "preferenceState": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "gemini",
+          "lastSeen": 1789209540995,
+          "events": 6,
+          "contextBytes": 2553,
+          "adviceEvents": 4,
+          "proposals": 1
+        }
+      ],
+      "recent": [
+        {
+          "id": 6,
+          "host": "gemini",
+          "event": "stop",
+          "createdAt": 1789209540995,
+          "status": "quiet",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 5,
+          "host": "gemini",
+          "event": "prompt",
+          "createdAt": 1789209540804,
+          "status": "context",
+          "bytes": 753,
+          "candidateId": 2,
+          "diagnostic": null,
+          "memories": [
+            {
+              "id": 1,
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+            }
+          ],
+          "reminders": []
+        },
+        {
+          "id": 4,
+          "host": "gemini",
+          "event": "start",
+          "createdAt": 1789209540639,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 3,
+          "host": "gemini",
+          "event": "stop",
+          "createdAt": 1789209539357,
+          "status": "quiet",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 2,
+          "host": "gemini",
+          "event": "prompt",
+          "createdAt": 1789209539155,
+          "status": "context",
+          "bytes": 900,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [
+            {
+              "id": 1,
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+            }
+          ],
+          "reminders": [
+            "Broad rollout: establish the affected population, start with a representative pilot, and define stop conditions and recovery before expanding.",
+            "Access change: check dependent sign-in paths and recovery access before rollout. A successful configuration change does not prove users can still access their resources."
+          ]
+        },
+        {
+          "id": 1,
+          "host": "gemini",
+          "event": "start",
+          "createdAt": 1789209538990,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "a6fed4c5-7466-4c95-bb09-ebbc52378f56",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789209537,
+        "lastUsedAt": 1789209540,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789209537,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      },
+      {
+        "id": 2,
+        "revision": "5d2102ea-4499-474b-8c82-3e5c8ed54383",
+        "type": "preference",
+        "content": "We always require a recovery owner before a production rollout.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789209540,
+        "lastUsedAt": 1789209540,
+        "profileId": "profile-a",
+        "status": "candidate",
+        "source": "automatic-gemini",
+        "scope": "global",
+        "confirmedAt": null,
+        "confirmationChannel": null,
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "sourceHashes": {
+    "cli/dist/automaticMentor.js": "757ad77a474972631be5626e5374bee13da70ddf624caba06a2340853d379536",
+    "cli/dist/automaticHooks.js": "ce093d490c04c88bf30c397c197a95db40e45cd88561f2e11471353120aba960",
+    "memory/dist/automatic.js": "42e6eddd6b294573f7fcca90718e0ed5b7cd4149b6b73494eafba534f7d557e0"
+  },
+  "version": "0.59.0",
+  "host": "gemini",
+  "exitCode": 0,
+  "requests": [
+    {
+      "phase": "recall",
+      "hasCandidateNotice": false,
+      "path": "/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse",
+      "hasConfirmedLesson": true,
+      "hasOriginalPrompt": true,
+      "hasMentorContext": true
+    },
+    {
+      "phase": "preference",
+      "hasCandidateNotice": true,
+      "path": "/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse",
+      "hasConfirmedLesson": true,
+      "hasOriginalPrompt": true,
+      "hasMentorContext": true
+    }
+  ],
+  "automatic": {
+    "activity": {
+      "hosts": [
+        {
+          "host": "gemini",
+          "lastSeen": 1789209539357,
+          "events": 3,
+          "contextBytes": 1350,
+          "adviceEvents": 2,
+          "proposals": 0
+        }
+      ],
+      "recent": [
+        {
+          "id": 3,
+          "host": "gemini",
+          "event": "stop",
+          "createdAt": 1789209539357,
+          "status": "quiet",
+          "bytes": 0,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        },
+        {
+          "id": 2,
+          "host": "gemini",
+          "event": "prompt",
+          "createdAt": 1789209539155,
+          "status": "context",
+          "bytes": 900,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [
+            {
+              "id": 1,
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+            }
+          ],
+          "reminders": [
+            "Broad rollout: establish the affected population, start with a representative pilot, and define stop conditions and recovery before expanding.",
+            "Access change: check dependent sign-in paths and recovery access before rollout. A successful configuration change does not prove users can still access their resources."
+          ]
+        },
+        {
+          "id": 1,
+          "host": "gemini",
+          "event": "start",
+          "createdAt": 1789209538990,
+          "status": "context",
+          "bytes": 450,
+          "candidateId": null,
+          "diagnostic": null,
+          "memories": [],
+          "reminders": []
+        }
+      ],
+      "retentionDays": 7,
+      "storesPrompts": false
+    },
+    "memories": [
+      {
+        "id": 1,
+        "revision": "a6fed4c5-7466-4c95-bb09-ebbc52378f56",
+        "type": "decision",
+        "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+        "tenant": "synthetic-lab",
+        "createdAt": 1789209537,
+        "lastUsedAt": 1789209539,
+        "profileId": "profile-a",
+        "status": "confirmed",
+        "source": "evaluation-fixture",
+        "scope": "global",
+        "confirmedAt": 1789209537,
+        "confirmationChannel": "local-cli",
+        "supersedes": null,
+        "supersededAt": null,
+        "evidenceKind": "rule",
+        "observedAt": null,
+        "outcome": null
+      }
+    ]
+  },
+  "stderr": "Warning: Basic terminal detected (TERM=dumb). Visual rendering will be limited. For the best experience, use a terminal emulator with truecolor support.\nWarning: 256-color support not detected. Using a terminal with at least 256-color support is recommended for a better visual experience.\nRipgrep is not available. Falling back to GrepTool.\n[STARTUP] Phase 'cleanup_ops' was started but never ended. Skipping metrics.\n[STARTUP] Cannot measure phase 'cleanup_ops': start mark 'startup:cleanup_ops:start' not found (likely cleared by reset).\n",
+  "stdout": "{\n  \"session_id\": \"82da45c5-4982-4c34-b4b6-403124c8f17d\",\n  \"response\": \"Synthetic transport acknowledgement.\",\n  \"stats\": {\n    \"models\": {\n      \"gemini-2.5-flash\": {\n        \"api\": {\n          \"totalRequests\": 1,\n          \"totalErrors\": 0,\n          \"totalLatencyMs\": 21,\n          \"errorsByType\": {}\n        },\n        \"tokens\": {\n          \"input\": 1,\n          \"prompt\": 1,\n          \"candidates\": 1,\n          \"total\": 2,\n          \"cached\": 0,\n          \"thoughts\": 0,\n          \"tool\": 0\n        },\n        \"roles\": {\n          \"main\": {\n            \"totalRequests\": 1,\n            \"totalErrors\": 0,\n            \"totalLatencyMs\": 21,\n            \"tokens\": {\n              \"input\": 1,\n              \"prompt\": 1,\n              \"candidates\": 1,\n              \"total\": 2,\n              \"cached\": 0,\n              \"thoughts\": 0,\n              \"tool\": 0\n            }\n          }\n        }\n      }\n    },\n    \"tools\": {\n      \"totalCalls\": 0,\n      \"totalSuccess\": 0,\n      \"totalFail\": 0,\n      \"totalDurationMs\": 0,\n      \"totalDecisions\": {\n        \"accept\": 0,\n        \"reject\": 0,\n        \"modify\": 0,\n        \"auto_accept\": 0\n      },\n      \"byName\": {}\n    },\n    \"files\": {\n      \"totalLinesAdded\": 0,\n      \"totalLinesRemoved\": 0\n    }\n  }\n}",
+  "method": "Actual CLI connected to a local synthetic response server. No model reasoning evaluated, no account authentication or tenant tools. Gemini workspace trust is enabled only for the generated temporary fixture. Only request booleans are retained, not full host system prompts."
+}

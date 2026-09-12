@@ -118,7 +118,7 @@ export class WriteGate {
     const operations = normalizePlanInput(input);
     const requiredScopes = normalizeRequiredScopes(input.requiredScopes);
     const scopeConfig = await readGreybeardConfig(this.appDataPath);
-    assertConfiguredPlanScopes(scopeConfig, requiredScopes);
+    assertConfiguredPlanScopes(scopeConfig, requiredScopes, this.now());
     const authToken = await this.auth.getToken(requiredScopes);
     if (authToken.credentialMode !== "writes" || !authToken.writesConfigured) {
       throw writesNotConfigured();
@@ -152,7 +152,7 @@ export class WriteGate {
       planId: plan.id,
       rendered,
       cliApprove: config.gate?.cliApprove === true,
-      isAwaiting: () => plan.status === "awaiting_approval",
+      isAwaiting: () => plan.status === "awaiting_approval" && this.now() < plan.approvalDeadlineMs,
       onDecision: (decision) => this.applyDecision(plan, decision)
     });
 
@@ -244,6 +244,10 @@ export class WriteGate {
         throw writesNotConfigured();
       }
       assertTokenScopes(authToken, plan.requiredScopes);
+      assertSameCredential(plan.authToken, authToken);
+      // Local permission removal or lease expiry invalidates an old approval,
+      // even if an access token still carries its original consented scopes.
+      assertConfiguredPlanScopes(await readGreybeardConfig(this.appDataPath), plan.requiredScopes, this.now());
 
       await this.replayOperations(plan, authToken, results);
       status = summarizeExecution(results);
@@ -283,7 +287,7 @@ export class WriteGate {
       stopOnError: params.input.stopOnError ?? true,
       operations: params.operations,
       requiredScopes: params.requiredScopes,
-      authToken: params.authToken,
+      authToken: { ...params.authToken, grantedScopes: [...params.authToken.grantedScopes] },
       clientName: clientName(this.clientContext()),
       createdAtMs,
       approvalDeadlineMs: createdAtMs + APPROVAL_TTL_MS,
@@ -307,6 +311,15 @@ export class WriteGate {
 
   private async applyDecision(plan: PlanRecord, decision: ApprovalDecision): Promise<void> {
     if (plan.status !== "awaiting_approval") {
+      return;
+    }
+
+    if (this.now() >= plan.approvalDeadlineMs) {
+      plan.status = "timed_out";
+      this.notify(plan);
+      // A browser decision runs inside the approval HTTP handler. Do not wait
+      // for that server to close before its current response can complete.
+      void plan.approvalHandle?.close().catch(() => undefined);
       return;
     }
 
@@ -720,13 +733,26 @@ function assertTokenScopes(token: AuthToken, requiredScopes: string[]): void {
   });
 }
 
+function assertSameCredential(planned: AuthToken, current: AuthToken): void {
+  const fields = ["tenantId", "clientId", "account", "clientIdKind", "credentialMode"] as const;
+  if (fields.some(field => !planned[field] || planned[field] !== current[field])) {
+    throw new GreybeardGraphError({
+      code: "E_PLAN_INVALID",
+      message: "The execution credential differs from the credential shown in the approved plan.",
+      guidance: "Select the intended tenant and account, then create a new plan for approval.",
+      details: { reason: "credential-identity-changed" }
+    });
+  }
+}
+
 function assertConfiguredPlanScopes(
   config: Awaited<ReturnType<typeof readGreybeardConfig>>,
-  requiredScopes: string[]
+  requiredScopes: string[],
+  now = Date.now()
 ): void {
   const configured = new Set([
     ...(config.requestedWriteScopes ?? []),
-    ...activeScopeLeases(config).map((lease) => lease.scope)
+    ...activeScopeLeases(config, now).map((lease) => lease.scope)
   ].map((scope) => scope.toLowerCase()));
   const missingScopes = requiredScopes.filter((scope) => !configured.has(scope.toLowerCase()));
   if (missingScopes.length === 0) {
@@ -764,8 +790,8 @@ function normalizeOperation(operation: PlanWriteOperationInput, index: number): 
   }
 
   const apiVersion = operation.apiVersion ?? "beta";
-  if (apiVersion !== "v1.0" && apiVersion !== "beta") {
-    throw invalidPlan(`operations[${index}].apiVersion must be v1.0 or beta.`);
+  if (apiVersion !== "beta") {
+    throw invalidPlan(`operations[${index}].apiVersion must be beta.`);
   }
 
   const path = normalizePath(operation.path);
@@ -775,13 +801,14 @@ function normalizeOperation(operation: PlanWriteOperationInput, index: number): 
     throw invalidPlan(`operations[${index}].body exceeds 256 KB.`);
   }
 
+  const body: unknown = operation.body === undefined ? undefined : JSON.parse(bodyText);
   let hash: string;
   try {
     hash = operationHash({
       method,
       apiVersion,
       path,
-      body: operation.body
+      body
     });
   } catch {
     throw invalidPlan("operation body must be JSON serializable.");
@@ -791,7 +818,7 @@ function normalizeOperation(operation: PlanWriteOperationInput, index: number): 
     method,
     apiVersion,
     path,
-    body: operation.body,
+    body,
     reason: operation.reason,
     hash,
     bodyBytes

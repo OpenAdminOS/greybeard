@@ -4,211 +4,145 @@
     <img src="assets/logo/greybeard-light.png" alt="Greybeard logo: a bespectacled face with a grey beard" width="188">
   </picture>
 
-# Greybeard
+# Greybeard 0.1
 
-**Senior admin judgment for Microsoft 365, Intune, and Entra, in the AI client you already use.**
+**An IT mentor that learns how you work.**
 
-<p>
-  <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-1f1f1f?logo=anthropic&logoColor=white">
-  <img alt="Cursor" src="https://img.shields.io/badge/Cursor-1f1f1f?logo=cursor&logoColor=white">
-  <img alt="Codex CLI" src="https://img.shields.io/badge/Codex%20CLI-1f1f1f?logo=openai&logoColor=white">
-  <img alt="Gemini CLI" src="https://img.shields.io/badge/Gemini%20CLI-1f1f1f?logo=googlegemini&logoColor=white">
-  <img alt="GitHub Copilot" src="https://img.shields.io/badge/GitHub%20Copilot-1f1f1f?logo=githubcopilot&logoColor=white">
-</p>
+For Microsoft 365, Intune, and Entra administrators using AI tools.
 
 </div>
 
-Every team has one: the admin with the grey beard who has been there for years, who has seen the tenant grow from fifty seats to five thousand, and who knows without looking which Conditional Access policy will lock everyone out and which stale group is load-bearing. When a change is risky, you ask them first. That instinct is experience, and it usually walks out the door when they do.
+Greybeard notices relevant work through supported AI-tool events, brings in the lessons you have confirmed, and proposes useful operating preferences for review. It is free to use. You can use its local memory and admin skills without connecting a Microsoft tenant.
 
-Greybeard is that experience, made portable. It brings the veteran's habits to whatever AI client you already use: read before you write, ask for the narrowest permission that does the job, scope every query instead of dragging the whole tenant into context, reach for the full Graph surface when the task needs it, and never make a change to production without a human signing off first. The AI has the speed; Greybeard gives it the judgment.
+Greybeard is a local application. MCP exposes its memory and optional tenant-read tools to your AI client. Client integrations supply supported events; Greybeard does not watch your desktop or automatically observe every command. Your existing AI client supplies the model.
 
-Concretely, it is a portable set of Agent Skills plus MCP servers for Microsoft 365, Intune, and Entra admins. It calls the Microsoft Graph beta endpoint by default for full coverage, asks for the narrowest delegated scope that can do the job, uses `$select` and filters instead of over-fetching, and routes every tenant write through a server-side approval gate.
+## Desktop companion (current source)
 
-## One Overlay, Three Layers
+The companion now opens in its own application window. Manage memory, review exact proposals, add lessons from outcomes, inspect connections, rate recalled advice, and configure application updates without a browser tab. It keeps your existing local database. The optional Memory map shows recorded sources, timestamps and connections on a rotatable globe, with a flat view and exact-text details. It runs locally without model calls.
 
-Greybeard installs as a single overlay on the AI client you already use, and it works the same in every supported client. The three layers map to what a senior admin actually has:
+The new delivery is a Windows setup executable, an Apple Silicon DMG containing Greybeard.app, and a Linux AppImage. The CLI and MCP servers are bundled inside. [Companion application and installation flow](docs/0.1/companion.md) · [Implementation coverage](docs/0.1/reviews/implementation-coverage.md).
 
-| Layer | What it is | Why it exists |
-|---|---|---|
-| Skills, the judgment | Eighteen Agent Skills that encode how a senior admin thinks: which question to ask first, which approach fits which task, when to stop | An AI client with Graph access but no judgment over-fetches, guesses at endpoints, and writes without a plan |
-| MCP servers, the hands | `greybeard-graph` for scoped Graph reads and gated writes, `greybeard-memory` for recall, plus optional servers like the IntuneAutomation script library | Judgment without hands is a lecture; the servers make the narrow reads and route every write through human approval |
-| Memory, the experience | A local second brain that accumulates your naming conventions, decision records, and confirmed working queries and scripts | Experience is what makes the tenth session better than the first; without it every session starts from zero |
+These source changes are not yet in the published 0.1 assets described below. The Companion application workflow builds downloadable installer candidates; signed publication is a separate explicit workflow operation. Whole-app update code is implemented. Automatic distribution also requires published companion installers and update manifests; making the source public does not publish those assets.
 
-How the layers work together, using "why are marketing devices noncompliant" as the example: the judgment picks the intune-compliance skill and recalls that this tenant reports compliance by deployment ring; the hands run the narrowest filtered reads for the marketing group's devices; and once you confirm the root cause, the experience keeps the pattern, so next month's triage starts ahead instead of starting over.
+## Install Greybeard 0.1
 
-Each layer degrades independently. The craft skills work with no signed-in tenant, everything works with memory empty, and all three layers travel to every client you configure.
+Download the assets from the [0.1 release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0). These are the earlier executable build, not the current desktop companion. GitHub tag `v0.1.0` corresponds to the product display **0.1**.
 
-## What Is Included
+| Computer | Download |
+| --- | --- |
+| Windows x64 | `greybeard-win32-x64.exe` |
+| Apple Silicon Mac (macOS 14+) | `greybeard-darwin-arm64.dmg` |
+| Linux x64 | `greybeard-linux-x64.tar.gz` |
 
-- `greybeard-graph` (the hands): Microsoft Graph MCP server with MSAL interactive auth, read-safe Graph access, incremental consent guidance, and the write gate.
-- `greybeard-memory` (the experience): local SQLite and FTS5 memory shared across clients.
-- `greybeard` CLI: `setup`, `setup --writes`, `doctor`, `approve`, `memory`, `scopes`, and `update`. Optional MCP servers such as `intuneautomation` toggle with `greybeard setup --enable-server <name>` and `--disable-server <name>`. Setup never overwrites an MCP server entry you wrote yourself, and pinned mode pins third-party servers to the version vetted in the server catalog.
-- Eighteen Agent Skills (the judgment) under `.agents/skills/`, including app credentials and OIDC migration, organized into `read/`, `write/`, `craft/`, and `mentor/` categories.
+The Mac disk image contains `Greybeard.app`; the Linux archive contains `greybeard`. You do not need Node, npm, Git, or a source checkout. Download `SHA256SUMS.txt` from the same release and compare the checksum for your asset before opening it. Put the executable in its permanent location **before setup**, because client configurations refer to that path.
 
-## Install
-
-This repository is private. Authenticate GitHub CLI before installing.
-
-macOS and Linux:
-
-```sh
-gh auth login
-gh repo clone ugurkocde/greybeard ~/.greybeard
-~/.greybeard/install.sh
-```
-
-Windows PowerShell:
+On Windows, move the executable into `%LOCALAPPDATA%\Greybeard\bin`, rename it to `greybeard.exe`, then double-click it. For terminal setup:
 
 ```powershell
-gh auth login
-gh repo clone ugurkocde/greybeard (Join-Path $HOME ".greybeard")
-& (Join-Path $HOME ".greybeard\install.ps1")
+& "$env:LOCALAPPDATA\Greybeard\bin\greybeard.exe" setup
 ```
 
-Both scripts clone the repo to `~/.greybeard`, run `npm ci`, build the workspaces, install the `greybeard` command, and launch `greybeard setup`. To install from a fork or local checkout instead, set `GREYBEARD_REPO_URL` to that URL.
+On a Mac, open the DMG, drag **Greybeard.app** into **Applications**, eject the disk image, then open **Greybeard** from Applications. For terminal setup:
 
-## First Run
-
-Run `greybeard setup`. Before a browser opens, setup shows what will happen and waits for confirmation in interactive terminals:
-
-```text
-Greybeard setup
-
-Will configure Claude Code and Cursor. (Codex CLI, Gemini CLI, GitHub Copilot not detected)
-
-Sign in to Microsoft
-  Microsoft's own sign-in page (login.microsoftonline.com) with
-  the first-party Microsoft Graph Command Line Tools app.
-  Greybeard never sees your password, registers no app of its own,
-  and cannot write to your tenant.
-  Requests 6 read-only scopes: users, groups, policies, org and license info, audit logs, usage reports.
-  Run greybeard scopes for the full list and reasons.
-
-Press Enter to open your browser and sign in (Ctrl+C to cancel)
-OK    Signed in                admin@contoso.com (contoso.com)
-      MCP servers              greybeard-graph, greybeard-memory, intuneautomation
-OK    Claude Code              MCP servers and 18 skills configured
-OK    Cursor                   MCP servers, 18 skills, and context block configured
-OK    Memory                   ready; weekly auto-update scheduled
-OK    Memory hook              installed in ~/.claude/settings.json
-
-Done. Open Claude Code and ask: what is my tenant MFA coverage?
+```sh
+"/Applications/Greybeard.app/Contents/MacOS/GreybeardLauncher" setup
 ```
 
-`greybeard scopes` prints every Tier 1, Tier 2, and write scope with the reason it is requested. `--verbose` adds file paths and detection details to the setup ledger. After setup, run `greybeard doctor`, then ask the suggested tenant-pulse question in your client.
+The release workflow signs, notarizes, and staples both the Mac app and disk image. The DMG metadata records the verification results and software and packaging commits.
 
-Setup is idempotent. It preserves unrelated user MCP config and replaces only Greybeard-owned blocks or symlinks.
+Setup detects your AI clients, configures your selection, creates local memory, and defaults updates to **Notify**. It requires no Microsoft sign-in or tenant permissions. Restart your selected AI clients after setup.
 
-## Skill Catalog
+The executable contains the runtime, skills, logo, and SQLite library. It extracts integrity-checked assets into application data; settings and memories remain outside the executable so they survive replacement. There is no configured automatic-update feed for this release: updates are manual downloads.
 
-Skills live under `.agents/skills/<category>/<skill>/` and are linked into each client by their flat skill name.
+For checksum commands, terminal installation, and replacement instructions, see [executable delivery](docs/0.1/executable-delivery.md). The [release notes](docs/0.1/release-notes.md) describe the available features and limits.
 
-| Category | Skills | What they do |
-|---|---|---|
-| `read/` | tenant-pulse, ask-my-tenant, intune-assignments, intune-compliance, entra-identity, conditional-access-review, license-optimizer | Live-tenant analysis and reporting |
-| `write/` | change-plan | Stages tenant writes through the server-side approval gate |
-| `craft/` | posture-script, graph-patterns, kql-authoring, least-privilege-scopes, entra-app-credentials | Scripts, Graph mechanics, KQL, scope planning, and credential migration design |
-| `mentor/` | grill-my-change, diagnose, tenant-decisions, handoff, learn-my-tenant | Pre-change interviews, incident triage, decision records, session handovers, tenant onboarding |
+## Your first lesson
 
-A skill that cannot work without a specific capability declares it in its frontmatter: MCP servers, delegated Graph scopes, an Entra ID P1 license, a directory role group, or write configuration. `greybeard doctor` compares those declarations against the signed-in account and prints one warning per skill with the exact remedy, for example `run greybeard setup --writes` or `ask the agent to call add-scope`. Unmet requirements never fail doctor, because skills degrade by design.
+State a durable preference in your connected Code or CLI session, such as “We always require a recovery owner before a production rollout.” Greybeard proposes a lesson automatically; review its exact wording in the companion. You can also propose one locally:
 
-The mentor skills are the second-brain half of Greybeard. `grill-my-change` interviews you about blast radius, break-glass exclusions, pilot rings, and rollback before a change reaches the write gate. `diagnose` runs hypothesis-driven incident triage with the narrowest read that can falsify each hypothesis. `tenant-decisions` records why the tenant is configured the way it is (`Decision: ... Because: ... Decided: ... Revisit: ...`) so the reasoning survives staff changes, and `handoff` turns a session into paste-ready shift-change notes. `learn-my-tenant` bootstraps all of it: it interviews you about naming conventions, rings, break-glass accounts, and change windows, takes a narrow read-only look at the tenant, and seeds memory so the first real session already knows your environment.
+```sh
+greybeard memory add --content "Review stale device ownership before device deletion" --scope devices
+greybeard memory candidates
+greybeard memory confirm --id 1
+```
 
-## Consent And Scope Tiers
+Use the actual candidate ID returned by the first command. Confirmation previews the exact lesson and requires an interactive terminal; you can also review and confirm it in local graphical setup. A conversation, tool result, or successful command cannot silently turn a candidate into confirmed guidance.
 
-Greybeard is for admins. Every delegated Graph scope used here needs admin consent. If the signed-in user cannot grant it, setup prints an admin-consent URL and a one-line reason per scope, then exits cleanly so another admin can consent.
+Local memory separates **Preferences** (how you want to work, including rollout rules) from **Lessons** (facts, decisions, and reusable approaches). Both require local confirmation. When a confirmed memory changes an answer, the client is instructed to identify the Greybeard memory and explain its effect. Recalling a memory alone does not establish that it is relevant or that Greybeard independently assessed your tenant.
 
-In an interactive terminal, setup never opens the browser without first showing the sign-in and scope disclosure and waiting for explicit confirmation.
+Recall defaults to an 800-byte budget for compact returned memory nodes. This is a context-size control, not measured model billing; tool definitions, the response envelope, skills, and your conversation add separate context. See the [memory contract](memory/README.md). Pausing learning and advice suppresses memory recall while leaving local review and export available.
 
-Tier 1, requested at first sign-in:
+Automatic mentoring uses local rules and confirmed memories without a separate model call. Each hook contributes at most 2,048 UTF-8 bytes, and identical context is suppressed for ten minutes within the same host session. Skills reuse context already supplied by a hook. These are context controls, not token or billing guarantees: the AI client may include context again in later model requests.
 
-| Scope | Used For |
-|---|---|
-| `User.Read.All` | Users, stale accounts, identity hygiene |
-| `Group.Read.All` | Groups and memberships |
-| `Policy.Read.All` | Conditional Access and policy reads |
-| `Organization.Read.All` | Tenant and license information |
-| `AuditLog.Read.All` | Audit and sign-in activity |
-| `Reports.Read.All` | MFA and usage reporting |
+## Client behavior
 
-Tier 2 is requested only when a skill needs it: `Device.Read.All`, Intune read scopes, `Application.Read.All`, `RoleManagement.Read.Directory`, `IdentityRiskyUser.Read.All`, and `SecurityEvents.Read.All`.
+| Client | Automatic mentoring in current source |
+| --- | --- |
+| Claude Code | Prompt and pre-tool context, automatic preference proposals, memory MCP and skills |
+| Claude Desktop Code | Same local hooks and skills as Claude Code; setup connects both surfaces together |
+| Claude Desktop Chat | Clearly labeled MCP-assisted; no documented automatic prompt hook; specialist skills require manual import |
+| Codex CLI | Prompt and pre-tool context; review new or changed definitions in `/hooks` before they run |
+| Gemini CLI | BeforeAgent context and AfterTool context, with reviewed lesson proposals |
+| Cursor | Prompt advice in the running Greybeard companion; session-start and post-tool model context. Cursor's prompt hook cannot inject model context |
+| GitHub Copilot CLI | Preserves the transformed user prompt and appends context, plus post-tool context. Optional integration |
 
-Writes are separate. `greybeard setup --writes` creates or idempotently repairs a tenant-owned public-client workspace app with the `http://localhost` redirect, and requests only the explicit Tier 1 plus selected write scopes. Extra scopes present in a cached token are never copied into the app registration.
+Greybeard never approves or blocks a host command. Host permissions still apply. Installed configuration is shown separately from observed events in the companion, including pause, disabled hooks, and local errors. Keep the companion running for native notifications; Mac and Windows installations offer an optional open-at-login preference.
 
-What you will see at consent: the browser prompt names the app `Greybeard Workspace <your tenant domain>` and warns that the application is not published by Microsoft. That is expected. The app is a registration setup created inside your own tenant, so there is no verified publisher and no vendor-owned client id behind it. There is no multi-tenant Greybeard app anywhere: each tenant that opts into writes gets its own registration, owned by that tenant's admins, and nobody outside the tenant can mint tokens against it. Every scope added later through `add-scope` triggers the same prompt once, listing exactly the scopes requested. Deleting the app registration in Entra instantly revokes every Greybeard credential in that tenant.
+The [automatic mentoring contract and verification](docs/0.1/automatic-mentoring.md) lists the checked host versions, evidence, and remaining live-session limitations. Ordinary Chat support is not a promise of universal prompt observation.
 
-License and role gates are separate from consent. Some reporting endpoints require Microsoft Entra ID P1, and delegated reporting also requires Reports Reader, Security Reader, Global Reader, or higher. Greybeard reports missing license or role as that problem, not as another consent prompt.
+## Memory and control
 
-## Write Safety
+SQLite stores candidates, confirmed lessons, sources, scopes, and correction relationships. Existing unverified memories migrate to candidates. Related preferences coexist; a correction does not silently overwrite the original. Memory is isolated by profile and tenant snapshot.
 
-The generic Graph tool refuses non-GET requests and refuses `$batch` payloads that contain inner writes. Tenant writes can only run through `plan-write`, human approval, `check-plan`, and `execute-plan`.
+```sh
+greybeard memory list
+greybeard memory correct --id 1 --content "Check device ownership and retention before deletion"
+greybeard memory export > greybeard-memory.json
+greybeard memory pause
+greybeard memory resume
+greybeard memory forget --id 1
+greybeard setup --no-memory-hook
+greybeard uninstall
+```
 
-The approval secret never appears in model-visible tool output or files. Each plan declares exact `requiredScopes`; Greybeard verifies them before approval and reacquires the same set for execution. A different change needs a different plan and a new human approval.
+Review and confirm corrections separately. Pausing stops new learning and proactive advice; explicit recall remains available. Disabling the hook removes Greybeard-owned hook entries. Uninstall removes recognized integrations and retains your memories, configuration, and customer-owned certificate files.
 
-Honest boundary: this protects the Greybeard MCP Graph path. A client or agent that can run arbitrary shell commands as the same OS user is outside the local gate's control. Keep that capability restricted in clients where you rely on local approval boundaries.
+Local storage is not a promise that data stays off the network: your AI client may send recalled lessons to its model. Processes running as your OS account can access the same files. Store reusable intent, not secrets or raw tenant exports.
 
-## Memory Privacy
+## Optional tenant connection
 
-Memory is the experience layer of the overlay, and it earns that role only if it can be trusted with nothing sensitive. Greybeard memory stores intent, preferences, and decision records, not raw tenant output. Examples that are acceptable: `use 90 days as the stale account threshold`, `prefer DeviceComplianceOrg for compliance reports`, and a decision record like `Decision: the warehouse group stays excluded from the MFA policy. Because: scanners cannot do MFA. Decided: 2026-07-08.` Examples that are rejected: user lists, device lists, UPN dumps, GUID-heavy payloads, and Graph JSON responses. Decision records may name up to three tenant objects because the rationale needs them; every other entry type rejects at two GUIDs.
+Use your own app registration with a client secret or customer-provisioned certificate. In the companion, open **Infrastructure**, choose the authentication method, enter your tenant and application IDs, and select the read capabilities. Client secrets use protected OS storage; paste the secret **Value**, not its ID. See [connection setup and rotation](docs/0.1/companion.md#connect-with-your-app-registration). For CLI setup, start with:
 
-The memory database stays local in the OS app-data path and is partitioned by tenant.
+```sh
+greybeard connect capabilities
+greybeard connect --help
+greybeard connect status
+greybeard connect disconnect
+```
 
-## Token Cache
+No permissions are preselected. The connection command lists each candidate Application permission and its purpose. Configure and consent only the selected capabilities in Entra; Greybeard never creates the registration, grants permissions, or silently escalates access. Its app-only provider checks the returned application's identity and exact role selection and leaves unsuitable connections inactive. These checks do not prove minimum permissions.
 
-MSAL token caches are protected by the OS where available: Keychain on macOS, DPAPI on Windows, and libsecret or compatible keyrings on Linux. There is one cache per app, and MSAL partitions accounts by tenant inside it. On headless Linux without a keyring, the cache can fall back to plaintext. `greybeard doctor` flags that state as a failure. Greybeard does not claim encryption without a key source.
+The current source checks private-key ownership and permissions on POSIX and Windows. Windows checks the same file handle it reads and permits the current user plus SYSTEM and local Administrators as the OS recovery boundary. The previously published 0.1 build still has its earlier Windows limitation. Mentor-only setup remains available independently. Exact permission validation and certificate lifecycle requirements are tracked in [the implementation plan](docs/0.1/implementation-plan.md).
 
-## First-Party App ID Risks
+Tenant tools use explicit Microsoft Graph `/beta` reads. **Production tenant writes, approval tools, and delegated permission mutation are disabled in 0.1.** Change planning skills prepare a reviewable brief for your existing execution workflow.
 
-The default read-only path uses the Microsoft Graph Command Line Tools first-party app ID, `14d82eec-204b-4c2f-b7e8-296a70dab67e`.
+## Updates and model usage
 
-Known risks:
+Notify is the default, but this release has no configured publisher update feed. Selecting Automatic does not make new GitHub releases install themselves. Download and verify a replacement manually, close Greybeard and its AI clients, retain the old executable, then replace it at the same path. Keep the application-data directory. The update engine supports verified staging with an independently configured trusted feed; Windows automatic activation is not implemented.
 
-- Some tenants block or restrict that service principal because the same client ID is abused by attack tooling.
-- Microsoft can change first-party token issuance behavior.
+Local SQLite and deterministic matching use no model tokens. Recalled context adds input tokens to your existing client's conversation. Retrieval is bounded after link expansion; actual whole-task costs depend on the client, model, and task. Greybeard does not require a separate model subscription or continuous model worker, and does not promise net token savings.
 
-Fallback: run `greybeard setup --writes` to create a tenant-owned workspace app. Setup temporarily requests `Application.ReadWrite.All` and `DelegatedPermissionGrant.ReadWrite.All`, then removes both bootstrap grants automatically. `greybeard doctor` fails while cleanup remains pending.
+## Development
 
-## Client Support Matrix
+Developer dependencies are separate from the user installation:
 
-This table describes what the current adapters write.
+```sh
+npm ci
+npm run ci
+npm run build:executable
+npm run test:executable
+```
 
-| Client | Detection | MCP Config | Skills | Ambient Recall | Approval Channel |
-|---|---|---|---|---|---|
-| Claude Code | `claude` on PATH, or a `~/.claude.json` that Greybeard did not create alone | Yes, `~/.claude.json` with `greybeard-graph` and `greybeard-memory` | Native symlinks into `~/.claude/skills` | Prompt-time recall hook in `~/.claude/settings.json`, on by default, `--no-memory-hook` opts out | MCP elicitation is allowlisted for Claude Code, with browser fallback. CLI approval is opt-in. |
-| Claude Desktop | macOS `/Applications/Claude.app`, Windows `%LOCALAPPDATA%\Programs\Claude\Claude.exe`, an Anthropic Claude MSIX package, or `claude_desktop_config.json` containing config Greybeard did not create alone. Claude Code signals do not count. | Yes, native stdio entries in macOS `~/Library/Application Support/Claude/claude_desktop_config.json` or Windows `%APPDATA%\Claude\claude_desktop_config.json`. Fully restart the app after edits. | Manual ZIP upload in Settings > Capabilities > Skills. Run `greybeard skills pack`; uploaded skills auto-trigger from their descriptions. | No global instruction file. Recall guidance is available when an uploaded skill triggers. | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
-| Cursor | `cursor` on PATH, or the installed app (`/Applications/Cursor.app`, `%LOCALAPPDATA%\Programs\cursor`) | Yes, `~/.cursor/mcp.json` | Native symlinks into `~/.cursor/skills`; setup and update also write `~/.cursor/rules/greybeard.mdc` | Always-applied Cursor rule with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
-| Codex CLI | `codex` on PATH, or `~/.codex/auth.json` | Yes, `~/.codex/config.toml` under `[mcp_servers.*]` | Native symlinks into `~/.agents/skills`; setup and update also write `~/.codex/AGENTS.md` | Context block in `~/.codex/AGENTS.md` with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
-| Gemini CLI | `gemini` on PATH only, because `~/.gemini` is shared by unrelated Google tooling | Yes, `~/.gemini/settings.json` | Native symlinks into `~/.gemini/skills`; setup and update also write `~/.gemini/GEMINI.md` | Context block in `~/.gemini/GEMINI.md` with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
-| GitHub Copilot | `copilot` on PATH, or forced with `greybeard setup --with-copilot` for non-CLI Copilot surfaces. The shared `~/.copilot` directory is never a detection signal. | Yes, `~/.copilot/mcp-config.json` with `mcpServers` and `type: "local"` servers | Native symlinks into `~/.copilot/skills`; setup and update also write `~/.copilot/copilot-instructions.md` | Context block in `~/.copilot/copilot-instructions.md` with recall and capture guidance | Browser approval page. Elicitation stays off until a real-client smoke test passes. |
+Build on the intended operating system and architecture with the same Node runtime used to install native dependencies. Target-platform build and executable-check outcomes are recorded in the release handoff. Release signing status and supported architecture names belong to the actual release assets; a source build alone does not establish them.
 
-Greybeard never treats the mere existence of a shared config directory, or files Greybeard itself wrote, as proof a client is installed. Undetected clients are skipped by setup and doctor.
-
-Native skills support was rechecked against current client documentation for Cursor, Codex CLI, Gemini CLI, and GitHub Copilot during M7. The smoke tests that require real client installs remain manual.
-
-### Claude Desktop skill ZIPs
-
-Run `greybeard skills pack` to write one upload-ready ZIP per skill to the Greybeard app-data directory under `skill-zips/`. Use `greybeard skills pack --out <directory>` to choose another destination. Each ZIP contains the named skill folder with `SKILL.md` at its root. Upload the ZIPs in Claude Desktop under Settings > Capabilities > Skills. After Greybeard reports changed skills during an update, pack again and re-upload the changed ZIPs.
-
-## Headless And Scheduled Use
-
-The read skills work in non-interactive client sessions, for example `claude -p "how is our MFA coverage?"` on a schedule. Two client-side details matter. First, a headless session inherits the client's default permission mode: a Claude Code install that defaults to plan mode will block every MCP call, so pass `--permission-mode default` together with an explicit `--allowedTools` list naming the Greybeard tools. Second, interactive consent cannot happen headlessly, so grant any Tier 2 scopes from an interactive session once before scheduling. The write gate still requires a human either way: plans staged from a headless session are rejected or expire unapproved by design.
-
-## Updates
-
-`greybeard setup` installs an Auto-update choice:
-
-- `--skill-update weekly`: scheduled `greybeard update`, the default.
-- `--skill-update login`: run on login where the OS scheduler supports it.
-- `--skill-update off`: manual update only.
-
-`greybeard update` requires a clean tracked tree, pulls with fast-forward only, runs `npm ci`, builds, and tests before activation. It then refreshes MCP config, re-links filesystem skills, rewrites detected-client context blocks and the Claude Code recall hook, and asks clients to reconnect. When Claude Desktop is detected and skills changed, it names the ZIPs to repack and re-upload. Claude Desktop must be fully restarted after its MCP config changes. A failed verification restores and rebuilds the previous revision.
-
-Server update modes are implemented but npm publishing has not run yet. The default config writes local `node .../graph/dist/index.js` and `node .../memory/dist/index.js` paths. After first npm publish, `--server-source npm --server-update latest` writes `npx -y @greybeard/graph@latest` and `@greybeard/memory@latest`; pinned mode writes the current package versions.
-
-## Telemetry
-
-None. Greybeard has no usage collection, analytics, or remote logging. Network calls are the ones required for Microsoft Graph, Microsoft Learn MCP, git or npm updates you opted into, and package install.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). New skills need portable `name` and `description` frontmatter, a distinct `Use when...` trigger, `test.md`, `agents/openai.yaml`, and an entry in `.agents/skills/manifest.json`.
+The [0.1 plan](docs/0.1/implementation-plan.md), [review decisions](docs/0.1/review-decisions.md), and [implementation status](docs/0.1/implementation-status.md) govern this work. Historical tags and internal package versions remain separate from the public 0.1 display label.

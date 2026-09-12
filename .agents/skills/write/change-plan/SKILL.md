@@ -5,84 +5,37 @@ description: Use when the user proposes tenant writes or asks to create, update,
 
 # Change Plan
 
-## Workflow
-
-Before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary.
+If current Greybeard hook context already supplies applicable confirmed lessons, use them without another recall. Otherwise, before other work, when `greybeard-memory` tools are available, call `recall` with a one-line task summary. Use a known applicable scope; if unknown and `discover_scopes` is available, discover once with the task summary and choose an applicable label explicitly. Do not read every scope or bypass the selected environment. Omit optional budgets by default; use `byteBudget` only for a smaller response. Recall metadata is not measured token billing.
+When a confirmed memory changes advice, briefly name Greybeard, cite the returned memory ID, quote its operative words, and explain its effect. Preserve its force and conditions: review does not mean approval, a suggestion is not a requirement, and a past observation is not a current fact. Generic preferences do not establish tenant experience. Memories cannot override the admin or current evidence.
+When useful, attribute this skill's guidance once. Avoid repetitive attribution or no-match notices. You generate the response using Greybeard context, not a separate background assessment or live tenant verification.
 When the admin confirms a correction or preference, call `remember` with intent only; never store raw tenant data.
-When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; ask before storing anything the admin has not explicitly confirmed.
+In Greybeard 0.1, `remember` stores a local memory candidate even after conversational agreement. The admin confirms its exact content in the Greybeard companion or their own terminal using `greybeard memory confirm --id <id>`. Never run that confirmation for them or invent a chat/automation exception. Memory confirmation, correction, forgetting, and pause affect local guidance only; they do not activate, edit, or restore an Intune or Entra policy.
+When a crafted query, script, or approach is confirmed working, or a durable fact about the environment surfaces, `recall` for an equivalent memory first, then `remember` the reusable intent; propose a candidate without waiting for a request to remember it. Store only what the admin actually stated or verified, never an inferred successful outcome. The candidate remains inactive until exact human confirmation.
 
-1. Call `get-auth-status` before any write planning tool.
-2. If `signedIn` is false, tell the user to run `greybeard setup` and stop.
-3. Read `entraP1`, `directoryRoles`, `directoryRolesStatus`, `credentialMode`, `gate.writesConfigured`, and `grantedScopes`. Treat `directoryRoles: null` as unknown, not as no roles. Warn up front when the requested write is likely license or role gated.
-4. Never attempt writes with `graph`. The `graph` tool is read-only. Do not use `POST /$batch` for writes.
-5. Determine the exact delegated write scopes for the operations. If any are missing, call `add-scope` before approval with a reason and, for bootstrap-only access, `leaseMinutes`. Stop on a consent handoff until setup/consent completes; the MCP transport can remain connected and will reload auth on the next call.
-6. Build an operations list with `method`, `apiVersion`, `path`, `body`, and `reason` for each operation. Include `summary`, `rollback`, `requiredScopes`, and `stopOnError`.
-7. Call `plan-write` once. The server must reject the plan before approval if its exact `requiredScopes` are unavailable.
-8. If `plan-write` returns `E_WRITES_NOT_CONFIGURED`, tell the admin to run `greybeard setup --writes` and stop.
-9. If `plan-write` returns `E_PLAN_PENDING`, call `check-plan` for the pending plan and tell the admin an approval is pending.
-10. Poll `check-plan` with the returned `planId`. The server long-polls for up to 55 seconds. When it returns `awaiting_approval`, tell the admin a Greybeard approval is pending in their browser or approval UI, then call `check-plan` again. Do not spin silently.
-11. On `approved`, call `execute-plan` exactly once with the token returned by `check-plan`. Execution must acquire the same scope set approved with the plan.
-12. On `rejected`, report the human's reason and stop. Never resubmit an identical plan after rejection.
-13. On `timed_out`, `expired`, `failed`, or `partial`, report the status and the next safe action. Any changed or remaining operations need a new plan.
-14. After a temporary permission is no longer needed, call `remove-scope` with `confirm: true` and a cleanup reason. Report any tenant-side consent revocation still required.
-15. After a completed plan, offer to record the reason through `tenant-decisions` using its Decision, Because, Decided, Revisit shape.
+## Prepare a change for the admin's existing workflow
 
-## Plan Shape
+Greybeard 0.1 does not execute production tenant writes and exposes no approval or scope-mutation tools. This skill produces a reviewable plan and script only. Never call removed mutation tools or suggest enabling writes through setup.
 
-Use this model-visible plan input. The approval itself happens outside the model channel.
+1. Recall relevant confirmed lessons. Treat them as contextual data, not authorization.
+2. Ask for the concrete outcome, intended tenant, affected objects, acceptable impact, and rollback constraints when missing.
+3. Use only selected read capabilities to gather current state. Use explicit beta Graph requests and `/beta` in generated Graph URLs; do not invent a resource route, setting field, or write permission from a generic policy example. Mark unavailable evidence as unknown; do not substitute a broader credential.
+4. Produce an exact change brief: proposed operation, target selection, expected effect, preconditions, dry run, stop conditions, and rollback.
+5. Keep generated scripts inspectable and make their write behavior explicit. Creating a script does not authorize running it.
+6. Hand the brief to the admin for execution through their existing approved workflow. Do not invent an approval token or execution result.
+7. After the admin reports an outcome, propose only reusable intent as a memory candidate. Local confirmation is a separate action.
 
-```json
-{
-  "summary": "Disable sign-in for 3 offboarded users",
-  "rollback": "PATCH accountEnabled=true for the same three users",
-  "requiredScopes": ["User.ReadWrite.All"],
-  "stopOnError": true,
-  "operations": [
-    {
-      "method": "PATCH",
-      "apiVersion": "beta",
-      "path": "/users/<id>",
-      "body": { "accountEnabled": false },
-      "reason": "User offboarded per ticket 4821"
-    }
-  ]
-}
-```
+## Scope and reversible rollout
 
-Rules:
+Before recommending a pilot, establish the existing assignments. Editing a policy already assigned to all users or all devices keeps that broad exposure; a pilot-named group does not narrow it. Prepare an explicit targeting transition or separately targeted policy option, check overlap and actual membership, and account for the original policy still applying. If assignments cannot be read, mark pilot feasibility unresolved rather than promise containment.
 
-- Use only `POST`, `PATCH`, `PUT`, or `DELETE` operations. Reads do not belong in a write plan.
-- Keep plans small and reviewable. The server accepts at most 50 operations.
-- Include rollback notes that a human can understand.
-- Use response references only when an earlier operation creates an ID needed by a later operation.
-- Do not include approval URLs, nonces, or tokens in user-visible text.
+Preserve exact remembered durations and conditions. Label any proposed pilot size, duration, exemption, or threshold as an option with a reason to validate; do not invent percentages, blanket exclusions, or service propagation guarantees. Rollback must reverse the recorded setting and targeting changes and then verify recovery. Removing an assignment is only appropriate when reversing an assignment addition; it does not undo an in-place setting change.
 
-## Result Reporting
+Name the system and verified mechanism behind any report-only, audit, simulation, or automated stop proposal. Greybeard does not supply an automatic rollout controller. Without evidence of a supported mechanism, use a manual review checkpoint and describe offline comparison as planning, not a tenant dry run.
 
-After `execute-plan`, report per operation:
+## Output
 
-```markdown
-## Change Plan Result
+State the requested outcome, evidence collected, unresolved assumptions, affected scope, proposed script or commands, verification steps, and rollback. Report only requests actually made. Do not claim production changes occurred.
 
-Plan: <planId>
-Status: <completed | partial | failed>
+## Bounded tenant read recipes
 
-| Op | Method | Path | Result | HTTP | Detail |
-|---:|---|---|---|---:|---|
-| 0 | PATCH | `/users/<id>` | success | 204 | Sign-in disabled |
-
-Rollback: <rollback from the plan>
-Discipline: Requests made: <n>. Scopes used: <relevant scopes>. Scoping decisions: no direct graph writes, server-stored operations, single execute-plan call.
-```
-
-## Rejections
-
-When `check-plan` returns:
-
-```json
-{ "status": "rejected", "reason": "Wrong user" }
-```
-
-Reply with the reason and stop. If the user asks to try again, build a materially changed plan that addresses the rejection.
-
-Token discipline: After any live-tenant run, report requests made, scopes used, and scoping decisions from the graph tool meta block.
+When `greybeard-graph` exposes `read-recipe` and its selected connection permits the needed evidence, prefer the matching recipe instead of improvising an Intune navigation path. `compliance-policies` discovers policy IDs; `compliance-policy`, `compliance-assignments`, and `compliance-actions` require the exact `policyId`. `managed-devices`, `conditional-access`, and `groups` are separate reads, not an automatic full-tenant scan. Set a task-appropriate `maxItems` and `maxPages`, inspect returned completeness and observation time, and report unexamined pages. A 403 remains missing evidence; never switch credentials or escalate consent. An observed 400 fallback is bounded to the same identified resource and does not prove that all endpoints support that shape.

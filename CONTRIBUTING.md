@@ -16,7 +16,7 @@ npm run ci
 Skills live under `.agents/skills/<category>/<skill-name>/`. The categories are:
 
 - `read/`: live-tenant analysis and reporting skills.
-- `write/`: skills that stage tenant changes through the write gate.
+- `write/`: skills that prepare a reviewable change brief for the admin's existing execution workflow; production writes are disabled in 0.1.
 - `craft/`: authoring skills for scripts, queries, and Graph mechanics that work without a signed-in tenant.
 - `mentor/`: process skills that interview, triage, record decisions, or hand work over.
 

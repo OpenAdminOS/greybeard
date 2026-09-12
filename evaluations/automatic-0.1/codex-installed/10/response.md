@@ -1,0 +1,1 @@
+I’ll include expected user impact and a recovery owner in administrative change plans. This preference is saved as candidate #2, awaiting your review and confirmation of the exact wording in the Greybeard companion.

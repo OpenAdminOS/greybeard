@@ -1,0 +1,41 @@
+{
+  "id": "013",
+  "category": "generic-preference",
+  "prompt": "Is your compliance rollout advice based on a specific incident we had?",
+  "expected": "Distinguish a generic advice preference from environment experience.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "preference",
+      "content": "During Windows compliance and device administration, proactively provide relevant recommendations informed by confirmed Greybeard memories."
+    }
+  ],
+  "responseWordsIncludingCommentary": 89,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "preference|generic|specific|no ",
+      "matched": true,
+      "excerpt": "ncident context relevant to this question.\n\nNo. I have no evidence that the compliance rollout advice was based on a specific incident in your tenant.\n\nGreybe"
+    }
+  ],
+  "valueToAssess": "Style preference can shape tone; cannot supply a rollout lesson.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for any confirmed incident context relevant to this question.\n\nNo. I have no evidence that the compliance rollout advice was based on a specific incident in your tenant.\n\nGreybeard recalled only memory ID 1: a generic preference to provide proactive recommendations during Windows compliance and device administration. That is not tenant incident history and did not identify any event.\n\nI have no live tenant connection, and no incident snapshot was supplied, so I cannot verify or attribute the advice to a particular incident.",
+  "agentEditorialReview": "Correctly rejects attribution to a specific incident and cites the actual preference ID. This directly answers the user's provenance concern.",
+  "independentEditorialReview": {
+    "id": "013",
+    "verdict": "pass",
+    "valueAdded": "preference",
+    "issueTags": [],
+    "rationale": "Rejects the suggestion that advice came from a past incident and cites exactly the generic record retrieved.",
+    "evidence": "That is not tenant incident history and did not identify any event.",
+    "source": "evaluations/mentor-100/runs/013/result.json",
+    "sourceSha256": "4d2a124f113b07634f90a8f0216dad4a1131b09760d26eecbe13d633b6309f3d"
+  }
+}

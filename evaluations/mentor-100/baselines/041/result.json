@@ -1,0 +1,20 @@
+{
+  "id": "041",
+  "category": "pause",
+  "fixture": "paused",
+  "model": "gpt-5.6-sol",
+  "elapsedSeconds": 11.09,
+  "exitCode": 0,
+  "usage": [
+    {
+      "input_tokens": 9493,
+      "cached_input_tokens": 7680,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 169,
+      "reasoning_output_tokens": 0
+    }
+  ],
+  "mcpCalls": [],
+  "errors": [],
+  "response": "I can\u2019t use Greybeard for this request because Greybeard memory tools are unavailable, and learning and advice are paused. I also have no live tenant connection or supplied snapshot, so I cannot verify your Windows devices, compliance policies, assignments, conflicts, or deployment results.\n\nNo tenant reads or changes were performed. To proceed safely, resume Greybeard advice or provide a current, redacted snapshot of:\n\n- The proposed Windows compliance policy settings\n- Target and exclusion groups\n- Existing overlapping policies\n- Device ownership and Windows version scope\n- Current compliance and error reports\n- Conditional Access dependencies\n\nUntil then, avoid broad production assignment. Validate with a small pilot group, document exclusions and rollback criteria, monitor evaluation errors and noncompliance reasons, then expand in stages only after the pilot meets agreed success thresholds."
+}

@@ -1,0 +1,10 @@
+{
+  "id": "07",
+  "method": "Review of saved real model response plus independent local event ledger. Synthetic data only.",
+  "finding": "Pause emitted zero context bytes and no proposals. The host identified paused memory when its read tools were used.",
+  "exitCode": 0,
+  "contextBytes": 0,
+  "automaticProposals": 0,
+  "mcpCalls": 2,
+  "limits": "One observed run, not a model-quality guarantee or a real tenant assessment. See sourceHashes for the exact implementation exercised."
+}

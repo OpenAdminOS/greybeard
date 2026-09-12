@@ -1,0 +1,37 @@
+{
+  "id": "008",
+  "category": "cold-start",
+  "prompt": "Help me turn a vague policy change into a reviewable change brief.",
+  "expected": "Acknowledge missing context; no invented remembered tenant history.",
+  "actualRecallStatuses": [
+    "no-match"
+  ],
+  "returnedMemory": [],
+  "responseWordsIncludingCommentary": 198,
+  "mechanicalFlags": [
+    "Response including commentary exceeded the requested 180 words (198)."
+  ],
+  "lexicalCues": [
+    {
+      "pattern": "unknown|missing|need|not|haven.t|no ",
+      "matched": true,
+      "excerpt": "ithout making tenant-specific claims.\n\nGreybeard found no matching confirmed guidance, so there is no memory contribution to cite. I also have no live tenant "
+    }
+  ],
+  "valueToAssess": "Planning structure only; no personal experience available.",
+  "assessment": "Needs review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check Greybeard memory for any confirmed context relevant to drafting a reviewable policy-change brief, then provide a concise template without making tenant-specific claims.\n\nGreybeard found no matching confirmed guidance, so there is no memory contribution to cite. I also have no live tenant evidence; the brief must distinguish confirmed facts from assumptions.\n\nUse this structure:\n\n**Change brief: [policy name]**\n\n- **Decision requested:** Approve, reject, or revise [specific change].\n- **Current state:** [Existing policy and who it covers].  \n  Evidence: [policy document, owner, date verified].\n- **Proposed state:** Replace \u201c[current rule]\u201d with \u201c[new rule].\u201d\n- **Reason:** [Problem, trigger, or requirement].\n- **Scope:** Included users, systems, locations, and data. Explicit exclusions.\n- **Expected impact:** Benefits, affected workflows, user friction, cost, and dependencies.\n- **Risks and controls:** Security, compliance, operational, accessibility, and rollback risks.\n- **Implementation:** Owner, milestones, communications, training, enforcement date, and rollback plan.\n- **Success measures:** Quantified outcomes, baseline, review date, and accountable owner.\n- **Open questions:** List unresolved assumptions and required evidence.\n- **Approvals:** Policy owner, legal/compliance, security, operations, and executive sponsor as applicable.\n\nRewrite vague phrases into testable rules. For example, \u201cstrengthen access controls\u201d becomes: \u201cStarting [date], require [control] for [population], except [documented exceptions], measured by [target].\u201d",
+  "agentEditorialReview": "Produces a usable change-brief template and separates evidence from assumptions. It expands to a generic corporate-policy workflow, illustrating how a vague prompt can lose the administration focus.",
+  "independentEditorialReview": {
+    "id": "008",
+    "verdict": "pass",
+    "valueAdded": "none",
+    "issueTags": [],
+    "rationale": "A usable change-brief template distinguishes evidence from assumptions and explicitly states that no memory contributed.",
+    "evidence": "the brief must distinguish confirmed facts from assumptions.",
+    "source": "evaluations/mentor-100/runs/008/result.json",
+    "sourceSha256": "8298d72319f0eabb508f8de99eb19a63f4457e87fe600010e32a892c2db6fb8c"
+  }
+}

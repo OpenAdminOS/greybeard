@@ -1,0 +1,51 @@
+{
+  "id": "022",
+  "category": "specific-lesson",
+  "prompt": "I want to deploy Windows compliance tomorrow. Which checkpoint do we normally require?",
+  "expected": "Apply the confirmed 48-hour pilot and helpdesk checkpoint, identify recalled source.",
+  "actualRecallStatuses": [
+    "recalled"
+  ],
+  "returnedMemory": [
+    {
+      "id": 1,
+      "type": "decision",
+      "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding."
+    }
+  ],
+  "responseWordsIncludingCommentary": 69,
+  "mechanicalFlags": [],
+  "lexicalCues": [
+    {
+      "pattern": "48",
+      "matched": true,
+      "excerpt": "quiring live tenant evidence.\n\nWe normally require a **48-hour pilot followed by helpdesk review before expanding deployment**.\n\nThis comes from confirmed Gr"
+    },
+    {
+      "pattern": "helpdesk",
+      "matched": true,
+      "excerpt": "ce.\n\nWe normally require a **48-hour pilot followed by helpdesk review before expanding deployment**.\n\nThis comes from confirmed Greybeard guidance, memory ID **1*"
+    },
+    {
+      "pattern": "Greybeard|memory|lesson|#1",
+      "matched": true,
+      "excerpt": "I\u2019ll check the temporary Greybeard memory for the usual Windows compliance deployment checkpoint, then separate remembered practice fr"
+    }
+  ],
+  "valueToAssess": "Concrete remembered checkpoint changes rollout sequencing.",
+  "assessment": "Expected mechanics observed; semantic quality still requires review",
+  "humanReviewStatus": "Not manually reviewed by a human",
+  "reviewMethod": "Deterministic evidence extraction and lexical cues, supplemented by separately saved agent editorial review. No external human adjudication.",
+  "response": "I\u2019ll check the temporary Greybeard memory for the usual Windows compliance deployment checkpoint, then separate remembered practice from anything requiring live tenant evidence.\n\nWe normally require a **48-hour pilot followed by helpdesk review before expanding deployment**.\n\nThis comes from confirmed Greybeard guidance, memory ID **1**. I have no live tenant connection, so I cannot verify whether tomorrow\u2019s deployment has completed that checkpoint or whether current tenant policy has changed.",
+  "agentEditorialReview": "Concise, directly answers the checkpoint question with the recalled rule and provenance. This is a strong example of a detail the baseline cannot know.",
+  "independentEditorialReview": {
+    "id": "022",
+    "verdict": "pass",
+    "valueAdded": "specific-context",
+    "issueTags": [],
+    "rationale": "Directly recalls the exact time and review checkpoint, then separates the stored convention from whether tomorrow's deployment is ready.",
+    "evidence": "I cannot verify whether tomorrow\u2019s deployment has completed that checkpoint",
+    "source": "evaluations/mentor-100/runs/022/result.json",
+    "sourceSha256": "8b877d2383967115dc7c396c66e0d198e69f53a7f791907c431c00eac0f4c01e"
+  }
+}

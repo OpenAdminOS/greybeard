@@ -1,0 +1,108 @@
+{
+  "sourceHashes": {
+    "cli/dist/clients.js": "24deb72a154a254518bb464f6c30ad58bf6f31e41574828f9756ec002aad3726",
+    "cli/dist/hostGuidance.js": "f4d578756df28db96c4c94fa0b4d73bae68a19b815bfbe5f9cbb51353a8c2caa",
+    "memory/dist/service.js": "fc8b4cf879d5db6ddf7b2b7283ca7ce9e37dda9fed91e2cc3a9c38e1b9d4226b",
+    "memory/dist/mcpServer.js": "986bcad19fa3266626ad1a59214565b6ccc689e9625e147a08c21e2099e2e2da",
+    ".agents/skills/write/change-plan/SKILL.md": "a5bb60f5be3d9b367280b3d02ffc5ecbf379b1d2587484c4e3037a3a32134e57"
+  },
+  "id": "09",
+  "fixture": "scoped",
+  "prompt": "Help me plan a Windows compliance rollout. Do not make changes.",
+  "exitCode": 0,
+  "mcpCalls": [
+    {
+      "id": "item_2",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "discover_scopes",
+      "arguments": {
+        "query": "Plan Windows compliance rollout without changes"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"scopes\":[{\"scope\":\"devices\",\"confirmedCount\":1}],\"paused\":false,\"guidance\":\"Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable.\"}"
+          }
+        ],
+        "structured_content": {
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "scopes": [
+            {
+              "scope": "devices",
+              "confirmedCount": 1
+            }
+          ],
+          "paused": false,
+          "guidance": "Select a scope only when it applies to the current task, then pass that exact scope to recall. Discovery does not make every scope applicable."
+        }
+      },
+      "error": null,
+      "status": "completed"
+    },
+    {
+      "id": "item_4",
+      "type": "mcp_tool_call",
+      "server": "greybeard-memory",
+      "tool": "recall",
+      "arguments": {
+        "query": "Plan Windows compliance rollout without changes",
+        "scope": "devices"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"recallId\":\"81652003-57fe-40ca-9000-6172d129421c\",\"tenant\":\"synthetic-lab\",\"profileId\":\"profile-a\",\"message\":\"memory recalled\",\"results\":[{\"id\":1,\"type\":\"decision\",\"content\":\"For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.\",\"status\":\"confirmed\",\"source\":\"evaluation-fixture\",\"scope\":\"devices\",\"evidenceKind\":\"rule\",\"observedAt\":null,\"verificationRequired\":false,\"evidenceAgeSeconds\":null,\"matched\":true}],\"recallStatus\":\"recalled\",\"attribution\":{\"kind\":\"confirmed-guidance\",\"statement\":\"Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment.\"},\"serializedBytes\":325,\"byteBudget\":800,\"budgetUnit\":\"utf8-bytes\",\"estimatedTokens\":325,\"tokenBudget\":800,\"budgetScope\":\"serialized-recalled-nodes\"}"
+          }
+        ],
+        "structured_content": {
+          "recallId": "81652003-57fe-40ca-9000-6172d129421c",
+          "tenant": "synthetic-lab",
+          "profileId": "profile-a",
+          "message": "memory recalled",
+          "results": [
+            {
+              "id": 1,
+              "type": "decision",
+              "content": "For Windows compliance rollouts, keep the pilot for 48 hours and require helpdesk review before expanding.",
+              "status": "confirmed",
+              "source": "evaluation-fixture",
+              "scope": "devices",
+              "evidenceKind": "rule",
+              "observedAt": null,
+              "verificationRequired": false,
+              "evidenceAgeSeconds": null,
+              "matched": true
+            }
+          ],
+          "recallStatus": "recalled",
+          "attribution": {
+            "kind": "confirmed-guidance",
+            "statement": "Greybeard retrieved confirmed guidance. Check its relevance before applying it; recall is not a separate assessment."
+          },
+          "serializedBytes": 325,
+          "byteBudget": 800,
+          "budgetUnit": "utf8-bytes",
+          "estimatedTokens": 325,
+          "tokenBudget": 800,
+          "budgetScope": "serialized-recalled-nodes"
+        }
+      },
+      "error": null,
+      "status": "completed"
+    }
+  ],
+  "response": "I\u2019ll use the Greybeard change-planning skill and check for relevant rollout guidance in memory, then build a plan without making tenant changes.\n\nNo tenant changes made. Assuming you mean Intune Windows compliance, this is a provisional rollout plan; current policies and assignments have not been verified.\n\nGreybeard memory **#1**, in the `devices` scope for `synthetic-lab`, says: **\u201ckeep the pilot for 48 hours and require helpdesk review before expanding.\u201d** Apply that rule if this is the intended environment; helpdesk review is not approval.\n\n| Stage | Proposed work and checkpoint |\n|---|---|\n| Baseline | Inventory Windows compliance settings, assignments, exclusions, filters, grace periods, and Conditional Access dependencies. Record existing settings and targeting for rollback. |\n| Confirm scope | Check actual group membership and policy overlap. Pilot containment remains unresolved until assignments are verified. Editing a broadly assigned policy would retain its broad exposure. |\n| Prepare | Document each proposed requirement, affected devices, expected failures, remediation steps, support owner, and acceptable access impact. Consider a separately targeted policy, accounting for existing policies that still apply. |\n| Pilot | Once containment is verified, use representative devices and retain the pilot for **48 hours**. Review compliance results, device check-ins, access failures, and helpdesk incidents. |\n| Expansion checkpoint | Require **helpdesk review before expanding**. Manually hold expansion for unexplained failures, unexpected targeting, or unacceptable access disruption. Agree measurable acceptance criteria before starting. |\n| Expand and verify | Add agreed deployment rings through the existing change workflow, checking compliance and access impact after each expansion. |\n| Rollback | Restore recorded settings and targeting changes. Removing a newly added assignment does not reverse an in-place setting change. Verify device reevaluation and access recovery. |\n\nAny offline comparison would be planning evidence, not a tenant dry run.\n\nWhich tenant and Windows device population are in scope, what compliance requirements are changing, and what access disruption or rollback constraints must the plan accommodate?",
+  "usage": [
+    {
+      "input_tokens": 56627,
+      "cached_input_tokens": 26496,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 676,
+      "reasoning_output_tokens": 0
+    }
+  ]
+}

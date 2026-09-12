@@ -1,10 +1,10 @@
 # Graph Mechanics
 
-For application registrations, service principals, OAuth permission grants, and federated identity credentials, prefer explicit `v1.0` calls. When resolving delegated permission IDs from a resource service principal, read `publishedPermissionScopes` first and use `oauth2PermissionScopes` only as a compatibility fallback. Application permissions are `appRoles`, not scopes.
+For application registrations, service principals, OAuth permission grants, and federated identity credentials, use explicit `beta` calls. When resolving delegated permission IDs from a resource service principal, read `publishedPermissionScopes` first and use `oauth2PermissionScopes` only as a compatibility fallback. Application permissions are `appRoles`, not scopes.
 
 ## Beta Default
 
-Greybeard uses `apiVersion: "beta"` by default for full Microsoft Graph surface coverage. Beta endpoints can change without notice. A caller may pin `apiVersion: "v1.0"` for a specific call when stability matters more than surface coverage. Report the actual version from `meta.apiVersion`; `meta.usedBeta` remains available for compatibility.
+Greybeard 0.1 uses explicit `apiVersion: "beta"`. Report the version from `meta.apiVersion`. Treat API behavior and permissions as evidence-dependent.
 
 ## Query Discipline
 
@@ -60,7 +60,7 @@ The `graph` tool honors `Retry-After` on 429 and 503 up to its retry limit. If t
 
 Greybeard classifies:
 
-- Missing scope: call `add-scope` for the exact missing scope.
+- If access is unavailable, report the exact endpoint and error. Ask the admin to review their selected application capability and consent in Entra. Greybeard 0.1 does not request or grant additional permissions.
 - Missing Entra ID P1 license: report the license gate, do not request scope.
 - Missing directory role: report the needed reporting or admin role, do not request scope.
 
