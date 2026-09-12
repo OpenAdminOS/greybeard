@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { expect, it } from "vitest";
 import { MemoryService, AutomaticMentorStore } from "@greybeard/memory";
 import { updateGreybeardConfig } from "@greybeard/graph";
-import { AUTOMATIC_HOSTS, durablePreference, hostEventOutput, processMentorEvent } from "./automaticMentor.js";
+import { AUTOMATIC_HOSTS, durablePreference, hostEventOutput, processMentorEvent, reminderRules } from "./automaticMentor.js";
 import { automaticHookPath, inspectAutomaticHooks, removeAutomaticHooks, writeAutomaticHooks } from "./automaticHooks.js";
 import { createRuntime } from "./runtime.js";
 
@@ -106,4 +106,11 @@ it("finds a device topic from Windows work without importing an unnamed team's l
     const result=await processMentorEvent({appData,profile:"local",tenant:"local",host:"codex",kind:"prompt",input:{session_id:"scope-check",prompt:"Plan a Windows compliance rollout."}});
     expect(result.context).toContain("48 hours");expect(result.context).not.toContain("96-hour");
   }finally{service.close();await rm(appData,{recursive:true,force:true});}
+});
+
+it("recognizes administrative PowerShell cmdlets even without a separate domain word",()=>{
+  for(const command of ["Remove-MgDevice -DeviceId '<id>'","Remove-MgUser -UserId '<id>'","Remove-MgGroup -GroupId '<id>'","Remove-ADUser -Identity example"]) {
+    expect(reminderRules(command)).toContain("destructive");
+  }
+  expect(reminderRules("Explain a Python tuple.")).toEqual([]);
 });

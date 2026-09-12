@@ -30,6 +30,8 @@ The first rollout run initially injected 3,150 bytes. After repeated-context sup
 7. Setup was treated as proof of activity: the UI now separates installed hooks, trust/restart requirements, observed events, pause, disabled settings and errors.
 8. Shared Desktop Code hooks could be removed while disconnecting ordinary Desktop Chat: uninstall keeps those integrations separate.
 
+9. Bare PowerShell cmdlet names can contain the domain word inside a longer identifier: the event matcher now recognizes administrative cmdlet syntax and retains destructive-change reminders without requiring an extra word in the prompt.
+
 ## Follow-up verification
 
 Repeat real sessions after the external authentication/policy blockers are resolved, especially Desktop Code and Cursor on the user's Mac and Windows. Verify native notification permissions and open-at-login behavior on those installations. Continue collecting explicit useful/irrelevant feedback and confirmed outcomes before claiming broad reliability or a measured productivity gain.
