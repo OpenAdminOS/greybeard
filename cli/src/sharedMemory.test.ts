@@ -135,7 +135,7 @@ it("routes companion review to the shared store and rejects stale store bindings
   expect((await call("/confirm",{id:node.id,content:node.content,revision:node.revision})).status).toBe(409);
 });
 
-it("bounds hooks during slow credential lookup, returns empty context offline, and omits unrelated tool fields", async () => {
+it.each(["linux", "darwin", "win32"] as const)("bounds %s hooks during slow credential lookup without local fallback", async (platform) => {
   const f = await fixture(); const a = await f.pair("a");
   const {remoteEventText} = await import("./automaticMentor.js");
   const normalized = remoteEventText({tool_name:"Bash",tool_input:{command:"echo pilot",env:{PASSWORD:"never-send"},cwd:"/private/location"},transcript_path:"/private/transcript"},"tool","claude");
@@ -145,8 +145,27 @@ it("bounds hooks during slow credential lookup, returns empty context offline, a
     else signal?.addEventListener("abort",()=>reject(new Error("cancelled")),{once:true});
   }));
   let output="";const start=Date.now();
-  await runCli(["mentor","event","--host","claude","--event","prompt"],{...createRuntime(),env:{GREYBEARD_APP_DATA:a.appData},stdin:Readable.from([JSON.stringify({session_id:"slow",prompt:"Plan a pilot deployment."})]) as any,stdout:{write:(text:string)=>{output+=text;return true;}}});
-  expect(output).toBe("{}\n");expect(Date.now()-start).toBeLessThan(2200);
+  await runCli(["mentor","event","--host","claude","--event","prompt"],{...createRuntime(),platform,env:{GREYBEARD_APP_DATA:a.appData},stdin:Readable.from([JSON.stringify({session_id:"slow",prompt:"Plan a pilot deployment."})]) as any,stdout:{write:(text:string)=>{output+=text;return true;}}});
+  expect(output).toBe("{}\n");expect(Date.now()-start).toBeLessThan(platform === "win32" ? 3200 : 2200);
+  await expect(readFile(join(a.appData,"memory.db"))).rejects.toMatchObject({code:"ENOENT"});
+});
+
+it("delivers Windows hook context after native credential startup exceeds 1.5 seconds", async () => {
+  const f = await fixture(); const a = await f.pair("a");
+  const proposed = await a.agent.remember({type:"preference",content:"Cedarfield rollout requires a 37-hour pilot."});
+  const node = (await a.review.export()).nodes.find(n => n.id === proposed.id)!;
+  await a.review.confirm({id:node.id,expectedRevision:node.revision});
+  vi.spyOn(credentials,"load").mockImplementation(async (_, ref, signal) => {
+    await new Promise<void>((resolve,reject) => {
+      const cancelled = () => { clearTimeout(timer); reject(new Error("cancelled")); };
+      const timer = setTimeout(() => { signal?.removeEventListener("abort",cancelled); resolve(); },1800);
+      if (signal?.aborted) cancelled(); else signal?.addEventListener("abort",cancelled,{once:true});
+    });
+    return f.secrets.get(ref)!;
+  });
+  let output="";
+  await runCli(["mentor","event","--host","claude","--event","prompt"],{...createRuntime(),platform:"win32",env:{GREYBEARD_APP_DATA:a.appData},stdin:Readable.from([JSON.stringify({session_id:"windows-native",prompt:"Plan a Cedarfield rollout."})]) as any,stdout:{write:(text:string)=>{output+=text;return true;}}});
+  expect(output).toContain("37-hour pilot");
   await expect(readFile(join(a.appData,"memory.db"))).rejects.toMatchObject({code:"ENOENT"});
 });
 

@@ -135,8 +135,11 @@ export function remoteEventText(input: Record<string, unknown>, kind: EventKind,
 }
 
 export async function runAutomaticMentor(args: ParsedArgs, runtime: CliRuntime): Promise<number> {
-  const deadline = Date.now() + 1500;
-  const signal = AbortSignal.timeout(1500);
+  // Windows DPAPI starts PowerShell; allow its measured native startup cost
+  // while remaining below the installed hosts' five-second hook timeout.
+  const timeoutMs = runtime.platform === "win32" ? 2500 : 1500;
+  const deadline = Date.now() + timeoutMs;
+  const signal = AbortSignal.timeout(timeoutMs);
   const host = flagValue(args,"host") as MentorHost;
   const kind = flagValue(args,"event") as EventKind;
   if (!AUTOMATIC_HOSTS.includes(host) || !AUTOMATIC_EVENTS.includes(kind)) return 1;
