@@ -2,6 +2,7 @@
 
 ## Unreleased improvements to 0.1
 
+- Upgrade skill links from previous packaged builds automatically. Show exact integration conflicts, offer reviewed backup-and-reconnect repair, and allow continuing setup with unresolved tools.
 - Guide first launch through automatic tool discovery, one-button learning setup, verified per-tool results and a first-conversation prompt. Keep memory review and optional infrastructure separate from setup.
 
 - Use the approved Greybeard logo for application icons and a compact Retina Mac installer layout with clear drag-to-Applications guidance.

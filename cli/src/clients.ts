@@ -1,6 +1,6 @@
 import { withClientConfigLock, writeClientConfigAtomic } from "./clientConfigFile.js";
 import { lstat, mkdir, readFile, readdir, readlink, realpath, symlink, unlink } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { getGreybeardAppDataPath, type ServerPackageSource, type ServerUpdateMode } from "@greybeard/graph";
 import { toPortablePath } from "./portablePath.js";
 import { CliRuntime, runtimeCommand } from "./runtime.js";
@@ -1167,6 +1167,7 @@ async function wireSkillsToDir(
       source: source.path,
       target,
       name: source.name,
+      runtime,
       platform: runtime.platform
     }));
   }
@@ -1231,6 +1232,7 @@ async function ensureSkillLink(params: {
   source: string;
   target: string;
   name: string;
+  runtime: CliRuntime;
   platform: NodeJS.Platform;
 }): Promise<SkillWireEntry> {
   const existing = await lstatOrNull(params.target);
@@ -1256,6 +1258,13 @@ async function ensureSkillLink(params: {
       };
     }
 
+    if (await isPreviousRuntimeSkill(params.runtime, resolved, params.source)) {
+      // Only replace the link, never remove files from an older runtime.
+      await unlink(params.target);
+      try { await symlink(params.source, params.target, params.platform === "win32" ? "junction" : "dir"); }
+      catch (error) { await symlink(resolved, params.target, params.platform === "win32" ? "junction" : "dir"); throw error; }
+      return { name: params.name, source: params.source, target: params.target, status: "replaced-stale-symlink" };
+    }
     return { name: params.name, source: params.source, target: params.target, status: "blocked", message: "Existing symlink points elsewhere; preserved." };
   }
 
@@ -1266,6 +1275,22 @@ async function ensureSkillLink(params: {
     status: "blocked",
     message: "Target exists and is not a symlink. Greybeard will not overwrite it."
   };
+}
+
+async function isPreviousRuntimeSkill(runtime: CliRuntime, previous: string, source: string): Promise<boolean> {
+  if (!runtime.packaged || !runtime.env.GREYBEARD_APP_DATA) return false;
+  const cache = resolve(runtime.env.GREYBEARD_APP_DATA, "runtime");
+  if (dirname(resolve(runtime.repoRoot)) !== cache || !/^[a-f0-9]{64}$/u.test(basename(runtime.repoRoot))) return false;
+  const parts = relative(cache, previous).split(sep);
+  if (!/^[a-f0-9]{64}$/u.test(parts[0]) || parts.slice(1).join(sep) !== relative(runtime.repoRoot, source)) return false;
+  // SEA owns this exact cache namespace. Reject redirected cache ancestors.
+  for (const path of [cache, join(cache, parts[0])]) {
+    const info = await lstatOrNull(path);
+    if (!info) continue; // An old runtime may already have been cleaned up.
+    if (!info.isDirectory() || info.isSymbolicLink()) return false;
+    if (process.platform !== "win32" && (info.uid !== process.getuid!() || (info.mode & 0o022) !== 0)) return false;
+  }
+  return true;
 }
 
 async function inspectSkillLink(name: string, source: string, target: string): Promise<SkillWireEntry> {

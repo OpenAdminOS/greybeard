@@ -1,7 +1,7 @@
 import { _electron as electron, expect } from '@playwright/test';
 import { mkdtemp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 const home = await mkdtemp(join(tmpdir(), 'greybeard-first-run-'));
 const data = join(home, 'data');
 const report = process.env.GREYBEARD_UI_REPORT_DIR;
@@ -13,6 +13,10 @@ try {
   const conflict = join(home, '.agents/skills/change-plan');
   await mkdir(conflict, { recursive: true });
   await writeFile(join(conflict, 'SKILL.md'), 'This skill belongs to the user.');
+  const desktopConfig = join(process.platform === 'win32' ? env.APPDATA : join(home, 'Library/Application Support'), 'Claude/claude_desktop_config.json');
+  await mkdir(dirname(desktopConfig), { recursive: true });
+  const oldDesktop = JSON.stringify({ preference: 'keep', mcpServers: { 'greybeard-memory': { command: 'legacy-greybeard', args: [] }, other: { command: 'keep' } } });
+  await writeFile(desktopConfig, oldDesktop);
   app = await electron.launch({ args: [resolve('desktop')], env });
   const window = await app.firstWindow();
   const errors = []; window.on('pageerror', e => errors.push(e.message));
@@ -22,20 +26,34 @@ try {
   await expect(window.locator('#setup-tools')).toContainText('Claude Code');
   await expect(window.locator('#setup-tools')).toContainText('Codex CLI');
   const detected = window.locator('#setup-tools input:not(:disabled)');
-  for (const input of await detected.all()) await input.setChecked(['Claude Code', 'Codex CLI'].includes(await input.inputValue()));
-  await expect(window.locator('#enable-learning')).toHaveText('Enable learning in 2 tools');
+  for (const input of await detected.all()) await input.setChecked(['Claude Code', 'Codex CLI', 'Claude Desktop'].includes(await input.inputValue()));
+  await expect(window.locator('#enable-learning')).toHaveText('Enable learning in 3 tools');
   if (report) { await mkdir(report, { recursive: true }); await window.screenshot({ animations: 'disabled', path: join(report, 'companion-first-run.png') }); }
   await window.locator('#enable-learning').click();
   await expect(window.locator('#finish-title')).toHaveText('Let’s finish connecting your tools.');
-  await expect(window.locator('#finish-setup')).toBeHidden();
+  await expect(window.locator('#finish-setup')).toHaveText('Continue for now');
   await expect(window.locator('#setup-results')).toContainText('Codex CLI · Needs attention');
   await expect(window.locator('#setup-results')).toContainText('Claude Code · Configuration checked');
   expect(await readFile(join(conflict, 'SKILL.md'), 'utf8')).toContain('belongs to the user');
   expect(JSON.parse(await readFile(join(data, 'config.json'), 'utf8')).companionSetupCompleted).not.toBe(true);
-  await rm(conflict, { recursive: true });
-  await window.locator('#retry-setup').click();
-  await window.locator('#enable-learning').click();
+  await window.locator('#setup-results .tool-card').filter({ hasText: 'Codex CLI' }).getByRole('button', { name: 'Review repair' }).click();
+  await expect(window.locator('#repair-dialog')).toBeVisible();
+  await expect(window.locator('#repair-details')).toContainText(conflict);
+  await window.locator('#confirm-repair').click();
+  await expect(window.locator('#repair-dialog')).toBeHidden();
+  const desktopResult = window.locator('#setup-results .tool-card').filter({ hasText: 'Claude Desktop' });
+  await expect(desktopResult).toContainText('Needs attention');
+  await expect(desktopResult).not.toContainText('Memory connection checked.');
+  await desktopResult.getByRole('button', { name: 'Review repair' }).click();
+  await window.locator('#cancel-repair').click();
+  expect(JSON.parse(await readFile(desktopConfig, 'utf8'))).toEqual(JSON.parse(oldDesktop));
+  await desktopResult.getByRole('button', { name: 'Review repair' }).click();
+  await window.locator('#confirm-repair').click();
+  await expect(window.locator('#repair-dialog')).toBeHidden();
   await expect(window.locator('#finish-title')).toHaveText('Your tools are set up.');
+  await expect(desktopResult).toContainText('Memory connection checked.');
+  const newDesktop = JSON.parse(await readFile(desktopConfig, 'utf8'));
+  expect(newDesktop.preference).toBe('keep'); expect(newDesktop.mcpServers.other).toEqual({ command: 'keep' });
   await expect(window.locator('#first-conversation')).toBeVisible();
   // Test the native clipboard bridge without changing the user's actual clipboard.
   await app.evaluate(({ clipboard }) => { clipboard.writeText = text => { globalThis.copiedStarterPrompt = text; }; });
@@ -54,5 +72,5 @@ try {
   await expect(reopened.locator('#workspace')).toBeVisible();
   await expect(reopened.locator('#onboarding')).toBeHidden();
   expect(errors).toEqual([]);
-  console.log('Actual first-run flow passed: discovery, selection, partial failure, preserved user skill, retry, verified configuration, prompt copy, workspace and returning launch.');
+  console.log('Actual first-run flow passed: discovery, selection, partial failure, preserved user skill, reviewed backup and repair, verified configuration, prompt copy, workspace and returning launch.');
 } finally { if (app) await app.close(); await rm(home, { recursive: true, force: true }); }

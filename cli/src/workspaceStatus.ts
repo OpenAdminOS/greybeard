@@ -23,6 +23,7 @@ export async function inspectWorkspace(runtime: CliRuntime, appDataPath: string)
     const adapter = getClientAdapter(client.name);
     const issues: string[] = [];
     let configured = false;
+    let memoryReady = false;
     let manualSkills = false;
     try {
       const mcp = await adapter.inspectMcpConfig(bound, serverOptionsFromConfig(config));
@@ -31,17 +32,21 @@ export async function inspectWorkspace(runtime: CliRuntime, appDataPath: string)
       if (mcp.configured) {
         const text = await readFile(mcp.path, "utf8");
         const entry = client.name === "Codex CLI" ? extractTomlTable(text, "mcp_servers.greybeard-memory") : JSON.stringify(JSON.parse(text).mcpServers?.["greybeard-memory"]);
-        if (!entry || !isGreybeardManagedEntry(findCatalogServer("greybeard-memory")!, entry, runtime.repoRoot)) issues.push("A different memory connection already uses Greybeard's name. Your existing entry was preserved; inspect it before replacing it.");
+        memoryReady = Boolean(entry && isGreybeardManagedEntry(findCatalogServer("greybeard-memory")!, entry, runtime.repoRoot));
+        if (!memoryReady) issues.push("An existing memory connection could not be identified as managed by this installation. Your existing entry was preserved. Review the repair to back it up and reconnect.");
       }
       if (client.detected) {
         const skills = await adapter.inspectSkills(bound);
         manualSkills = skills.channel === "manual-zip";
-        if (!manualSkills && !summarizeSkillWiring(skills).ok) issues.push("Some Greybeard skills are missing or blocked by existing files.");
+        if (!manualSkills && !summarizeSkillWiring(skills).ok) {
+          issues.push("Some Greybeard skills are missing or blocked by existing files.");
+          for (const entry of skills.entries.filter(entry => entry.status === "blocked")) issues.push(`${entry.name}: ${entry.message ?? "Needs setup"} (${entry.target})`);
+        }
         if (adapter.inspectFallback && !(await adapter.inspectFallback(bound)).configured) issues.push("Greybeard's tool instructions need setup.");
         if (adapter.ambientChannel === "memory-hook" && config.memoryHook !== false && !(await inspectClaudeMemoryHook(bound)).configured) issues.push("The advisory hook needs setup.");
       }
     } catch { issues.push("Could not inspect this integration. Run installation checks or try setup again."); }
-    return { name: client.name, detected: client.detected, configured, ready: client.detected && configured && issues.length === 0, issues,
+    return { name: client.name, detected: client.detected, configured, memoryReady, ready: client.detected && configured && issues.length === 0, issues,
       configPath: client.userConfigPath, channel: adapter.ambientChannel, manualSkills,
       guidance: adapter.ambientChannel === "memory-hook" ? "Command advice and remembered lessons. Advice does not block commands."
         : adapter.ambientChannel === "none-manual" ? "Memory tools are available when requested. Skills need a separate manual import."

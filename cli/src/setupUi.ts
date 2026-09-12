@@ -6,6 +6,7 @@ import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig,
 import { companionPage } from "./companionUi.js";
 import { discoveryRuntime, inspectWorkspace } from "./workspaceStatus.js";
 import { MemoryService } from "@greybeard/memory";
+import { previewSetupRepair, repairSetup } from "./setupRepair.js";
 import { detectAllClients } from "./clients.js";
 import { flagValue, parseArgs, type ParsedArgs } from "./args.js";
 import { readBoundedInput } from "./mentor.js";
@@ -19,6 +20,7 @@ function sameSecret(actual: string, expected: string): boolean {
 export async function startSetupUi(runtime: CliRuntime, appDataPath: string, options: { desktop?: boolean } = {}): Promise<{ server: Server; url: string }> {
   if (options.desktop) runtime = discoveryRuntime(runtime);
   let setupInProgress = false;
+  let repairPreview: { id: string; plan: Awaited<ReturnType<typeof previewSetupRepair>> } | undefined;
   const session = randomBytes(32).toString("hex");
   const nonce = randomBytes(24).toString("base64");
   let origin = "";
@@ -78,6 +80,23 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
           const configured = code === 0 && selected.every(name => tools.some(tool => tool.name === name && tool.ready));
           if (configured) await updateGreybeardConfig(appDataPath, current => ({ ...current, companionSetupCompleted: true, ...(body.enableLearning === true ? { learningEnabled: true } : {}) }));
           result = { configured, tools, selected, ...(setupError ? { error: setupError } : {}), message: configured ? "Configuration checked. Restart your selected AI tools to load Greybeard." : "Some integrations need attention. Successful integrations have been kept; retry after fixing the listed issues." };
+        } finally { setupInProgress = false; }
+      } else if (path === "/repair-preview") {
+        if (setupInProgress) return fail(409, "Wait for setup to finish.");
+        const client = (await detectAllClients(runtime)).find(client => client.detected && client.name === body.client);
+        if (!client) return fail(400, "Choose an installed tool.");
+        const plan = await previewSetupRepair(runtime, client.name);
+        repairPreview = { id: randomBytes(24).toString("hex"), plan };
+        result = { id: repairPreview.id, client: plan.client, configPath: plan.configPath, skills: plan.skills.map(skill => ({ name: skill.name, path: skill.path, reason: skill.reason })) };
+      } else if (path === "/repair") {
+        if (setupInProgress) return fail(409, "Wait for setup to finish.");
+        if (!repairPreview || body.id !== repairPreview.id) return fail(409, "Review this tool's repair before confirming it.");
+        const preview = repairPreview.plan;
+        repairPreview = undefined;
+        setupInProgress = true;
+        try {
+          result = await repairSetup(runtime, appDataPath, preview);
+          result = { ...result as object, tools: await inspectWorkspace(runtime, appDataPath) };
         } finally { setupInProgress = false; }
       } else if (path === "/setup-later") {
         if (setupInProgress) return fail(409, "Wait for setup to finish.");
