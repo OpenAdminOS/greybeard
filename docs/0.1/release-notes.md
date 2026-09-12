@@ -2,7 +2,7 @@
 
 **An IT mentor that learns how you work.**
 
-Release tag: `v0.1.0`. Download from the [private GitHub release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) using an account with repository access.
+Release tag: `v0.1.0`. Download from the [GitHub release](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0). These notes describe the earlier published executable. The current source includes the newer [desktop companion](companion.md), which requires a separate signed installer publication.
 
 ## Included
 
@@ -28,7 +28,6 @@ Verify the asset checksum, move the executable to its permanent location, then l
 
 ## Current limits
 
-- This is a private repository release, not a public unauthenticated download. Browser download needs GitHub access; terminal download can use an already authenticated GitHub CLI.
 - The Mac release workflow requires signed, notarized, stapled app and DMG delivery. DMG metadata identifies the unchanged released runtime separately from the packaging source. The original Mac CLI archive remains available.
 - Windows tenant connection is unavailable until a protected credential provider is implemented. Local mentor functionality is available without it.
 - There is no configured automatic-update feed. Notify is the default setting, but install later versions by verified manual replacement. Windows automatic replacement is not implemented. Mac updates replace the complete app bundle to preserve its signature.

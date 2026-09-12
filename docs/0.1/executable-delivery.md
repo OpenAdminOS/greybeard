@@ -2,13 +2,13 @@
 
 Current companion implementation supersedes the earlier delivery and backlog status below. See [the companion flow](companion.md) and [recommendation coverage](reviews/implementation-coverage.md).
 
-The release tag is `v0.1.0`; the application displays **0.1**. The repository remains private. Open the [release page](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0) while signed into a GitHub account with access.
+The release tag is `v0.1.0`; the application displays **0.1**. Open the [release page](https://github.com/OpenAdminOS/greybeard/releases/tag/v0.1.0). The instructions below describe the earlier published executable, not the current companion installer candidates.
 
 Greybeard runs from one executable. It includes the runtime, application, SQLite library, skills, and logo. You do not install Node, npm, Git, or a source checkout. Its extracted runtime assets, settings, and memory database live in application data.
 
 ## Windows x64
 
-1. Download `greybeard-win32-x64.exe` and `SHA256SUMS.txt` from the authenticated release.
+1. Download `greybeard-win32-x64.exe` and `SHA256SUMS.txt` from the same release.
 2. In PowerShell, display the downloaded executable's checksum and compare it with the matching line in `SHA256SUMS.txt`:
 
    ```powershell
@@ -32,7 +32,7 @@ Windows supports local mentor setup. Tenant connection and automatic executable 
 
 Requires macOS 14 or later.
 
-1. Download `greybeard-darwin-arm64.dmg` and `SHA256SUMS.txt` from the authenticated release.
+1. Download `greybeard-darwin-arm64.dmg` and `SHA256SUMS.txt` from the same release.
 2. In Terminal, compare the disk image checksum with its line in `SHA256SUMS.txt`:
 
    ```sh
@@ -53,9 +53,9 @@ The release workflow requires Developer ID signing and Apple notarization for th
 
 ## Terminal installer
 
-The optional installers put the application in a stable location and run terminal setup. They require the expected SHA-256 from the authenticated release. The release tag defaults to `v0.1.0`.
+The optional installers put the application in a stable location and run terminal setup. They require the expected SHA-256 from the same release. The release tag defaults to `v0.1.0`.
 
-For the private download, use an already authenticated GitHub CLI with repository access, or download the asset in your browser and set `GREYBEARD_RELEASE_FILE`. GitHub CLI is optional; the manual installation above requires no package manager. [GitHub CLI release download reference](https://cli.github.com/manual/gh_release_download).
+Use GitHub CLI to download, or download the asset in your browser and set `GREYBEARD_RELEASE_FILE`. GitHub CLI is optional; the manual installation above requires no package manager. [GitHub CLI release download reference](https://cli.github.com/manual/gh_release_download).
 
 After downloading `install.sh` from the same release, macOS or Linux users can run:
 
@@ -140,7 +140,7 @@ The workflow verifies Apple Team ID `D259ULY2B4`, signs the embedded SQLite libr
 
 To add a DMG around the already published 0.1 runtime, also set `dmg-only=true`. This mode downloads and verifies the pinned original archive and executable hashes without rebuilding the runtime or moving `v0.1.0`. Its metadata records `softwareSourceSha` for the released runtime and `packagingSourceSha` for the app launcher and packaging workflow. The original archive and its metadata remain available for reproducibility. Workflow artifacts are reviewed and then uploaded to the GitHub release; workflow dispatch alone does not publish them.
 
-The OpenAdminOS organization currently uses GitHub Free, so this private repository uses repository-level signing secrets. Organization secrets are not available to private repositories on that plan.
+Signing workflows use repository-level Actions secrets. Repository visibility does not make stored Actions secret values readable.
 
 Stored GitHub secret values cannot be read back through the API. Add the original values to this repository's Actions secrets; a secret stored in another repository is not automatically available here. Keep certificates, private keys, and passwords out of commits and release assets.
 
