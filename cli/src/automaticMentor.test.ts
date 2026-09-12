@@ -132,3 +132,26 @@ it("retrieves the user task from Gemini's native session-context prefix and igno
     expect(candidates).toHaveLength(1);expect(candidates[0].content).toContain("recovery owner");
   } finally {service.close();await rm(appData,{recursive:true,force:true});}
 });
+
+
+it("upgrades visible Windows hook wrappers without duplicating hooks or altering foreign commands", async () => {
+  const home = await mkdtemp(join(tmpdir(), "greybeard-windows-hooks-"));
+  const runtime = { ...createRuntime(), platform: "win32" as const, homeDir: home, env: { GREYBEARD_APP_DATA: join(home, "data") } };
+  try {
+    await writeAutomaticHooks(runtime, "cursor");
+    const path = automaticHookPath(runtime, "cursor");
+    const config = JSON.parse(await readFile(path, "utf8"));
+    expect(config.hooks.beforeSubmitPrompt[0].command).toContain("-WindowStyle Hidden");
+    for (const handlers of Object.values(config.hooks) as Array<Array<{ command: string }>>) {
+      for (const handler of handlers) handler.command = handler.command.replace(" -WindowStyle Hidden", "");
+    }
+    config.hooks.beforeSubmitPrompt.push({ command: "echo preserve-user-hook" });
+    await writeFile(path, JSON.stringify(config));
+    await writeAutomaticHooks(runtime, "cursor");
+    const updated = JSON.parse(await readFile(path, "utf8"));
+    expect(updated.hooks.beforeSubmitPrompt).toHaveLength(2);
+    expect((await inspectAutomaticHooks(runtime, "cursor")).configured).toBe(true);
+    await removeAutomaticHooks(runtime, "cursor");
+    expect(JSON.parse(await readFile(path, "utf8")).hooks).toEqual({ beforeSubmitPrompt: [{ command: "echo preserve-user-hook" }] });
+  } finally { await rm(home, { recursive: true, force: true }); }
+});

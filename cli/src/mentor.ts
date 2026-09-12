@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, open, readdir, unlink, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { getGreybeardAppDataPath, readGreybeardConfig } from "@greybeard/graph";
 import { MemoryService } from "@greybeard/memory";
 import { flagValue, type ParsedArgs } from "./args.js";
@@ -33,10 +34,14 @@ export function supportedAction(event: Record<string, unknown>): { query: string
 export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes = 16_384): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = "";
+    let bytes = 0;
+    const decoder = new StringDecoder("utf8");
     const timer = setTimeout(() => finish(new Error("Input timed out.")), 1500);
     const onData = (chunk: Buffer | string) => {
-      body += chunk.toString();
-      if (Buffer.byteLength(body) > maxBytes) finish(new Error("Input exceeds limit."));
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytes += buffer.length;
+      if (bytes > maxBytes) { finish(new Error("Input exceeds limit.")); return; }
+      body += decoder.write(buffer);
     };
     const onEnd = () => finish();
     const onError = (error: Error) => finish(error);
@@ -45,7 +50,9 @@ export async function readBoundedInput(stream: NodeJS.ReadableStream, maxBytes =
       stream.removeListener("data", onData);
       stream.removeListener("end", onEnd);
       stream.removeListener("error", onError);
-      if (error) { stream.pause(); reject(error); } else resolve(body);
+      // Cursor on Windows prefixes JSON with a UTF-8 BOM. Decode complete code
+      // points across stream chunks and remove only the leading transport marker.
+      if (error) { stream.pause(); reject(error); } else resolve((body + decoder.end()).replace(/^\uFEFF/u, ""));
     }
     stream.on("data", onData); stream.once("end", onEnd); stream.once("error", onError);
   });

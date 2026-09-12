@@ -1,0 +1,90 @@
+[
+  {
+    "id": 35,
+    "host": "cursor",
+    "event": "prompt",
+    "status": "companion",
+    "bytes": 0,
+    "memory_ids": "[1]",
+    "rule_ids": "[]",
+    "candidate_id": 2,
+    "diagnostic": null
+  },
+  {
+    "id": 37,
+    "host": "cursor",
+    "event": "stop",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 39,
+    "host": "cursor",
+    "event": "prompt",
+    "status": "companion",
+    "bytes": 0,
+    "memory_ids": "[1]",
+    "rule_ids": "[]",
+    "candidate_id": 3,
+    "diagnostic": null
+  },
+  {
+    "id": 42,
+    "host": "cursor",
+    "event": "after-tool",
+    "status": "context",
+    "bytes": 705,
+    "memory_ids": "[1]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 43,
+    "host": "cursor",
+    "event": "stop",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 45,
+    "host": "cursor",
+    "event": "prompt",
+    "status": "companion",
+    "bytes": 0,
+    "memory_ids": "[1]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 49,
+    "host": "cursor",
+    "event": "after-tool",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 50,
+    "host": "cursor",
+    "event": "tool",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "rule_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  }
+]

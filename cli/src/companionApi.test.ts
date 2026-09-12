@@ -37,6 +37,14 @@ it("authenticates local companion actions and preserves exact confirmation and c
     expect(memories.find((n: { id: number }) => n.id === node.id).supersededAt).toBe(null);
     expect(memories[0].evidenceKind).toBe("rule");
     expect((await call("/summary")).data).toEqual({ active: 2, confirmed: 1, candidates: 1 });
+    expect((await call("/memory-map", {}, { "x-greybeard-session": "wrong" })).status).toBe(403);
+    expect((await call("/memory-map", { memoryTenant: "unconfigured-tenant" })).status).toBe(400);
+    const map = (await call("/memory-map", { memoryTenant: "local" })).data;
+    expect(map).toMatchObject({ tenant: "local", profileId: "local", total: 2, matched: 2 });
+    expect(map.nodes).toHaveLength(2);
+    expect(map.edges).toEqual([{ source: memories[0].id, target: node.id, relation: "corrects", weight: 1, kind: "correction" }]);
+    expect((await call("/memory-map", { status: "confirmed" })).data.edges).toEqual([]);
+
     expect((await call("/capability-preview")).data.configured).toBe(false);
     await call("/pause", { paused: true });
     expect((await call("/outcome", { lesson: "Review rollout evidence", outcome: "Helpdesk identified a kiosk issue." })).status).toBe(400);

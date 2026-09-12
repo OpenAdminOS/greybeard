@@ -6,6 +6,7 @@ import { APPLICATION_CAPABILITIES, getGreybeardAppDataPath, readGreybeardConfig,
 import { companionPage } from "./companionUi.js";
 import { discoveryRuntime, inspectWorkspace, readAutomaticActivity } from "./workspaceStatus.js";
 import { AutomaticMentorStore, MemoryService } from "@greybeard/memory";
+import { buildMemoryMap } from "./memoryMapData.js";
 import { previewSetupRepair, repairSetup } from "./setupRepair.js";
 import { detectAllClients } from "./clients.js";
 import { flagValue, parseArgs, type ParsedArgs } from "./args.js";
@@ -168,7 +169,8 @@ export async function startSetupUi(runtime: CliRuntime, appDataPath: string, opt
           const node = (await service.export()).nodes.find(n => n.id === body.id);
           if (!node || node.status !== "confirmed" || node.supersededAt !== null) return fail(409, "Correct a current confirmed memory.");
           result = await service.remember({ type: node.type, scope: node.scope, content: body.content, supersedes: node.id, source: "local-ui", evidenceKind: node.evidenceKind, ...(node.observedAt !== null && node.observedAt !== undefined ? { observedAt: node.observedAt } : {}), ...(node.outcome ? { outcome: node.outcome } : {}) });
-        } else if (path === "/export") result = await service.export();
+        } else if (path === "/memory-map") result = buildMemoryMap(await service.export(), body);
+        else if (path === "/export") result = await service.export();
         else return fail(404, "Unknown action.");
       }
       response.writeHead(200, { "Content-Type": "application/json" }); response.end(JSON.stringify(result));

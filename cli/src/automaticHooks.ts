@@ -34,7 +34,7 @@ function shellCommand(words: string[], platform: NodeJS.Platform) {
   if (platform !== "win32") return words.map(quotePosix).join(" ");
   // Windows hosts use different shells. An explicit PowerShell process makes the launch consistent.
   const script = "& " + words.map(quotePowerShell).join(" ");
-  return "powershell.exe -NoProfile -NonInteractive -EncodedCommand " + Buffer.from(script,"utf16le").toString("base64");
+  return "powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand " + Buffer.from(script,"utf16le").toString("base64");
 }
 function definition(runtime: CliRuntime,host: MentorHost,event: string): RecordValue {
   const call = runtimeCommand(runtime,["mentor","event","--host",host,"--event",event,"--app-data",runtime.env.GREYBEARD_APP_DATA!,"--profile",runtime.env.GREYBEARD_PROFILE_ID || "local","--tenant",runtime.env.GREYBEARD_TENANT_ID || "local",OWNER]);
@@ -48,7 +48,7 @@ function owned(value: unknown): boolean {
   if (Array.isArray(value.args) && value.args.at(-1) === OWNER && value.args.includes("mentor") && value.args.includes("event")) return true;
   if (typeof value.command !== "string") return false;
   let command = value.command;
-  const encoded = /^powershell\.exe -NoProfile -NonInteractive -EncodedCommand ([A-Za-z0-9+/=]+)$/u.exec(command);
+  const encoded = /^powershell\.exe -NoProfile -NonInteractive(?: -WindowStyle Hidden)? -EncodedCommand ([A-Za-z0-9+/=]+)$/u.exec(command);
   if (encoded) command = Buffer.from(encoded[1],"base64").toString("utf16le");
   return command.endsWith(quotePosix(OWNER)) && /['"]mentor['"] ['"]event['"]/u.test(command);
 }

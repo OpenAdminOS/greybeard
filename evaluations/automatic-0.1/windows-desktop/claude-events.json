@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 2,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 3,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 4,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 5,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 6,
+    "host": "claude",
+    "event": "prompt",
+    "status": "context",
+    "bytes": 616,
+    "memory_ids": "[]",
+    "candidate_id": 1,
+    "diagnostic": null
+  },
+  {
+    "id": 7,
+    "host": "claude",
+    "event": "stop",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 8,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 9,
+    "host": "claude",
+    "event": "start",
+    "status": "context",
+    "bytes": 450,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 10,
+    "host": "claude",
+    "event": "prompt",
+    "status": "context",
+    "bytes": 705,
+    "memory_ids": "[1]",
+    "candidate_id": null,
+    "diagnostic": null
+  },
+  {
+    "id": 11,
+    "host": "claude",
+    "event": "stop",
+    "status": "quiet",
+    "bytes": 0,
+    "memory_ids": "[]",
+    "candidate_id": null,
+    "diagnostic": null
+  }
+]

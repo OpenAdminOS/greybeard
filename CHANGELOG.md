@@ -2,6 +2,10 @@
 
 ## Unreleased improvements to 0.1
 
+- Add a local Memory map with a rotatable perspective globe, recorded sources and correction links, a saved-time filter, exact-text details and an accessible flat view. Filter before applying the visible-memory limit; retain the existing review controls.
+- Accept Cursor's Windows UTF-8 byte-order marker and preserve Unicode across input chunks. Run Windows mentoring wrappers with a hidden window and upgrade existing wrappers without duplicating user hooks.
+- Verify real Claude Desktop Code learning and later recall on Windows, plus Cursor automatic proposals, native companion notifications and post-tool context delivery.
+
 - Keep first-run navigation synchronized with the initial tool scan so a slow response cannot return the user to setup after they choose to explore.
 
 - Match the Windows companion notification identity to its installer shortcut. Extend native hook transport verification to Claude Code.

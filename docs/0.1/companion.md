@@ -19,6 +19,14 @@ Overview presents the next useful step. AI tools manages integrations and rescan
 
 The companion labels local configuration checks separately from a running host connection. It cannot silently restart an AI tool or guarantee a host will apply advice. No memory control changes tenant configuration, and no continuous model or desktop observer is introduced.
 
+## Memory map
+
+Memory map is a second view of the selected local memory environment. Rotate the globe with a pointer or arrow keys, select a memory, and inspect its exact text, saved/confirmed/last-used/observed timestamps, source, scope and recorded connections. The memory list below the globe and Flat view provide keyboard access without rotation. Review and editing remain in Your memory.
+
+Solid lines show stored relationships or correction references. Pending replacements are labeled as proposals. Dashed lines connect records to their recorded source. Globe positions are visual layout, not geographic locations or inferred semantic similarity. A generic MCP source remains “AI tool · host not recorded”; the map never invents missing host provenance. Storage means this computer's selected profile, not a cloud destination.
+
+Search, source and status filters run before the 200/500/1,000-record limit. The count shows when results are truncated. The timeline filters the loaded records by saved date; narrowing the search or increasing the limit may be necessary to see older history. Refresh reloads the selected environment; forgetting removes the record and its visible links on the next load. Profile changes clear old map data. No graph service, model call, telemetry or continuously running animation is introduced.
+
 ## Installation and CLI
 
 The application includes its CLI. On Mac it remains at `Greybeard.app/Contents/MacOS/greybeard`; on Windows it is in `resources/bin/greybeard.exe` under the installed app. The app configures MCP clients with that persistent path. CLI `greybeard app`, no arguments, and `greybeard setup --ui` open the companion. `greybeard setup` remains a terminal flow.

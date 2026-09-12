@@ -4,11 +4,31 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { describe, it, expect, vi } from "vitest";
 import { readGreybeardConfig, updateGreybeardConfig } from "@greybeard/graph";
-import { MemoryService } from "@greybeard/memory";
+import { MemoryService, AutomaticMentorStore } from "@greybeard/memory";
 import { runCli } from "./index.js";
 import { supportedAction } from "./mentor.js";
 import { startSetupUi } from "./setupUi.js";
 import { type CliRuntime } from "./runtime.js";
+
+it("accepts Cursor's Windows BOM and split UTF-8 without corrupting reviewed preferences", async () => {
+  const f = await fixture();
+  const prompt = "We always require München helpdesk review before Windows rollouts.";
+  const pending = runCli(["mentor", "event", "--host", "cursor", "--event", "prompt"], f.runtime);
+  const input = Buffer.from("\uFEFF" + JSON.stringify({session_id:"cursor-windows-bom",prompt}));
+  for (const byte of input) (f.runtime.stdin as PassThrough).write(Buffer.from([byte]));
+  (f.runtime.stdin as PassThrough).end();
+  expect(await pending).toBe(0);
+  expect(JSON.parse(f.output())).toEqual({});
+  const service = new MemoryService({appDataPath:f.appData});
+  const store = new AutomaticMentorStore(f.appData,"local","local");
+  try {
+    const nodes = (await service.export()).nodes;
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].content).toBe(prompt);
+    expect(nodes[0].status).toBe("candidate");
+    expect(store.summary().recent[0].status).toBe("companion");
+  } finally { service.close(); store.close(); }
+});
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "greybeard-mentor-"));

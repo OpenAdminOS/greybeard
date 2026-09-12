@@ -16,12 +16,14 @@ The first rollout run initially injected 3,150 bytes. After repeated-context sup
 
 [Native transport verification](transport/README.md) now proves actual Gemini and Copilot CLI hook execution, confirmed-lesson delivery and automatic candidate proposals using local synthetic model responses. This is stronger than calling the adapter functions directly, but does not evaluate model reasoning or establish account access. The check found and verified a fix for Gemini's native session-context prefix displacing the user's recall query.
 
+[Windows desktop verification](windows-desktop/README.md) records real Claude Desktop Code conversations and Cursor editor events. Desktop Code automatically proposed a preference, exact companion review confirmed it, and a later conversation used it. Cursor exposed the UTF-8 BOM parsing defect; after the fix its prompt notification, candidate capture and post-tool context delivery passed.
+
 ## External limitations
 
-- Claude Code reached the configured memory connection but model authentication failed: **OAuth session expired and could not be refreshed**. Refresh local Claude authentication before repeating. Desktop Code shares local hooks, but a Desktop Code conversation was not driven here.
+- Claude Code reached the configured memory connection but model authentication failed: **OAuth session expired and could not be refreshed**. Refresh local Claude authentication before repeating. This is the Linux CLI account result; Windows Desktop Code subsequently passed real conversations as recorded above.
 - Gemini CLI 0.59.0 exited with code 41: no authentication method configured in its isolated settings/environment. An authorized Gemini login is needed for a model conversation.
 - Copilot CLI 1.0.83 was denied by account/organization policy and reported third-party MCP disabled. Its saved result includes the exact failure; enable applicable CLI access before retrying. No successful Copilot model call is claimed.
-- Cursor is not installed on this machine. Its documented hook outputs have fixtures; native editor delivery still needs an installed session. Ordinary Claude Desktop Chat has no documented prompt hook and remains MCP-assisted by design.
+- Cursor 3.20.17 now has observed Windows prompt notifications, automatic candidate capture and post-tool context delivery. Mac editor delivery remains unverified. Ordinary Claude Desktop Chat remains MCP-assisted by design.
 
 ## Issues found and addressed
 
@@ -38,8 +40,10 @@ The first rollout run initially injected 3,150 bytes. After repeated-context sup
 
 10. Gemini prepends session-hook output to prompt events: normalization now excludes those native context blocks from user-task retrieval and preference capture, including turn completion. Actual CLI transport and regression checks cover the fix.
 
+11. Cursor on Windows prefixes hook JSON with a UTF-8 BOM. Bounded decoding now strips that transport marker and preserves code points split across chunks. Real editor events pass after the fix.
+
 ## Follow-up verification
 
-Repeat real sessions after the external authentication/policy blockers are resolved, especially Desktop Code and Cursor on the user's Mac and Windows. Verify native notification permissions and open-at-login behavior on those installations. Continue collecting explicit useful/irrelevant feedback and confirmed outcomes before claiming broad reliability or a measured productivity gain.
+Repeat real sessions after the external authentication/policy blockers are resolved, including Desktop Code and Cursor on the user's Mac. Windows Desktop Code and Cursor results are recorded above. Verify native notification permissions and open-at-login behavior on those installations. Continue collecting explicit useful/irrelevant feedback and confirmed outcomes before claiming broad reliability or a measured productivity gain.
 
 Reproduction scripts are under `scripts/evaluate-automatic-*`. They require a built workspace; model runners reference existing authorized authentication without storing credentials. Never point them at production memory.
